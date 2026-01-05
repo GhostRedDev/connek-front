@@ -29,6 +29,7 @@ class _LoginPageState extends State<LoginPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFF1A1D21), // Dark background
         body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
               expandedHeight: MediaQuery.of(context).size.height * 0.40, // Expanded height for effect
@@ -256,9 +257,14 @@ class _LoginPageState extends State<LoginPage> {
       hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
       filled: true,
       fillColor: const Color(0xFF22262B),
+      hoverColor: Colors.white.withOpacity(0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.white24, width: 1.0),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       suffixIcon: suffixIcon,

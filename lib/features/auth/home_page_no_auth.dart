@@ -41,17 +41,16 @@ class _HomePageNoAuthState extends State<HomePageNoAuth> with SingleTickerProvid
         body: Stack(
           children: [
             // Background Image
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: NetworkImage(
-                    'https://fastly.picsum.photos/id/11/2500/1667.jpg?hmac=xxjFJtAPgshYkysU_aqxcrSFxZ8p_hgl003Po3f4r8s',
-                  ),
-                ),
+            SizedBox.expand(
+              child: CachedNetworkImage(
+                imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop', // Tech/Globe background
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: const Color(0xFF1A2342)),
+                errorWidget: (context, url, error) => Container(color: const Color(0xFF1A2342)),
               ),
+            ),
+            // Gradient Overlay
+            SizedBox.expand(
               child: AnimatedBuilder(
                 animation: _controller,
                 builder: (context, child) {
@@ -69,8 +68,8 @@ class _HomePageNoAuthState extends State<HomePageNoAuth> with SingleTickerProvid
                           0,
                         )),
                         end: Alignment.bottomRight.add(Alignment(
-                           0.5 * cos(_controller.value * 2 * pi),
-                           0,
+                          0.5 * cos(_controller.value * 2 * pi),
+                          0,
                         )),
                       ),
                     ),

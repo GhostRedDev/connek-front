@@ -4,7 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/mobile_app_bar_widget.dart';
 import 'widgets/mobile_nav_bar_widget.dart'; // Contains MobileNavBar2Widget
-import 'widgets/search_results_widget.dart';
+import 'widgets/search_result_google_widget.dart';
 
 class SearchPage extends StatefulWidget {
   final String? prompt;
@@ -17,6 +17,14 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   String _currentPrompt = '';
+
+  void _performSearch(String query) {
+    setState(() {
+      _currentPrompt = query;
+    });
+    // In a real app, this would trigger an API call or filter a list
+    print('Searching for: $_currentPrompt');
+  }
 
   @override
   void initState() {
@@ -39,21 +47,20 @@ class _SearchPageState extends State<SearchPage> {
         backgroundColor: const Color(0xFF1A1D21), // bg1Sec
         body: Stack(
           children: [
-            // Main Content (Search Results)
+            // Main Content (Search Grid or Google Widget)
+            // Using SearchResultGoogleWidget as the main view as requested by latest context
             Container(
               width: double.infinity,
               height: double.infinity,
               decoration: const BoxDecoration(
                 color: Color(0xFF1A1D21), // secondaryBackground
               ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SearchResultsWidget(
-                      prompt: _currentPrompt,
-                    ),
-                  ),
-                ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 100, bottom: 80), // Space for headers/nav
+                child: SearchResultGoogleWidget(
+                  // We can pass the search callback down if we modify SearchResultGoogleWidget
+                  // For now, it has its own internal search bar which we should likely lift up or sync
+                ),
               ),
             ),
             
@@ -81,10 +88,10 @@ class _SearchPageState extends State<SearchPage> {
                     height: 90, // Adjusted height
                     color: const Color(0xFF1A1D21).withOpacity(0.8), // navBg with transparency
                     alignment: Alignment.center,
-                    child: const SafeArea(
+                    child: SafeArea(
                       bottom: false,
                       child: MobileAppBarWidget(
-                        enableSearch: true,
+                        enableSearch: false, // Use body search bar instead
                       ),
                     ),
                   ),

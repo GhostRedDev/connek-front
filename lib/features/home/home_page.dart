@@ -24,17 +24,15 @@ class _HomePageState extends State<HomePage> {
         body: Stack(
           children: [
             // Background Image & Gradient
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: NetworkImage(
-                    'https://fastly.picsum.photos/id/11/2500/1667.jpg?hmac=xxjFJtAPgshYkysU_aqxcrSFxZ8p_hgl003Po3f4r8s',
-                  ),
-                ),
+            SizedBox.expand(
+              child: CachedNetworkImage(
+                imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop', // Tech/Globe background
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: Theme.of(context).scaffoldBackgroundColor),
+                errorWidget: (context, url, error) => Container(color: Theme.of(context).primaryColor),
               ),
+            ),
+            SizedBox.expand(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

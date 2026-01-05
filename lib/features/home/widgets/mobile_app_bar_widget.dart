@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'search_bar_widget.dart';
+import 'login_dropdown_button.dart';
 
 class MobileAppBarWidget extends StatelessWidget {
   final bool bgTrans;
@@ -50,12 +51,9 @@ class MobileAppBarWidget extends StatelessWidget {
                         ),
                       ),
               ),
-               IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
-                onPressed: () {
-                  // TODO: Notifications
-                },
-              ),
+               const SizedBox(width: 8),
+               // Replaced Notification Icon with Login Button
+               const LoginDropdownButton(),
             ],
           ),
         ),
