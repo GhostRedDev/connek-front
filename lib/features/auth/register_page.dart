@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/auth/supabase_auth_manager.dart'; // Ensure this matches your project structure
+
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

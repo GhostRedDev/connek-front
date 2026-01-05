@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'search_bar_widget.dart';
 
 class MobileAppBarWidget extends StatelessWidget {
