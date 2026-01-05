@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -46,57 +45,45 @@ class SearchResultGoogleCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Rating Badge
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5), // neutralAlpha50
-                          borderRadius: BorderRadius.circular(50),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6), // Simpler, performant opacity
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star, color: Color(0xFFFFF59D), size: 20), // yellow200
+                        const SizedBox(width: 5),
+                        Text(
+                          '5.0',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Color(0xFFFFF59D), size: 20), // yellow200
-                            const SizedBox(width: 5),
-                            Text(
-                              '5.0',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                   // Website Badge
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5), // neutralAlpha50
-                          borderRadius: BorderRadius.circular(50),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6), // Simpler, performant opacity
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.language, color: Colors.white, size: 20), // workspaces replacement
+                        const SizedBox(width: 5),
+                        Text(
+                          'Website',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.language, color: Colors.white, size: 20), // workspaces replacement
-                            const SizedBox(width: 5),
-                            Text(
-                              'Website',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
