@@ -4,11 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 class SearchBarWidget extends StatefulWidget {
   final Function(String) onSubmitted;
   final String? initialValue;
+  final String? hintText;
 
   const SearchBarWidget({
     super.key,
     required this.onSubmitted,
     this.initialValue,
+    this.hintText,
   });
 
   @override
@@ -56,7 +58,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           cursorColor: Colors.white,
           decoration: InputDecoration(
             isDense: true,
-            hintText: 'Busca un servicio o empresa',
+            hintText: widget.hintText ?? 'Busca un servicio o empresa',
             hintStyle: GoogleFonts.inter(
               color: Colors.white70,
               fontWeight: FontWeight.w400,

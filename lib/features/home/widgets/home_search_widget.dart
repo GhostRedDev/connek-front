@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeSearchWidget extends StatelessWidget {
   const HomeSearchWidget({super.key});
@@ -38,25 +39,31 @@ class HomeSearchWidget extends StatelessWidget {
           const SizedBox(height: 32),
           
           // Search Bar
-          TextField(
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Search...',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-              fillColor: const Color(0xFF1E1E1E), // Dark background
-              filled: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Colors.blue, width: 2), // Blue border
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
+          // We wrap in GestureDetector to navigate to the dedicated SearchPage on tap
+          GestureDetector(
+            onTap: () => context.push('/search'),
+            child: AbsorbPointer( // Prevent internal focus so tap works
+              child: TextField(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                  fillColor: const Color(0xFF1E1E1E), // Dark background
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2), // Blue border
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  ),
+                ),
               ),
             ),
           ),
@@ -67,7 +74,7 @@ class HomeSearchWidget extends StatelessWidget {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => context.push('/search'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E1E1E), // Dark button
                     foregroundColor: Colors.white,

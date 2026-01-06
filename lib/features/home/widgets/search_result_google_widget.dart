@@ -45,10 +45,8 @@ class SearchResultGoogleWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   SearchBarWidget(
+                    hintText: 'Busca un servicio o empresa',
                     onSubmitted: (val) {
-                      // print('Search Google widget submitted: $val'); 
-                      // In a real app, this would use a provider or callback. 
-                      // For visual functionality as requested, we can suggest a loading state or just log.
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Buscando: $val...'),

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -66,36 +65,24 @@ class _SearchPageState extends State<SearchPage> {
             
             // Bottom Nav Bar
             Align(
-              alignment: Alignment.bottomCenter,
+              alignment: const AlignmentDirectional(0, 1),
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: SizedBox(
+                padding: const EdgeInsetsDirectional.fromSTEB(0, 0, 0, 16),
+                child: Container(
                   width: double.infinity,
-                  height: 67,
+                  height: 90, // Increased height for floating dock
+                  decoration: const BoxDecoration(),
                   child: const MobileNavBar2Widget(),
                 ),
               ),
             ),
 
-            // Top App Bar with Blur
+            // Top App Bar with Blur (Handled internally by widget now)
             Align(
               alignment: Alignment.topCenter,
-              child: ClipRRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(
-                    width: double.infinity,
-                    height: 90, // Adjusted height
-                    color: const Color(0xFF1A1D21).withOpacity(0.8), // navBg with transparency
-                    alignment: Alignment.center,
-                    child: SafeArea(
-                      bottom: false,
-                      child: MobileAppBarWidget(
-                        enableSearch: false, // Use body search bar instead
-                      ),
-                    ),
-                  ),
-                ),
+              child: MobileAppBarWidget(
+                bgTrans: true,
+                enableSearch: false,
               ),
             ),
           ],

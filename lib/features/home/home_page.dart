@@ -54,8 +54,6 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  MobileAppBarWidget(bgTrans: true),
-                  SizedBox(height: 10),
                   Expanded(
                     child: Padding(
                       padding: EdgeInsetsDirectional.fromSTEB(10, 0, 10, 0),
@@ -64,18 +62,25 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(height: 10),
                   Align(
-                    alignment: AlignmentDirectional.bottomCenter,
+                    alignment: const AlignmentDirectional(0, 1),
                     child: Padding(
                       padding: const EdgeInsetsDirectional.fromSTEB(0, 0, 0, 16),
-                      child: SizedBox(
+                      child: Container(
                         width: double.infinity,
-                        height: 67,
-                        child: MobileNavBar2Widget(),
+                        height: 90, // Increased for floating dock
+                        decoration: const BoxDecoration(),
+                        child: const MobileNavBar2Widget(),
                       ),
                     ),
                   ),
                 ],
               ),
+            ),
+            
+            // Top App Bar
+            Align(
+              alignment: Alignment.topCenter,
+              child: MobileAppBarWidget(bgTrans: true),
             ),
           ],
         ),
