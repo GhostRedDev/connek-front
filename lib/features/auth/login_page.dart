@@ -266,6 +266,7 @@ class _LoginPageState extends State<LoginPage> {
                       label: 'Sign in with Google',
                       icon: Icons.g_mobiledata,
                       color: Colors.white,
+                      onPressed: _googleSignIn,
                     ),
                     const SizedBox(height: 16),
                      // Apple Sign In
@@ -336,11 +337,26 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildSocialButton({required String label, required IconData icon, required Color color}) {
+  Future<void> _googleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.connek://login',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign In Failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildSocialButton({required String label, required IconData icon, required Color color, VoidCallback? onPressed}) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF31363F),
           foregroundColor: Colors.white,

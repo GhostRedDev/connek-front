@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 
 class RegisterPage extends StatefulWidget {
@@ -207,9 +208,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                           _socialButton(Icons.g_mobiledata, 'Google'), // Replace icon/image
+                           _socialButton(Icons.g_mobiledata, 'Google', _googleSignIn), // Replace icon/image
                            const SizedBox(width: 20),
-                           _socialButton(Icons.apple, 'Apple'),
+                           _socialButton(Icons.apple, 'Apple', (){}),
                         ],
                       ),
                       
@@ -277,11 +278,29 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
   
-  Widget _socialButton(IconData icon, String label) {
-     return Container(
-       width: 50, height: 50,
-       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
-       child: Icon(icon, color: Colors.black),
+  Future<void> _googleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.connek://login',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign In Failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _socialButton(IconData icon, String label, VoidCallback? onPressed) {
+     return InkWell(
+       onTap: onPressed,
+       child: Container(
+         width: 50, height: 50,
+         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+         child: Icon(icon, color: Colors.black),
+       ),
      );
   }
 }
