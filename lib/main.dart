@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart'; // For kReleaseMode
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/router.dart';
+import 'core/providers/theme_provider.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/services/supabase_config_service.dart';
@@ -39,21 +40,23 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the theme provider for changes
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp.router(
       title: 'Connek',
       debugShowCheckedModeBanner: false,
-      useInheritedMediaQuery: true,
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      
+      // Theme Configuration
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode, // Dynamic Theme Mode (System/Light/Dark)
+      
       routerConfig: router,
     );
   }

@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/theme_provider.dart';
 
-// Helper to show the bottom sheet
+// Helper to show the bottom sheet ... (unchanged)
+
+// ... (ProfileBottomSheet definitions unchanged until helper)
+
+
 void showProfileBottomSheet(BuildContext context) {
   showModalBottomSheet(
     context: context,
@@ -16,19 +22,24 @@ void showProfileBottomSheet(BuildContext context) {
   );
 }
 
-class ProfileBottomSheet extends StatefulWidget {
+class ProfileBottomSheet extends ConsumerStatefulWidget {
   const ProfileBottomSheet({super.key});
 
   @override
-  State<ProfileBottomSheet> createState() => _ProfileBottomSheetState();
+  ConsumerState<ProfileBottomSheet> createState() => _ProfileBottomSheetState();
 }
 
-class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
-  // Mock State for Theme Toggle (Visual only for now)
-  bool _isDarkMode = true;
+class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
+  // No local state needed for theme anymore
 
   @override
   Widget build(BuildContext context) {
+    // Watch Theme Provider
+    final themeMode = ref.watch(themeProvider);
+    // Detect if effectively Dark Mode
+    final bool isDark = themeMode == ThemeMode.dark || 
+        (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
+
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
@@ -44,9 +55,9 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: Color(0xFF131619), // Dark Background
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor, // Dynamic Background
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SafeArea(
             child: Column(
@@ -66,27 +77,37 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
                   ),
                 ),
 
-                // 2. Theme Toggle (Common for both states)
+                // 2. Theme Toggle (Real Logic)
                 Container(
                    padding: const EdgeInsets.all(4),
                    decoration: BoxDecoration(
-                     color: const Color(0xFF1A1D21),
+                     color: Theme.of(context).colorScheme.surface, // Dynamic surface
                      borderRadius: BorderRadius.circular(12),
-                     border: Border.all(color: Colors.white10),
+                     border: Border.all(color: Colors.grey.withOpacity(0.1)),
                    ),
                    child: Row(
                      children: [
                        _buildThemeOption(
                          icon: Icons.wb_sunny_rounded,
-                         label: 'Light Mode',
-                         isSelected: !_isDarkMode,
-                         onTap: () => setState(() => _isDarkMode = false),
+                         label: 'Light',
+                         // We can also allow explicit 'Light' setting
+                         isSelected: themeMode == ThemeMode.light,
+                         onTap: () => ref.read(themeProvider.notifier).setTheme(ThemeMode.light),
+                         context: context,
                        ),
                        _buildThemeOption(
                          icon: Icons.nightlight_round,
-                         label: 'Dark Mode',
-                         isSelected: _isDarkMode,
-                         onTap: () => setState(() => _isDarkMode = true),
+                         label: 'Dark',
+                         isSelected: themeMode == ThemeMode.dark,
+                         onTap: () => ref.read(themeProvider.notifier).setTheme(ThemeMode.dark),
+                         context: context,
+                       ),
+                       _buildThemeOption(
+                         icon: Icons.settings_system_daydream_rounded,
+                         label: 'System',
+                         isSelected: themeMode == ThemeMode.system,
+                         onTap: () => ref.read(themeProvider.notifier).setTheme(ThemeMode.system),
+                         context: context,
                        ),
                      ],
                    ),
@@ -108,39 +129,12 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
     );
   }
 
-  Widget _buildThemeOption({required IconData icon, required String label, required bool isSelected, required VoidCallback onTap}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF252A34) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-             border: isSelected ? Border.all(color: Colors.white24, width: 0.5) : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  color: isSelected ? Colors.white : Colors.grey,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // --- Authenticated View ---
   Widget _buildAuthenticatedView(BuildContext context, String name, String email) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
+    final subTextColor = isDark ? Colors.grey[500] : Colors.grey[600];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,21 +143,21 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
           child: Text(
             'Accounts',
             style: GoogleFonts.inter(
-              color: Colors.grey[500],
+              color: subTextColor,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
         const SizedBox(height: 12),
-        const Divider(color: Colors.white10, height: 1),
+        Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1),
         const SizedBox(height: 12),
 
         // Active Account Item
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF4F87C9).withOpacity(0.15), // Blue tint
+            color: const Color(0xFF4F87C9).withOpacity(0.15), // Keep Blue tint
             borderRadius: BorderRadius.circular(50),
             border: Border.all(color: const Color(0xFF4F87C9), width: 1),
           ),
@@ -181,7 +175,7 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
               Expanded(
                 child: Text(
                   name.isEmpty ? 'Usuario' : name,
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(color: textColor, fontWeight: FontWeight.bold),
                 ),
               ),
                const Icon(Icons.check_circle, color: Color(0xFF4F87C9), size: 20),
@@ -203,12 +197,12 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
                  children: [
                     Text(
                      'Signed in as',
-                     style: GoogleFonts.inter(color: Colors.grey, fontSize: 10),
+                     style: GoogleFonts.inter(color: subTextColor, fontSize: 10),
                    ),
                    const SizedBox(height: 2),
                    Text(
                      email,
-                     style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                     style: GoogleFonts.inter(color: textColor, fontWeight: FontWeight.w600, fontSize: 12),
                      overflow: TextOverflow.ellipsis,
                    ),
                  ],
@@ -262,6 +256,7 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
     return Column(
       children: [
         _buildGuestMenuItem(
+          context: context,
           icon: Icons.login_rounded,
           label: 'Log In',
           onTap: () {
@@ -271,6 +266,7 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
         ),
         const SizedBox(height: 8),
         _buildGuestMenuItem(
+          context: context,
           icon: Icons.person_add_outlined,
           label: 'Register',
           onTap: () {
@@ -282,7 +278,10 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
     );
   }
 
-  Widget _buildGuestMenuItem({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildGuestMenuItem({required BuildContext context, required IconData icon, required String label, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -297,7 +296,7 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
             Text(
               label,
               style: GoogleFonts.inter(
-                color: Colors.white,
+                color: textColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
               ),
@@ -312,6 +311,61 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
                child: Icon(icon, color: const Color(0xFF4F87C9), size: 20),
              ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Helper moved inside class
+  Widget _buildThemeOption({
+    required IconData icon, 
+    required String label, 
+    required bool isSelected, 
+    required VoidCallback onTap,
+    required BuildContext context,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Determine active/inactive colors based on theme
+    final activeBg = isDark ? const Color(0xFF252A34) : Colors.white;
+    final inactiveBg = Colors.transparent;
+    final activeText = isDark ? Colors.white : const Color(0xFF1A1D21);
+    final inactiveText = isDark ? Colors.grey : Colors.grey[600];
+    final border = isSelected 
+        ? Border.all(color: isDark ? Colors.white24 : Colors.black12, width: 0.5) 
+        : null;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? activeBg : inactiveBg,
+            borderRadius: BorderRadius.circular(8),
+             border: border,
+             boxShadow: isSelected && !isDark ? [
+               BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
+             ] : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: isSelected ? activeText : inactiveText),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: isSelected ? activeText : inactiveText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'search_bar_widget.dart';
 import 'login_dropdown_button.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MobileAppBarWidget extends StatelessWidget {
   final bool bgTrans;
@@ -15,11 +16,17 @@ class MobileAppBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Premium Dark Gradient
+    // Theme Data
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Premium Gradient (Dynamic)
     final premiumGradient = LinearGradient(
-       colors: [
-         const Color(0xFF1A1D21).withOpacity(0.95), // Nearly opaque dark
-         const Color(0xFF252A34).withOpacity(0.90), // Slightly lighter dark/blue
+       colors: isDark ? [
+         const Color(0xFF1A1D21).withOpacity(0.95), 
+         const Color(0xFF252A34).withOpacity(0.90), 
+       ] : [
+         Colors.white.withOpacity(0.95),
+         const Color(0xFFF5F7FA).withOpacity(0.90),
        ],
        begin: Alignment.topCenter,
        end: Alignment.bottomCenter,
@@ -30,19 +37,19 @@ class MobileAppBarWidget extends StatelessWidget {
       child: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(
-            sigmaX: 30, // Increased blur for frosted glass
-            sigmaY: 30,
+            sigmaX: bgTrans ? 0 : 30, 
+            sigmaY: bgTrans ? 0 : 30,
           ),
           child: Container(
             width: double.infinity,
-            height: 90, // Increased height
+            height: 120, // Increased height
             decoration: BoxDecoration(
               // If bgTrans (Home), use transparent. Else, use premium gradient.
               gradient: bgTrans ? null : premiumGradient,
               color: bgTrans ? Colors.transparent : null,
               border: bgTrans ? null : Border(
                 bottom: BorderSide(
-                  color: Colors.white.withOpacity(0.08),
+                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
                   width: 1,
                 ),
               ),
@@ -53,15 +60,15 @@ class MobileAppBarWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    // LOGO (Left Side)
+                    // LOGO (Left Side) - Switch based on Theme
                     Image.asset(
-                      'assets/images/conneck_logo_white.png',
-                      height: 32, // Slightly larger logo
+                      isDark ? 'assets/images/conneck_logo_white.png' : 'assets/images/conneck_logo_dark.png',
+                      height: 32, 
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Text(
+                      errorBuilder: (context, error, stackTrace) => Text(
                         'connek',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : const Color(0xFF1A1D21),
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Roboto',
@@ -87,10 +94,62 @@ class MobileAppBarWidget extends StatelessWidget {
                     // RIGHT ICONS (Chat, Bell, Profile)
                     // Encapsulated in glass bubbles for premium feel
                     if (!enableSearch) ...[
-                      _buildGlassIcon(Icons.chat_bubble_outline, () {}),
-                      const SizedBox(width: 12),
-                      _buildGlassIcon(Icons.notifications_none, () {}),
-                      const SizedBox(width: 16), // More space before profile
+                      // ICONS ROW (Chat, Notifications) - Only if Logged In
+                      if (Supabase.instance.client.auth.currentSession != null) ...[
+                        // Chat Icon
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              width: 48, 
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05), 
+                                  width: 1
+                                ),
+                              ),
+                              child: IconButton(
+                                icon: Icon(Icons.chat_bubble_outline_rounded, 
+                                  color: isDark ? Colors.white : const Color(0xFF1A1D21), 
+                                  size: 24),
+                                onPressed: () => print('Go to chats'), 
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        
+                        // Notification Icon
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              width: 48, 
+                              height: 48,
+                              decoration: BoxDecoration(
+                                 color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                                 shape: BoxShape.circle,
+                                 border: Border.all(
+                                   color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05), 
+                                   width: 1
+                                  ),
+                              ),
+                               child: IconButton(
+                                icon: Icon(Icons.notifications_none_rounded, 
+                                  color: isDark ? Colors.white : const Color(0xFF1A1D21), 
+                                  size: 24),
+                                onPressed: () {},
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
                     ],
                     
                      // User/Profile Button (Circular)
@@ -105,18 +164,5 @@ class MobileAppBarWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildGlassIcon(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        width: 48, height: 48, // Larger touch target
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08), // Subtle glass fill
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white.withOpacity(0.9), size: 24),
-      ),
-    );
-  }
+
 }

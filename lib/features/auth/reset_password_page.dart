@@ -54,7 +54,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               backgroundColor: const Color(0xFF1A1D21),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: () => context.go('/welcome'),
+                onPressed: () => context.go('/'),
               ),
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(

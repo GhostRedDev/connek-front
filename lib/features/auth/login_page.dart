@@ -194,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
                                 );
                                 
                                 // Navigate to home
-                                context.go('/home');
+                                context.go('/');
                               }
                             }
                           } on AuthException catch (error) {

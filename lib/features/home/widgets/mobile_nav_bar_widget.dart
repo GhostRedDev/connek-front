@@ -1,12 +1,21 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MobileNavBar2Widget extends StatelessWidget {
   const MobileNavBar2Widget({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // SECURITY: Double-check Auth. If no session, do not render ANYTHING.
+    // This prevents the navbar from showing if the parent toggle fails.
+    if (Supabase.instance.client.auth.currentSession == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Determine active route
     final String location = GoRouterState.of(context).uri.toString();
     
@@ -28,8 +37,13 @@ class MobileNavBar2Widget extends StatelessWidget {
                   height: 70, 
                   padding: const EdgeInsets.symmetric(horizontal: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E).withOpacity(0.90),
+                    color: isDark 
+                        ? const Color(0xFF1E1E1E).withOpacity(0.90) 
+                        : Colors.white.withOpacity(0.90),
                     borderRadius: BorderRadius.circular(50),
+                    boxShadow: !isDark ? [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                    ] : null,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
@@ -87,8 +101,14 @@ class MobileNavBar2Widget extends StatelessWidget {
   }
 
   Widget _buildNavItem(BuildContext context, IconData icon, String label, String route, {bool isActive = false}) {
-    // Active Color: Blue (#4F87C9), Inactive: White60
-    final color = isActive ? const Color(0xFF4285F4) : Colors.white60;
+    // Active Color: Blue (#4285F4)
+    // Inactive Color: White60 (Dark Mode) or Black54 (Light Mode)
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final activeColor = const Color(0xFF4285F4);
+    final inactiveColor = isDark ? Colors.white60 : Colors.black54;
+    
+    final color = isActive ? activeColor : inactiveColor;
     
     return InkWell(
       onTap: () => context.go(route),

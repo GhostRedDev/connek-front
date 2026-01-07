@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 import '../widgets/scaffold_with_navbar.dart';
-import '../../features/auth/home_page_no_auth.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
@@ -45,22 +44,22 @@ final router = GoRouter(
   initialLocation: '/',
   routes: [
     // --- UNAUTHORIZED ROUTES (No App Bar/NavBar) ---
-    GoRoute(path: '/', builder: (context, state) => const SplashPage()),
-    GoRoute(path: '/welcome', builder: (context, state) => const HomePageNoAuth()),
+    // Note: '/' is now the Unified Home inside the Shell
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
     GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordPage()),
     GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
     GoRoute(path: '/confirm-phone', builder: (context, state) => const ConfirmPhonePage()),
 
-    // --- AUTHORIZED ROUTES (With Persistent Shell) ---
+    // --- AUTHORIZED & GUEST (Unified Shell) ---
     ShellRoute(
       builder: (context, state, child) {
         return ScaffoldWithNavBar(child: child); 
       },
       routes: [
+        // Unified Home Page (Handles both Guest and Auth views)
         GoRoute(
-          path: '/home',
+          path: '/',
           builder: (context, state) => const HomePage(),
         ),
         GoRoute(

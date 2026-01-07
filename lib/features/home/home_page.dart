@@ -1,8 +1,9 @@
+import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/home_search_widget.dart';
-import 'widgets/mobile_app_bar_widget.dart';
-import 'widgets/mobile_nav_bar_widget.dart';
+import '../auth/widgets/home_page_bottom_information_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,7 +12,25 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // Animation for the Guest Background
+    _controller = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -19,52 +38,167 @@ class _HomePageState extends State<HomePage> {
         FocusScope.of(context).unfocus();
         FocusManager.instance.primaryFocus?.unfocus();
       },
-      child: Scaffold(
-        backgroundColor: Colors.transparent, // Allow shell background if needed, or keeping it transparent for image
-        body: Stack(
-          children: [
-            // Background Image & Gradient
-            SizedBox.expand(
-              child: CachedNetworkImage(
-                imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop', 
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: const Color(0xFF131619)),
-                errorWidget: (context, url, error) => Container(color: const Color(0xFF131619)),
+      child: StreamBuilder<AuthState>(
+        stream: Supabase.instance.client.auth.onAuthStateChange,
+        builder: (context, snapshot) {
+          final session = snapshot.data?.session;
+          final bool isLoggedIn = session != null;
+
+          return Scaffold(
+            backgroundColor: Colors.transparent, // Shell handles background color if needed
+            body: Stack(
+              children: [
+                // 1. Background (Varies by state)
+                if (isLoggedIn) _buildAuthBackground(context) else _buildGuestBackground(),
+
+                // 2. Content
+                SafeArea(
+                  child: isLoggedIn 
+                      ? _buildAuthContent() 
+                      : _buildGuestContent(),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- Backgrounds ---
+
+  // --- Backgrounds ---
+
+  Widget _buildAuthBackground(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (!isDark) {
+       // Light Mode Background: Clean White/Grey with subtle gradient
+       return Container(
+         decoration: BoxDecoration(
+           color: const Color(0xFFF5F7FA),
+           gradient: LinearGradient(
+             colors: [Colors.white, const Color(0xFFF5F7FA)],
+             begin: Alignment.topCenter,
+             end: Alignment.bottomCenter,
+           ),
+         ),
+       );
+    }
+
+    // Dark Mode Background: Space Image
+    return Stack(
+      children: [
+        SizedBox.expand(
+          child: CachedNetworkImage(
+            imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(color: const Color(0xFF131619)),
+            errorWidget: (context, url, error) => Container(color: const Color(0xFF131619)),
+          ),
+        ),
+        // Static Overlay for Auth
+        SizedBox.expand(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).primaryColor.withOpacity(0.2),
+                  Theme.of(context).primaryColor,
+                ],
+                stops: const [0, 1],
+                begin: const AlignmentDirectional(0, -1),
+                end: const AlignmentDirectional(0, 1),
               ),
             ),
-            SizedBox.expand(
-              child: Container(
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuestBackground() {
+    return Stack(
+      children: [
+        SizedBox.expand(
+          child: CachedNetworkImage(
+            imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(color: const Color(0xFF1A2342)),
+            errorWidget: (context, url, error) => Container(color: const Color(0xFF1A2342)),
+          ),
+        ),
+        // Animated Overlay for Guest
+        SizedBox.expand(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              // Adjust gradient based on theme (optional, staying vibrant for landing is often good)
+              // But let's check context to be safe if we want variation
+              // For now keeping it vibrant/dark as intended for "Space" theme
+              return Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Theme.of(context).primaryColor.withOpacity(0.2), 
-                      Theme.of(context).primaryColor,
+                      const Color(0xFF1A2342).withOpacity(0.9), // Dark Blue
+                      const Color(0xFF4285F4).withOpacity(0.9), // Lighter Blue
                     ],
                     stops: const [0, 1],
-                    begin: const AlignmentDirectional(0, -1),
-                    end: const AlignmentDirectional(0, 1),
+                    // Animate alignment
+                    begin: Alignment.topLeft.add(Alignment(
+                      0.5 * sin(_controller.value * 2 * pi),
+                      0,
+                    )),
+                    end: Alignment.bottomRight.add(Alignment(
+                      0.5 * cos(_controller.value * 2 * pi),
+                      0,
+                    )),
                   ),
                 ),
-              ),
-            ),
-            
-            // Content
-            SafeArea(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: const HomeSearchWidget(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
-      ),
+      ],
+    );
+  }
+
+  // --- Content ---
+
+  Widget _buildAuthContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: const HomeSearchWidget(),
+            ),
+          ),
+        ),
+        // No Bottom Info or Extra Layout, Navbar is handled by Shell
+      ],
+    );
+  }
+
+  Widget _buildGuestContent() {
+    final session = Supabase.instance.client.auth.currentSession;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const SizedBox(height: 80), // Spacer for AppBar
+        
+
+        
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Center(child: const HomeSearchWidget()),
+          ),
+        ),
+        const HomePageBottomInformationWidget(),
+      ],
     );
   }
 }
