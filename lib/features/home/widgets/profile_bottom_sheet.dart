@@ -48,9 +48,9 @@ class _ProfileBottomSheetState extends State<ProfileBottomSheet> {
             color: Color(0xFF131619), // Dark Background
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          mainAxisSize: MainAxisSize.min, // Wrap content
           child: SafeArea(
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Wrap content
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Drag Handle
