@@ -26,13 +26,19 @@ class LoginDropdownButton extends StatelessWidget {
         return Theme(
           data: Theme.of(context).copyWith(
             popupMenuTheme: PopupMenuThemeData(
-              color: const Color(0xFF1A1D21), // Dark bg for menu
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              textStyle: GoogleFonts.inter(color: Colors.white),
+              color: const Color(0xFF252A34), // Rich Dark Navy
+              shadowColor: Colors.black54,
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+              ),
+              textStyle: GoogleFonts.outfit(color: Colors.white),
             ),
           ),
           child: PopupMenuButton<String>(
             offset: const Offset(0, 50),
+            tooltip: isLoggedIn ? 'Tu Perfil' : 'Menú de Usuario',
             onSelected: (value) async {
               if (value == 'login') {
                 context.push('/login');
@@ -42,38 +48,55 @@ class LoginDropdownButton extends StatelessWidget {
                 context.push('/profile');
               } else if (value == 'logout') {
                  await Supabase.instance.client.auth.signOut();
-                 if (context.mounted) context.go('/'); // Go home after logout
+                 if (context.mounted) context.go('/'); 
               }
             },
             itemBuilder: (context) {
               if (isLoggedIn) {
                 return [
-                  // 1. User Type (Non-clickable Header)
+                  // 1. User Type Header
                    PopupMenuItem<String>(
                     enabled: false,
-                    child: Text(
-                      userType.toString().toUpperCase(),
-                      style: GoogleFonts.inter(
-                        color: Colors.grey[500],
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                    height: 30,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        userType.toUpperCase(),
+                        style: GoogleFonts.outfit(
+                          color: Colors.grey[400],
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
                       ),
                     ),
                   ),
-                  // 2. User Name (Link to Profile)
+                  const PopupMenuDivider(height: 8),
+                  // 2. User Name
                   PopupMenuItem<String>(
                     value: 'profile',
                     child: Row(
                       children: [
-                        const Icon(Icons.person, color: Color(0xFF4F87C9), size: 20),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F87C9).withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person, color: Color(0xFF4F87C9), size: 18),
+                        ),
+                        const SizedBox(width: 12),
                          Expanded(
                           child: Text(
                             fullName.isEmpty ? 'Mi Perfil' : fullName,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.outfit(
                               color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -81,15 +104,22 @@ class LoginDropdownButton extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const PopupMenuDivider(height: 1),
+                  const PopupMenuDivider(height: 8),
                   // 3. Logout
                   PopupMenuItem<String>(
                     value: 'logout',
                     child: Row(
                       children: [
-                        const Icon(Icons.logout, color: Colors.redAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Text('Cerrar Sesión', style: GoogleFonts.inter(color: Colors.redAccent)),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Cerrar Sesión', style: GoogleFonts.outfit(color: Colors.redAccent, fontSize: 14)),
                       ],
                     ),
                   ),
@@ -101,20 +131,34 @@ class LoginDropdownButton extends StatelessWidget {
                     value: 'login',
                     child: Row(
                       children: [
-                        const Icon(Icons.login, color: Colors.white70, size: 20),
-                        const SizedBox(width: 8),
-                        Text('Iniciar Sesión', style: GoogleFonts.inter(color: Colors.white)),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.tealAccent.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.login_rounded, color: Colors.tealAccent, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Iniciar Sesión', style: GoogleFonts.outfit(color: Colors.white, fontSize: 14)),
                       ],
                     ),
                   ),
-                  const PopupMenuDivider(height: 1),
+                  const PopupMenuDivider(height: 8),
                   PopupMenuItem(
                     value: 'register',
                     child: Row(
                       children: [
-                        const Icon(Icons.person_add, color: Colors.white70, size: 20),
-                        const SizedBox(width: 8),
-                        Text('Registrarme', style: GoogleFonts.inter(color: Colors.white)),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.purpleAccent.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.purpleAccent, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Registrarme', style: GoogleFonts.outfit(color: Colors.white, fontSize: 14)),
                       ],
                     ),
                   ),
