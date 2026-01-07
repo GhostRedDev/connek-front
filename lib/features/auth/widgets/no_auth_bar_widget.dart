@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../home/widgets/login_dropdown_button.dart';
 
 class NoAuthBarWidget extends StatelessWidget {
   const NoAuthBarWidget({super.key});
@@ -29,22 +30,7 @@ class NoAuthBarWidget extends StatelessWidget {
               ),
             ),
             // Profile/Login Icon
-            InkWell(
-              onTap: () => context.push('/login'),
-              borderRadius: BorderRadius.circular(24),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.3),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.blue, // Blue icon as seen in image
-                  size: 28,
-                ),
-              ),
-            ),
+            const LoginDropdownButton(),
           ],
         ),
       ),
