@@ -35,7 +35,7 @@ class MobileAppBarWidget extends StatelessWidget {
           ),
           child: Container(
             width: double.infinity,
-            height: 70, // Slightly reduced height for elegance
+            height: 90, // Increased height
             decoration: BoxDecoration(
               // If bgTrans (Home), use transparent. Else, use premium gradient.
               gradient: bgTrans ? null : premiumGradient,
@@ -56,13 +56,13 @@ class MobileAppBarWidget extends StatelessWidget {
                     // LOGO (Left Side)
                     Image.asset(
                       'assets/images/conneck_logo_white.png',
-                      height: 28,
+                      height: 32, // Slightly larger logo
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Text(
                         'connek',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Roboto',
                         ),
@@ -88,9 +88,9 @@ class MobileAppBarWidget extends StatelessWidget {
                     // Encapsulated in glass bubbles for premium feel
                     if (!enableSearch) ...[
                       _buildGlassIcon(Icons.chat_bubble_outline, () {}),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       _buildGlassIcon(Icons.notifications_none, () {}),
-                      const SizedBox(width: 12), // Space before profile
+                      const SizedBox(width: 16), // More space before profile
                     ],
                     
                      // User/Profile Button (Circular)
@@ -108,14 +108,14 @@ class MobileAppBarWidget extends StatelessWidget {
   Widget _buildGlassIcon(IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
-        width: 40, height: 40,
+        width: 48, height: 48, // Larger touch target
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.08), // Subtle glass fill
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white.withOpacity(0.9), size: 22),
+        child: Icon(icon, color: Colors.white.withOpacity(0.9), size: 24),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class MobileNavBar2Widget extends StatelessWidget {
   const MobileNavBar2Widget({super.key});
@@ -23,12 +24,12 @@ class MobileNavBar2Widget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Even spacing for 5 items
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _buildNavItem(Icons.shopping_bag_outlined, 'Buy'),
-                _buildNavItem(Icons.receipt_long_outlined, 'Sell'),
+                _buildNavItem(context, Icons.shopping_bag_outlined, 'Buy', '/client'),
+                _buildNavItem(context, Icons.receipt_long_outlined, 'Sell', '/business'),
                 
                 // CENTER SEARCH BUTTON
                 Container(
-                  height: 52, // Slightly smaller to fit inside with padding
+                  height: 52, 
                   width: 52,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -39,22 +40,20 @@ class MobileNavBar2Widget extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF4285F4).withOpacity(0.5), // Stronger glow
-                        blurRadius: 15, // Wider blur for "circle effect"
+                        color: const Color(0xFF4285F4).withOpacity(0.5), 
+                        blurRadius: 15, 
                         spreadRadius: 1,
                       ),
                     ],
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.search, color: Colors.white, size: 28),
-                    onPressed: () {
-                      // Handle search
-                    },
+                    onPressed: () => context.push('/search'),
                   ),
                 ),
 
-                _buildNavItem(Icons.cleaning_services_outlined, 'Oficina'), 
-                _buildNavItem(Icons.person_outline, 'Profile'),
+                _buildNavItem(context, Icons.cleaning_services_outlined, 'Oficina', '/office'), 
+                _buildNavItem(context, Icons.person_outline, 'Profile', '/profile'),
               ],
             ),
           ),
@@ -63,24 +62,31 @@ class MobileNavBar2Widget extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, {bool isActive = false}) {
+  Widget _buildNavItem(BuildContext context, IconData icon, String label, String route, {bool isActive = false}) {
     final color = isActive ? Colors.white : Colors.white60;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            fontFamily: 'Inter',
-          ),
+    return InkWell(
+      onTap: () => context.go(route),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
