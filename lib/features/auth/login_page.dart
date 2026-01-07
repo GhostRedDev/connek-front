@@ -197,15 +197,31 @@ class _LoginPageState extends State<LoginPage> {
                                 context.go('/home');
                               }
                             }
+                          } on AuthException catch (error) {
+                             // Dismiss loading
+                            if (mounted) Navigator.pop(context);
+                            
+                            // Specific Supabase Auth Errors (Wrong password, User not found, etc.)
+                            if (mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Authentication Error: ${error.message}'), // e.g., "Invalid login credentials"
+                                  backgroundColor: Colors.orange,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
                           } catch (e) {
                             // Dismiss loading
                             if (mounted) Navigator.pop(context);
                             
+                            // General Errors (Network, Code, etc.)
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Login Failed: $e'),
+                                  content: Text('Connection Error: Please check your internet or try again later.\nDetails: $e'),
                                   backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }
