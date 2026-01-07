@@ -4,6 +4,7 @@ import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
 import '../../features/auth/reset_password_page.dart';
+import '../../features/auth/confirm_phone_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/home/search_page.dart';
 import '../../features/settings/settings_page.dart';
@@ -65,6 +66,10 @@ final router = GoRouter(
     GoRoute(
       path: '/reset-password',
       builder: (context, state) => const ResetPasswordPage(),
+    ),
+    GoRoute(
+      path: '/confirm-phone',
+      builder: (context, state) => const ConfirmPhonePage(),
     ),
     GoRoute(
       path: '/home',

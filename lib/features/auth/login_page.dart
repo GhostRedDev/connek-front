@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -161,7 +162,55 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => context.go('/home'),
+                        onPressed: () async {
+                          try {
+                            // Show loading
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (c) => const Center(child: CircularProgressIndicator()),
+                            );
+
+                            final email = _emailController.text.trim();
+                            final password = _passwordController.text.trim();
+
+                            final response = await Supabase.instance.client.auth.signInWithPassword(
+                              email: email,
+                              password: password,
+                            );
+
+                            // Dismiss loading
+                            if (mounted) Navigator.pop(context);
+
+                            if (response.user != null) {
+                              if (mounted) {
+                                // Show SUCCESS Notification
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Login Successful! Status: 200 OK'),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 3),
+                                  ),
+                                );
+                                
+                                // Navigate to home
+                                context.go('/home');
+                              }
+                            }
+                          } catch (e) {
+                            // Dismiss loading
+                            if (mounted) Navigator.pop(context);
+                            
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Login Failed: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4F87C9),
                           foregroundColor: Colors.white,
