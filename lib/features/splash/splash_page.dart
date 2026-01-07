@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -17,9 +18,14 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _navigateToHome() async {
-    await Future.delayed(const Duration(seconds: 3)); // Simulate loading
-    if (mounted) {
-      context.go('/welcome'); // Navigate to HomePageNoAuth
+    await Future.delayed(const Duration(seconds: 2)); 
+    if (!mounted) return;
+
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      context.go('/home');
+    } else {
+      context.go('/welcome');
     }
   }
 
