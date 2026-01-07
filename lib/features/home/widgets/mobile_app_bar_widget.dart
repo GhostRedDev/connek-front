@@ -40,9 +40,11 @@ class MobileAppBarWidget extends StatelessWidget {
               // If bgTrans (Home), use transparent. Else, use premium gradient.
               gradient: bgTrans ? null : premiumGradient,
               color: bgTrans ? Colors.transparent : null,
-              border: bgTrans ? null : BorderSide(
-                color: Colors.white.withOpacity(0.08), // Subtle bottom border in "Active" state
-                width: 1,
+              border: bgTrans ? null : Border(
+                bottom: BorderSide(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 1,
+                ),
               ),
             ),
             child: SafeArea(
