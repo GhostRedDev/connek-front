@@ -15,89 +15,105 @@ class MobileAppBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Premium Dark Gradient
+    final premiumGradient = LinearGradient(
+       colors: [
+         const Color(0xFF1A1D21).withOpacity(0.95), // Nearly opaque dark
+         const Color(0xFF252A34).withOpacity(0.90), // Slightly lighter dark/blue
+       ],
+       begin: Alignment.topCenter,
+       end: Alignment.bottomCenter,
+    );
+
     return Align(
-      alignment: const AlignmentDirectional(0, -1),
-      child: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(0),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: 16,
-              sigmaY: 16,
-            ),
-            child: Container(
-              width: double.infinity,
-              height: 80, 
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7), // Pure Black, semi-transparent
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.white.withOpacity(0.1), // Subtle separator
-                    width: 0.5,
-                  )
-                )
+      alignment: Alignment.topCenter,
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: 30, // Increased blur for frosted glass
+            sigmaY: 30,
+          ),
+          child: Container(
+            width: double.infinity,
+            height: 70, // Slightly reduced height for elegance
+            decoration: BoxDecoration(
+              // If bgTrans (Home), use transparent. Else, use premium gradient.
+              gradient: bgTrans ? null : premiumGradient,
+              color: bgTrans ? Colors.transparent : null,
+              border: bgTrans ? null : BorderSide(
+                color: Colors.white.withOpacity(0.08), // Subtle bottom border in "Active" state
+                width: 1,
               ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      // LOGO (Left Side)
-                      Image.asset(
-                        'assets/images/conneck_logo_white.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const Text(
-                          'connek',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Roboto',
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // LOGO (Left Side)
+                    Image.asset(
+                      'assets/images/conneck_logo_white.png',
+                      height: 28,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text(
+                        'connek',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Roboto',
+                        ),
+                      ),
+                    ),
+                    
+                    const Spacer(),
+
+                    // Middle Search (Only if enabled)
+                    if (enableSearch)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: SearchBarWidget(
+                            onSubmitted: (val) {
+                              print('Search for: $val');
+                            },
                           ),
                         ),
                       ),
-                      
-                      const Spacer(),
 
-                      // Middle Search (Only if enabled)
-                      if (enableSearch)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: SearchBarWidget(
-                              onSubmitted: (val) {
-                                debugPrint('Search for: $val');
-                              },
-                            ),
-                          ),
-                        ),
-
-                      // RIGHT ICONS (Simple, minimal)
-                      if (!enableSearch) ...[
-                        IconButton(
-                          icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 24),
-                          onPressed: () {},
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
-                          onPressed: () {},
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      
-                       // User/Profile Button
-                       const LoginDropdownButton(),
+                    // RIGHT ICONS (Chat, Bell, Profile)
+                    // Encapsulated in glass bubbles for premium feel
+                    if (!enableSearch) ...[
+                      _buildGlassIcon(Icons.chat_bubble_outline, () {}),
+                      const SizedBox(width: 8),
+                      _buildGlassIcon(Icons.notifications_none, () {}),
+                      const SizedBox(width: 12), // Space before profile
                     ],
-                  ),
+                    
+                     // User/Profile Button (Circular)
+                     const LoginDropdownButton(),
+                  ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGlassIcon(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08), // Subtle glass fill
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white.withOpacity(0.9), size: 22),
       ),
     );
   }
