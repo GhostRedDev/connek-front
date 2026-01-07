@@ -169,6 +169,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        const SizedBox(height: 120), // Spacer to clear Top App Bar
         Expanded(
           child: Center(
             child: Padding(
@@ -177,7 +178,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
         ),
-        // No Bottom Info or Extra Layout, Navbar is handled by Shell
+        const SizedBox(height: 80), // Spacer for Bottom Nav Bar balance
       ],
     );
   }
