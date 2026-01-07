@@ -7,6 +7,12 @@ class MobileNavBar2Widget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine active route
+    final String location = GoRouterState.of(context).uri.toString();
+    
+    // Simple helper to check if location starts with route
+    bool isActive(String route) => location.startsWith(route);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Row(
@@ -29,10 +35,14 @@ class MobileNavBar2Widget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildNavItem(context, Icons.shopping_bag_outlined, 'Buy', '/client'),
-                      _buildNavItem(context, Icons.receipt_long_outlined, 'Sell', '/business'),
-                      _buildNavItem(context, Icons.cleaning_services_outlined, 'Oficina', '/office'), 
-                      _buildNavItem(context, Icons.person_outline, 'Profile', '/profile'),
+                      _buildNavItem(context, Icons.shopping_bag_outlined, 'Buy', '/client', 
+                          isActive: isActive('/client')),
+                      _buildNavItem(context, Icons.receipt_long_outlined, 'Sell', '/business',
+                          isActive: isActive('/business')),
+                      _buildNavItem(context, Icons.cleaning_services_outlined, 'Oficina', '/office',
+                          isActive: isActive('/office')), 
+                      _buildNavItem(context, Icons.person_outline, 'Profile', '/profile',
+                          isActive: isActive('/profile')),
                     ],
                   ),
                 ),
@@ -67,7 +77,7 @@ class MobileNavBar2Widget extends StatelessWidget {
               child: InkWell(
                  borderRadius: BorderRadius.circular(30),
                  onTap: () => context.push('/search'),
-                 child: const Icon(Icons.search, color: Colors.white, size: 30),
+                 child: Icon(Icons.search, color: isActive('/search') ? Colors.white : Colors.white.withOpacity(0.9), size: 30),
               ),
             ),
           ),
@@ -77,7 +87,9 @@ class MobileNavBar2Widget extends StatelessWidget {
   }
 
   Widget _buildNavItem(BuildContext context, IconData icon, String label, String route, {bool isActive = false}) {
-    final color = isActive ? Colors.white : Colors.white60;
+    // Active Color: Blue (#4F87C9), Inactive: White60
+    final color = isActive ? const Color(0xFF4285F4) : Colors.white60;
+    
     return InkWell(
       onTap: () => context.go(route),
       borderRadius: BorderRadius.circular(12),

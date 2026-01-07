@@ -20,16 +20,16 @@ class _HomePageState extends State<HomePage> {
         FocusManager.instance.primaryFocus?.unfocus();
       },
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent, // Allow shell background if needed, or keeping it transparent for image
         body: Stack(
           children: [
             // Background Image & Gradient
             SizedBox.expand(
               child: CachedNetworkImage(
-                imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop', // Tech/Globe background
+                imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop', 
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: Theme.of(context).scaffoldBackgroundColor),
-                errorWidget: (context, url, error) => Container(color: Theme.of(context).primaryColor),
+                placeholder: (context, url) => Container(color: const Color(0xFF131619)),
+                errorWidget: (context, url, error) => Container(color: const Color(0xFF131619)),
               ),
             ),
             SizedBox.expand(
@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Theme.of(context).primaryColor.withOpacity(0.2), // Adjust opacity as needed
+                      Theme.of(context).primaryColor.withOpacity(0.2), 
                       Theme.of(context).primaryColor,
                     ],
                     stops: const [0, 1],
@@ -51,36 +51,16 @@ class _HomePageState extends State<HomePage> {
             // Content
             SafeArea(
               child: Column(
-                mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(10, 0, 10, 0),
-                      child: HomeSearchWidget(),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Align(
-                    alignment: const AlignmentDirectional(0, 1),
-                    child: Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(0, 0, 0, 16),
-                      child: Container(
-                        width: double.infinity,
-                        height: 90, // Increased for floating dock
-                        decoration: const BoxDecoration(),
-                        child: const MobileNavBar2Widget(),
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: const HomeSearchWidget(),
                     ),
                   ),
                 ],
               ),
-            ),
-            
-            // Top App Bar
-            Align(
-              alignment: Alignment.topCenter,
-              child: MobileAppBarWidget(bgTrans: true),
             ),
           ],
         ),

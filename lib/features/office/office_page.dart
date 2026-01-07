@@ -6,8 +6,8 @@ class OfficePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Office')),
-      body: const Center(child: Text('Office / Admin Dashboard')),
+      backgroundColor: Colors.transparent, // Let shell background show
+      body: const Center(child: Text('Office / Admin Dashboard', style: TextStyle(color: Colors.white))),
     );
   }
 }
