@@ -24,15 +24,20 @@ class MobileAppBarWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(0),
           child: BackdropFilter(
             filter: ImageFilter.blur(
-              sigmaX: 20,
-              sigmaY: 20,
+              sigmaX: 16,
+              sigmaY: 16,
             ),
             child: Container(
               width: double.infinity,
-              height: 80, // Fixed height as per user request
+              height: 80, 
               decoration: BoxDecoration(
-                color: (bgTrans ? Colors.transparent : Theme.of(context).primaryColor)
-                    .withOpacity(0.8), // Apply opacity for blur effect
+                color: Colors.black.withOpacity(0.7), // Pure Black, semi-transparent
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.white.withOpacity(0.1), // Subtle separator
+                    width: 0.5,
+                  )
+                )
               ),
               child: SafeArea(
                 bottom: false,
@@ -43,7 +48,7 @@ class MobileAppBarWidget extends StatelessWidget {
                       // LOGO (Left Side)
                       Image.asset(
                         'assets/images/conneck_logo_white.png',
-                        height: 30,
+                        height: 28,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => const Text(
                           'connek',
@@ -65,30 +70,26 @@ class MobileAppBarWidget extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: SearchBarWidget(
                               onSubmitted: (val) {
-                                print('Search for: $val');
+                                debugPrint('Search for: $val');
                               },
                             ),
                           ),
                         ),
 
-                      // RIGHT ICONS (Chat, Bell, Profile)
+                      // RIGHT ICONS (Simple, minimal)
                       if (!enableSearch) ...[
                         IconButton(
-                          icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 26),
-                          onPressed: () {
-                             // Context push to chats
-                          },
+                          icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 24),
+                          onPressed: () {},
                         ),
                         IconButton(
-                          icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                          onPressed: () {
-                             // Show notifications
-                          },
+                          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
+                          onPressed: () {},
                         ),
                         const SizedBox(width: 8),
                       ],
                       
-                       // User/Profile Button (Circular)
+                       // User/Profile Button
                        const LoginDropdownButton(),
                     ],
                   ),
