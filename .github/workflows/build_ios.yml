@@ -30,7 +30,7 @@ jobs:
           cd ..
 
       - name: Build iOS App (No Codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
       
       - name: Package IPA
         run: |
