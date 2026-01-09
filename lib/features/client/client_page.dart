@@ -106,7 +106,7 @@ class ClientOverviewWidget extends ConsumerWidget {
                     'role': 'Service',
                     'amount': '150',
                     'image':
-                        'https://images.unsplash.com/photo-1581578731117-104f2a763a8a?ixlib=rb-4.0.3',
+                        'https://images.unsplash.com/photo-1581579186913-45ac3e6e3dd2?ixlib=rb-4.0.3',
                   },
                 ),
                 ClientLeadCardWidget(

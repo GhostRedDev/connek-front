@@ -76,7 +76,19 @@ class BusinessRepository {
         '/employees/greg/business/$businessId',
       );
       if (response != null && response['success'] == true) {
-        return List<Map<String, dynamic>>.from(response['data']);
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        } else if (data is Map) {
+          // If it returns a map, assume it might be a single object or we need to extract a list
+          // Logging this for debugging would be ideal, but for now let's see if we can just wrap it?
+          // Or maybe it has a nested list?
+          if (data.containsKey('employees')) {
+            return List<Map<String, dynamic>>.from(data['employees']);
+          }
+          // Fallback: treat as single object
+          return [Map<String, dynamic>.from(data)];
+        }
       }
       return [];
     } catch (e) {

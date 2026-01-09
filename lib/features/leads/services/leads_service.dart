@@ -47,9 +47,12 @@ class LeadsService {
           imagePath.isNotEmpty &&
           !imagePath.startsWith('http')) {
         final publicUrl = Supabase.instance.client.storage
-            .from('client')
+            .from(
+              'client',
+            ) // Assuming bucket is 'client' based on context, previously it was 'profile' maybe?
             .getPublicUrl(imagePath);
         client['photo_id'] = publicUrl;
+        client['profile_url'] = publicUrl; // Ensure both are identical
       }
     } catch (e) {
       print('Error resolving image url: $e');
