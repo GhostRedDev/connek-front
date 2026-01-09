@@ -33,10 +33,10 @@ jobs:
         with:
           type: 'zip'
           filename: 'windows-release.zip'
-          directory: 'build/windows/runner/release'
+          directory: 'build/windows/x64/runner/Release'
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
-          path: build/windows/runner/release/windows-release.zip
+          path: build/windows/x64/runner/Release/windows-release.zip
