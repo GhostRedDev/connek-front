@@ -1,12 +1,12 @@
 import 'package:go_router/go_router.dart';
-import '../widgets/scaffold_with_navbar.dart';
+import '../widgets/layout.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
 import '../../features/auth/reset_password_page.dart';
 import '../../features/auth/confirm_phone_page.dart';
 import '../../features/home/home_page.dart';
-import '../../features/home/search_page.dart';
+import '../../features/search/search_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/settings/profile_page.dart';
 import '../../features/chat/chat_chats.dart';
@@ -46,22 +46,31 @@ final router = GoRouter(
     // --- UNAUTHORIZED ROUTES (No App Bar/NavBar) ---
     // Note: '/' is now the Unified Home inside the Shell
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
-    GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordPage()),
-    GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
-    GoRoute(path: '/confirm-phone', builder: (context, state) => const ConfirmPhonePage()),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterPage(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordPage(),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) => const ResetPasswordPage(),
+    ),
+    GoRoute(
+      path: '/confirm-phone',
+      builder: (context, state) => const ConfirmPhonePage(),
+    ),
 
     // --- AUTHORIZED & GUEST (Unified Shell) ---
     ShellRoute(
       builder: (context, state, child) {
-        return ScaffoldWithNavBar(child: child); 
+        return AppLayout(child: child);
       },
       routes: [
         // Unified Home Page (Handles both Guest and Auth views)
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const HomePage(),
-        ),
+        GoRoute(path: '/', builder: (context, state) => const HomePage()),
         GoRoute(
           path: '/office',
           builder: (context, state) => const OfficePage(),
@@ -76,7 +85,8 @@ final router = GoRouter(
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const ProfilePage(),
+          builder: (context, state) =>
+              ProfilePage(initialTab: state.uri.queryParameters['tab']),
         ),
         GoRoute(
           path: '/chats',
@@ -84,54 +94,125 @@ final router = GoRouter(
           routes: [
             GoRoute(
               path: ':id',
-              builder: (context, state) => ChatPage(
-                chatId: state.pathParameters['id'] ?? '',
-              ),
+              builder: (context, state) =>
+                  ChatPage(chatId: state.pathParameters['id'] ?? ''),
             ),
           ],
         ),
-        
+
         // Client Routes (Usually mapped to 'Buy')
         GoRoute(
           path: '/client',
-          builder: (context, state) => const ClientPage(clientId: 'current'),
+          builder: (context, state) => const ClientPage(),
           routes: [
-             GoRoute(path: 'request', builder: (context, state) => const CreateRequestPage()),
-             GoRoute(path: 'booking', builder: (context, state) => const ClientBookingService()),
-             GoRoute(path: 'dashboard/requests', builder: (context, state) => const ClientDashboardRequests()),
-             GoRoute(path: 'dashboard/chat', builder: (context, state) => const ClientDashboardChat()),
-             GoRoute(path: 'dashboard/post', builder: (context, state) => const ClientDashboardPost()),
-             GoRoute(path: 'dashboard/wallet', builder: (context, state) => const ClientDashboardWallet()),
-             GoRoute(path: 'dashboard/booking', builder: (context, state) => const ClientDashboardBooking()),
-             GoRoute(path: 'checkout', builder: (context, state) => const CheckoutResume()),
-             GoRoute(path: ':id', builder: (context, state) => ClientPage(clientId: state.pathParameters['id'] ?? '')),
-          ]
+            GoRoute(
+              path: 'request',
+              builder: (context, state) => const CreateRequestPage(),
+            ),
+            GoRoute(
+              path: 'booking',
+              builder: (context, state) => const ClientBookingService(),
+            ),
+            GoRoute(
+              path: 'dashboard/requests',
+              builder: (context, state) => const ClientDashboardRequests(),
+            ),
+            GoRoute(
+              path: 'dashboard/chat',
+              builder: (context, state) => const ClientDashboardChat(),
+            ),
+            GoRoute(
+              path: 'dashboard/post',
+              builder: (context, state) => const ClientDashboardPost(),
+            ),
+            GoRoute(
+              path: 'dashboard/wallet',
+              builder: (context, state) => const ClientDashboardWallet(),
+            ),
+            GoRoute(
+              path: 'dashboard/booking',
+              builder: (context, state) => const ClientDashboardBooking(),
+            ),
+            GoRoute(
+              path: 'checkout',
+              builder: (context, state) => const CheckoutResume(),
+            ),
+            GoRoute(
+              path: ':id',
+              builder: (context, state) => const ClientPage(),
+            ),
+          ],
         ),
-        
+
         // Business Routes (Usually mapped to 'Sell')
         GoRoute(
           path: '/business',
           builder: (context, state) => const BusinessPage(),
           routes: [
-            GoRoute(path: 'profile', builder: (context, state) => const BusinessProfilePage()),
-            GoRoute(path: 'create-service', builder: (context, state) => const BusinessSheetCreateService()),
-            GoRoute(path: 'create-portfolio', builder: (context, state) => const BusinessSheetCreatePortfolio()),
-            GoRoute(path: 'employees', builder: (context, state) => const BusinessDashboardEmployees()),
-            GoRoute(path: 'services', builder: (context, state) => const BusinessDashboardServices()),
-            GoRoute(path: 'add-services', builder: (context, state) => const BusinessDashboardAddServices()),
-            GoRoute(path: 'cover', builder: (context, state) => const CreateBusinessDCover()),
+            GoRoute(
+              path: 'profile',
+              builder: (context, state) => const BusinessProfilePage(),
+            ),
+            GoRoute(
+              path: 'create-service',
+              builder: (context, state) => const BusinessSheetCreateService(),
+            ),
+            GoRoute(
+              path: 'create-portfolio',
+              builder: (context, state) => const BusinessSheetCreatePortfolio(),
+            ),
+            GoRoute(
+              path: 'employees',
+              builder: (context, state) => const BusinessDashboardEmployees(),
+            ),
+            GoRoute(
+              path: 'services',
+              builder: (context, state) => const BusinessDashboardServices(),
+            ),
+            GoRoute(
+              path: 'add-services',
+              builder: (context, state) => const BusinessDashboardAddServices(),
+            ),
+            GoRoute(
+              path: 'cover',
+              builder: (context, state) => const CreateBusinessDCover(),
+            ),
             // Wizard
-            GoRoute(path: 'create/step1', builder: (context, state) => const CreateBusinessStep1()),
-            GoRoute(path: 'create/step2', builder: (context, state) => const CreateBusinessStep2()),
-            GoRoute(path: 'create/step3', builder: (context, state) => const CreateBusinessStep3()),
-            GoRoute(path: 'create/step4', builder: (context, state) => const CreateBusinessStep4()),
-            GoRoute(path: 'create/step5', builder: (context, state) => const CreateBusinessStep5()),
-            GoRoute(path: 'create/step6', builder: (context, state) => const CreateBusinessStep6()),
-            GoRoute(path: 'create/step7', builder: (context, state) => const CreateBusinessStep7()),
-            GoRoute(path: 'create/step8', builder: (context, state) => const CreateBusinessStep8()),
+            GoRoute(
+              path: 'create/step1',
+              builder: (context, state) => const CreateBusinessStep1(),
+            ),
+            GoRoute(
+              path: 'create/step2',
+              builder: (context, state) => const CreateBusinessStep2(),
+            ),
+            GoRoute(
+              path: 'create/step3',
+              builder: (context, state) => const CreateBusinessStep3(),
+            ),
+            GoRoute(
+              path: 'create/step4',
+              builder: (context, state) => const CreateBusinessStep4(),
+            ),
+            GoRoute(
+              path: 'create/step5',
+              builder: (context, state) => const CreateBusinessStep5(),
+            ),
+            GoRoute(
+              path: 'create/step6',
+              builder: (context, state) => const CreateBusinessStep6(),
+            ),
+            GoRoute(
+              path: 'create/step7',
+              builder: (context, state) => const CreateBusinessStep7(),
+            ),
+            GoRoute(
+              path: 'create/step8',
+              builder: (context, state) => const CreateBusinessStep8(),
+            ),
           ],
         ),
-        
+
         GoRoute(
           path: '/payments',
           builder: (context, state) => const PaymentMethodList(),

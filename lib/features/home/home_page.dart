@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'widgets/home_search_widget.dart';
+import '../search/widgets/home_search_widget.dart';
 import '../auth/widgets/home_page_bottom_information_widget.dart';
 
 class HomePage extends StatefulWidget {
@@ -12,7 +12,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -45,16 +46,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           final bool isLoggedIn = session != null;
 
           return Scaffold(
-            backgroundColor: Colors.transparent, // Shell handles background color if needed
+            backgroundColor:
+                Colors.transparent, // Shell handles background color if needed
             body: Stack(
               children: [
                 // 1. Background (Varies by state)
-                if (isLoggedIn) _buildAuthBackground(context) else _buildGuestBackground(),
+                if (isLoggedIn)
+                  _buildAuthBackground(context)
+                else
+                  _buildGuestBackground(),
 
                 // 2. Content
                 SafeArea(
-                  child: isLoggedIn 
-                      ? _buildAuthContent() 
+                  child: isLoggedIn
+                      ? _buildAuthContent()
                       : _buildGuestContent(),
                 ),
               ],
@@ -73,17 +78,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (!isDark) {
-       // Light Mode Background: Clean White/Grey with subtle gradient
-       return Container(
-         decoration: BoxDecoration(
-           color: const Color(0xFFF5F7FA),
-           gradient: LinearGradient(
-             colors: [Colors.white, const Color(0xFFF5F7FA)],
-             begin: Alignment.topCenter,
-             end: Alignment.bottomCenter,
-           ),
-         ),
-       );
+      // Light Mode Background: Clean White/Grey with subtle gradient
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          gradient: LinearGradient(
+            colors: [Colors.white, Theme.of(context).scaffoldBackgroundColor],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+      );
     }
 
     // Dark Mode Background: Space Image
@@ -91,10 +96,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       children: [
         SizedBox.expand(
           child: CachedNetworkImage(
-            imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
+            imageUrl:
+                'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
             fit: BoxFit.cover,
-            placeholder: (context, url) => Container(color: const Color(0xFF131619)),
-            errorWidget: (context, url, error) => Container(color: const Color(0xFF131619)),
+            placeholder: (context, url) =>
+                Container(color: const Color(0xFF131619)),
+            errorWidget: (context, url, error) =>
+                Container(color: const Color(0xFF131619)),
           ),
         ),
         // Static Overlay for Auth
@@ -118,14 +126,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildGuestBackground() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Light Mode Guest Background
+    if (!isDark) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFF5F7FA),
+          gradient: LinearGradient(
+            colors: [Color(0xFFE0E0E0), Color(0xFFF5F7FA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      );
+    }
+
     return Stack(
       children: [
         SizedBox.expand(
           child: CachedNetworkImage(
-            imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
+            imageUrl:
+                'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
             fit: BoxFit.cover,
-            placeholder: (context, url) => Container(color: const Color(0xFF1A2342)),
-            errorWidget: (context, url, error) => Container(color: const Color(0xFF1A2342)),
+            placeholder: (context, url) =>
+                Container(color: const Color(0xFF1A2342)),
+            errorWidget: (context, url, error) =>
+                Container(color: const Color(0xFF1A2342)),
           ),
         ),
         // Animated Overlay for Guest
@@ -133,9 +160,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              // Adjust gradient based on theme (optional, staying vibrant for landing is often good)
-              // But let's check context to be safe if we want variation
-              // For now keeping it vibrant/dark as intended for "Space" theme
               return Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -145,14 +169,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ],
                     stops: const [0, 1],
                     // Animate alignment
-                    begin: Alignment.topLeft.add(Alignment(
-                      0.5 * sin(_controller.value * 2 * pi),
-                      0,
-                    )),
-                    end: Alignment.bottomRight.add(Alignment(
-                      0.5 * cos(_controller.value * 2 * pi),
-                      0,
-                    )),
+                    begin: Alignment.topLeft.add(
+                      Alignment(0.5 * sin(_controller.value * 2 * pi), 0),
+                    ),
+                    end: Alignment.bottomRight.add(
+                      Alignment(0.5 * cos(_controller.value * 2 * pi), 0),
+                    ),
                   ),
                 ),
               );
@@ -189,9 +211,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const SizedBox(height: 80), // Spacer for AppBar
-        
 
-        
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),

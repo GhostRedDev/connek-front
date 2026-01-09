@@ -5,9 +5,15 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: const Center(child: Text('User Settings')),
+    // Scaffold/AppBar handled by AppLayout
+    return Center(
+      child: Text(
+        'User Settings',
+        style: TextStyle(
+          fontSize: 18,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
     );
   }
 }

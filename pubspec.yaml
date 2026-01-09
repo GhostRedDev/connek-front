@@ -43,6 +43,7 @@ dependencies:
   supabase_flutter: ^2.12.0
   http: ^1.6.0
   image_picker: ^1.0.7
+  liquid_glass_renderer: ^0.2.0-dev.4
 
 dev_dependencies:
   flutter_test:

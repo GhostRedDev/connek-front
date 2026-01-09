@@ -86,9 +86,8 @@ class ProfileMenuWidget extends StatelessWidget {
     final isActive = currentSection == section;
     
     // Colors
-    final activeBg = isDark ? Colors.white : const Color(0xFF2C2C2C); 
-    final activeText = isDark ? Colors.black : Colors.white;
-    final inactiveBorder = isDark ? Colors.white24 : Colors.black12;
+    // Active is ALWAYS White Gradient -> Black Text
+    final activeText = Colors.black;
     final inactiveText = isDark ? Colors.grey[400] : Colors.grey[600];
 
     return InkWell(
@@ -99,17 +98,21 @@ class ProfileMenuWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 9), // Updated padding
 
         decoration: BoxDecoration(
-          color: isActive ? activeBg : Colors.transparent,
+          gradient: isActive 
+              ? const LinearGradient(
+                  colors: [Colors.white, Color.fromARGB(255, 235, 235, 235)], // White to Light Grey
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          color: isActive ? null : Colors.transparent, // Null if gradient used
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: isActive ? Colors.transparent : inactiveBorder,
-            width: 1.5,
-          ),
+          // No border as requested
           boxShadow: isActive ? [
              BoxShadow(
                color: Colors.black.withOpacity(0.1),
-               blurRadius: 4,
-               offset: const Offset(0, 2),
+               blurRadius: 10,
+               offset: const Offset(0, 4),
              )
           ] : null,
         ),

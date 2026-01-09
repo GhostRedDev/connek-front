@@ -10,7 +10,7 @@ class ProfileRepository {
 
   ProfileRepository(this._supabase);
 
-  // Fetch Profile by Auth User ID
+  // Fetch Profile by Auth User ID (Create if doesn't exist)
   Future<UserProfile?> getProfile() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return null;
@@ -22,10 +22,29 @@ class ProfileRepository {
           .eq('user_id', user.id)
           .maybeSingle();
 
-      if (data == null) return null;
-      return UserProfile.fromJson(data);
+      if (data != null) {
+        return UserProfile.fromJson(data);
+      } else {
+        // Create default profile if not exists
+        final newProfile = {
+          'user_id': user.id,
+          'email': user.email ?? '',
+          'first_name': '',
+          'last_name': '',
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        
+        final createdData = await _supabase
+            .from('client')
+            .insert(newProfile)
+            .select()
+            .single();
+            
+        return UserProfile.fromJson(createdData);
+      }
     } catch (e) {
-      throw Exception('Error fetching profile: $e');
+      // If error (e.g. duplicate key race condition), try fetching again or throw
+      throw Exception('Error fetching/creating profile: $e');
     }
   }
 

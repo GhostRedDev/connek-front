@@ -6,9 +6,15 @@ class ChatPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chat Room')),
-      body: Center(child: Text('Chat ID: $chatId')),
+    // Scaffold/AppBar handled by AppLayout
+    return Center(
+      child: Text(
+        'Chat ID: $chatId',
+        style: TextStyle(
+          fontSize: 18,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
     );
   }
 }
