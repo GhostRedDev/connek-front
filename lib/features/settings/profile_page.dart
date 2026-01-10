@@ -1,3 +1,4 @@
+import 'dart:ui'; // Add this for ImageFilter
 // Add this for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -123,9 +124,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final pickedFile = await picker.pickImage(source: source);
     if (pickedFile != null) {
       if (isBanner) {
-        await ref.read(profileProvider.notifier).uploadBanner(pickedFile.path);
+        await ref.read(profileProvider.notifier).uploadBanner(pickedFile);
       } else {
-        await ref.read(profileProvider.notifier).uploadAvatar(pickedFile.path);
+        await ref.read(profileProvider.notifier).uploadAvatar(pickedFile);
       }
     }
   }

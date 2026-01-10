@@ -20,6 +20,8 @@ import '../../features/client/client_dashboard_post.dart';
 import '../../features/client/client_dashboard_wallet.dart';
 import '../../features/client/client_dashboard_booking.dart';
 import '../../features/client/checkout_resume.dart';
+import '../../features/client/pages/client_request_details_page.dart';
+import '../../features/client/models/service_request_model.dart';
 import '../../features/business/business_page.dart';
 import '../../features/business/payment_method_list.dart';
 import '../../features/business/business_profile_page.dart';
@@ -142,6 +144,13 @@ final router = GoRouter(
             GoRoute(
               path: 'checkout',
               builder: (context, state) => const CheckoutResume(),
+            ),
+            GoRoute(
+              path: 'request-details',
+              builder: (context, state) {
+                final request = state.extra as ServiceRequest;
+                return ClientRequestDetailsPage(request: request);
+              },
             ),
             GoRoute(
               path: ':id',

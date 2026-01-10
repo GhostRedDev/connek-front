@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/models/user_model.dart';
@@ -33,13 +33,13 @@ class ProfileRepository {
           'last_name': '',
           'created_at': DateTime.now().toIso8601String(),
         };
-        
+
         final createdData = await _supabase
             .from('client')
             .insert(newProfile)
             .select()
             .single();
-            
+
         return UserProfile.fromJson(createdData);
       }
     } catch (e) {
@@ -65,14 +65,26 @@ class ProfileRepository {
   }
 
   // Upload Profile Image (Generic for Avatar/Banner)
-  Future<String> uploadProfileImage(String filePath, int clientId, String type) async {
+  Future<String> uploadProfileImage(
+    XFile file,
+    int clientId,
+    String type,
+  ) async {
     try {
-      final file = File(filePath);
-      final fileName = '${type}_${clientId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final bytes = await file.readAsBytes();
+      final fileExt = file.name.split('.').last;
+      final fileName =
+          '${type}_${clientId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final path = '$clientId/$fileName';
 
       // Upload to 'client' bucket
-      await _supabase.storage.from('client').upload(path, file);
+      await _supabase.storage
+          .from('client')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       // Get Public URL
       final publicUrl = _supabase.storage.from('client').getPublicUrl(path);
@@ -89,8 +101,9 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(Supabase.instance.client);
 });
 
-final profileProvider = AsyncNotifierProvider<ProfileNotifier, UserProfile?>(ProfileNotifier.new);
-
+final profileProvider = AsyncNotifierProvider<ProfileNotifier, UserProfile?>(
+  ProfileNotifier.new,
+);
 
 // --- Notifier ---
 
@@ -130,50 +143,58 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
       aboutMe: aboutMe,
       dob: dob,
       // Note: Updating email here only updates the 'client' table record.
-      // It does NOT update the Supabase Auth user email. 
+      // It does NOT update the Supabase Auth user email.
       // Ideally, email sync should happen via Edge Function or Auth Listener.
     );
-     
+
     try {
       final result = await _repository.updateProfile(updatedProfile);
       state = AsyncValue.data(result);
     } catch (e, st) {
-       state = AsyncValue.error(e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
-  Future<void> uploadAvatar(String filePath) async {
+  Future<void> uploadAvatar(XFile file) async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
 
     try {
-      final publicUrl = await _repository.uploadProfileImage(filePath, currentProfile.id, 'avatar');
-      
+      final publicUrl = await _repository.uploadProfileImage(
+        file,
+        currentProfile.id,
+        'avatar',
+      );
+
       final updatedProfile = currentProfile.copyWith(photoId: publicUrl);
       final result = await _repository.updateProfile(updatedProfile);
-      
+
       state = AsyncValue.data(result);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
   }
 
-  Future<void> uploadBanner(String filePath) async {
+  Future<void> uploadBanner(XFile file) async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
 
     try {
-      final publicUrl = await _repository.uploadProfileImage(filePath, currentProfile.id, 'banner');
-      
+      final publicUrl = await _repository.uploadProfileImage(
+        file,
+        currentProfile.id,
+        'banner',
+      );
+
       final updatedProfile = currentProfile.copyWith(bannerUrl: publicUrl);
       final result = await _repository.updateProfile(updatedProfile);
-      
+
       state = AsyncValue.data(result);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
   }
-  
+
   // Backwards compatibility if needed, but we should use uploadAvatar
-  Future<void> uploadImage(String filePath) => uploadAvatar(filePath);
+  Future<void> uploadImage(XFile file) => uploadAvatar(file);
 }

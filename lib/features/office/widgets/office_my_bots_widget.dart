@@ -19,6 +19,7 @@ class _OfficeMyBotsWidgetState extends State<OfficeMyBotsWidget> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Column(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -53,6 +54,7 @@ class _OfficeMyBotsWidgetState extends State<OfficeMyBotsWidget> {
               // Filters Row
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
                 child: Row(
                   mainAxisSize: MainAxisSize.max, // Let it shrink
                   children: [

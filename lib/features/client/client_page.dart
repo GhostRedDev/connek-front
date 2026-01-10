@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../settings/providers/profile_provider.dart';
+import 'providers/client_requests_provider.dart';
+import 'package:go_router/go_router.dart';
 import 'widgets/client_metric_card_widget.dart';
 import 'widgets/client_section_header_widget.dart';
 import 'widgets/client_lead_card_widget.dart';
@@ -90,35 +92,58 @@ class ClientOverviewWidget extends ConsumerWidget {
           const ClientChartWidget(),
           const SizedBox(height: 24),
 
-          // --- RECENT ORDERS (Using Service/Lead Cards as mock) ---
+          // --- RECENT ORDERS ---
           ClientSectionHeaderWidget(
             title: 'Ordenes Recientes',
-            onSeeAll: () {},
+            onSeeAll: () => context.push('/client/dashboard/requests'),
           ),
           SizedBox(
             height: 180,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                ClientLeadCardWidget(
-                  lead: {
-                    'name': 'Limpieza',
-                    'role': 'Service',
-                    'amount': '150',
-                    'image':
-                        'https://images.unsplash.com/photo-1581579186913-45ac3e6e3dd2?ixlib=rb-4.0.3',
+            child: Consumer(
+              builder: (context, ref, child) {
+                final requestsAsync = ref.watch(clientRequestsProvider);
+
+                return requestsAsync.when(
+                  data: (requests) {
+                    if (requests.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "No hay ordenes recientes",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: requests.length,
+                      itemBuilder: (context, index) {
+                        final req = requests[index];
+                        return GestureDetector(
+                          onTap: () {
+                            context.push('/client/request-details', extra: req);
+                          },
+                          child: ClientLeadCardWidget(
+                            lead: {
+                              'name': req.title,
+                              'role': req.role,
+                              'amount': req.amount.toStringAsFixed(0),
+                              'image': req.imageUrl,
+                            },
+                          ),
+                        );
+                      },
+                    );
                   },
-                ),
-                ClientLeadCardWidget(
-                  lead: {
-                    'name': 'Jardinería',
-                    'role': 'Service',
-                    'amount': '300',
-                    'image':
-                        'https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3',
-                  },
-                ),
-              ],
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(
+                    child: Text(
+                      "Error: $e",
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 100),
