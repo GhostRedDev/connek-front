@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'marketplace_bot_card.dart';
+
+class OfficeMarketplaceWidget extends StatefulWidget {
+  const OfficeMarketplaceWidget({super.key});
+
+  @override
+  State<OfficeMarketplaceWidget> createState() =>
+      _OfficeMarketplaceWidgetState();
+}
+
+class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Banner Section
+          Container(
+            height: 240,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A1D21) : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF1E293B)
+                    : Colors.black12, // Subtle Blue-Grey Border
+              ),
+              // Premium Deep Dark Gradient
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter, // Top to Bottom for depth
+                colors: isDark
+                    ? [
+                        const Color(0xFF0A1016), // Almost Black
+                        const Color(0xFF0F2027), // Deep Blue
+                        const Color(
+                          0xFF152735,
+                        ), // Slightly lighter Blue-Grey at bottom
+                      ]
+                    : [
+                        const Color(0xFFE0E7FF),
+                        const Color(0xFFF0F4FF),
+                        const Color(0xFFE8F5E9),
+                      ],
+              ),
+              boxShadow: isDark
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ]
+                  : [],
+              // TODO: Add Image.asset('assets/images/Marketplace_BG.png') when available
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Marketplace',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Explora nuestra colección de bots especializados diseñados para transformar tu negocio',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Section Header
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Connek assistants',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Bots con mejor desempeño general',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Bot Card (Greg)
+          const MarketplaceBotCard(
+            name: 'Greg',
+            description:
+                'Bot especializado en atención al cliente 24/7 con IA avanzada. Gestiona citas, responde dudas y más.',
+            imageUrl:
+                'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=256&q=80', // Placeholder or real URL
+            price: '\$0',
+          ),
+
+          const SizedBox(height: 24),
+
+          // You could add more cards here
+          // const MarketplaceBotCard(name: 'Another Bot', ...),
+          const SizedBox(height: 80), // Bottom padding
+        ],
+      ),
+    );
+  }
+}

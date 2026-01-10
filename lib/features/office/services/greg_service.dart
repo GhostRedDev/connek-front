@@ -36,7 +36,7 @@ class GregService {
       await _supabase.from('greg').update(greg.toJson()).eq('id', greg.id);
     } catch (e) {
       print('Error updating Greg: $e');
-      throw e;
+      rethrow;
     }
   }
 }

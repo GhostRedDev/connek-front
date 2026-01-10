@@ -113,7 +113,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
                 ],
 
                 // --- Search & Filters ---
-                Container(
+                SizedBox(
                   width: double.infinity,
                   child: Column(
                     children: [

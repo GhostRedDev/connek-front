@@ -41,7 +41,7 @@ class _SearchPageState extends State<SearchPage> {
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
         backgroundColor: const Color(0xFF1A1D21), // bg1Sec
-        body: Container(
+        body: SizedBox(
           width: double.infinity,
           height: double.infinity,
           child: SingleChildScrollView(

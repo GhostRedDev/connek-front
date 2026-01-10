@@ -216,14 +216,19 @@ HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: true,
-      height: 200,
-      tabs: ['Overview', 'Reports', 'Team'], // Standard tabs
+      height: 125, // Increased from 110 to fix overflow on notch devices
+      tabs: [], // Tab removed as per request (moved to Profile)
       actions: [
         HeaderAction(icon: Icons.add_circle_outline),
         HeaderAction(icon: Icons.chat_bubble_outline),
         HeaderAction(icon: Icons.notifications_none),
       ],
     );
+  }
+
+  // Hide header completely for train-greg to avoid double header
+  if (route.contains('/office/train-greg')) {
+    return const HeaderData(bgTrans: false, isCustom: true, height: 0);
   }
 
   if (route == '/search') {
@@ -530,6 +535,9 @@ class _ModernGlassNavBar extends StatelessWidget {
     bool isActive(String route) =>
         GoRouterState.of(context).uri.toString().startsWith(route);
 
+    // Identify if we are in the office section to apply custom styles
+    // bool isOffice = isActive('/office'); // Unused for now as we want standard styling
+
     return SafeArea(
       top: false,
       child: Padding(
@@ -748,7 +756,10 @@ class LoginDropdownButton extends ConsumerWidget {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return InkWell(
-          onTap: () => showProfileBottomSheet(context),
+          onTap: () {
+            final currentRoute = GoRouterState.of(context).uri.toString();
+            showProfileBottomSheet(context, currentRoute);
+          },
           borderRadius: BorderRadius.circular(24),
           child: Container(
             padding: const EdgeInsets.all(2), // Border width
@@ -807,7 +818,7 @@ class LoginDropdownButton extends ConsumerWidget {
   }
 }
 
-void showProfileBottomSheet(BuildContext context) {
+void showProfileBottomSheet(BuildContext context, String currentRoute) {
   showModalBottomSheet(
     context: context,
     useRootNavigator: true, // Fix: Overlay above Custom NavBar
@@ -816,12 +827,13 @@ void showProfileBottomSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (context) => const ProfileBottomSheet(),
+    builder: (context) => ProfileBottomSheet(currentRoute: currentRoute),
   );
 }
 
 class ProfileBottomSheet extends ConsumerStatefulWidget {
-  const ProfileBottomSheet({super.key});
+  final String currentRoute;
+  const ProfileBottomSheet({super.key, required this.currentRoute});
 
   @override
   ConsumerState<ProfileBottomSheet> createState() => _ProfileBottomSheetState();
@@ -931,6 +943,12 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
                   )
                 else
                   _buildGuestView(context),
+
+                const SizedBox(height: 16),
+
+                // 2.5 OFFICE MENU (Contextual)
+                if (widget.currentRoute.startsWith('/office'))
+                  _buildOfficeMenu(context),
 
                 const SizedBox(height: 16),
               ],
@@ -1289,6 +1307,91 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOfficeMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1F24) : Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.business_center_outlined,
+                size: 16,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'OFFICE MENU',
+                style: GoogleFonts.inter(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildOfficeMenuItem(context, 'Overview', Icons.dashboard_outlined),
+          _buildOfficeMenuItem(context, 'Reports', Icons.bar_chart_rounded),
+          _buildOfficeMenuItem(context, 'Team', Icons.people_outline_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfficeMenuItem(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: () {
+        context.pop(); // Close sheet
+        // TODO: Navigate to specific subsection if implemented
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: isDark ? Colors.white24 : Colors.black26,
+            ),
+          ],
         ),
       ),
     );

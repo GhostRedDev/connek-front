@@ -1,5 +1,4 @@
-import 'dart:io';
-import 'dart:ui'; // Add this for ImageFilter
+// Add this for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,7 +22,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   late ProfileSection _currentSection;
-  bool _isEditing = false;
+  final bool _isEditing = false;
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -175,8 +174,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   final profileState = ref.watch(profileProvider);
                   return profileState.when(
                     data: (user) {
-                      if (user == null)
+                      if (user == null) {
                         return const Center(child: Text("Guest or Error"));
+                      }
                       _initializeControllers(user);
 
                       switch (_currentSection) {

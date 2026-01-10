@@ -24,9 +24,9 @@ class LeadCardInfoWidget extends StatelessWidget {
     // Time logic - very simple for now, using a helper or just checking date
     final diff = DateTime.now().difference(lead.createdAt);
     String timeStr = 'Reciente';
-    if (diff.inDays > 0)
+    if (diff.inDays > 0) {
       timeStr = '${diff.inDays}d';
-    else if (diff.inHours > 0)
+    } else if (diff.inHours > 0)
       timeStr = '${diff.inHours}h';
     else
       timeStr = '${diff.inMinutes}m';

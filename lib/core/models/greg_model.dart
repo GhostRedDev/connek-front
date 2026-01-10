@@ -82,7 +82,7 @@ class GregModel {
     int? escalationTimeMinutes,
   }) {
     return GregModel(
-      id: this.id,
+      id: id,
       cancellationPolicy: cancellationPolicy ?? this.cancellationPolicy,
       allowRescheduling: allowRescheduling ?? this.allowRescheduling,
       cancellationMotive: cancellationMotive ?? this.cancellationMotive,
