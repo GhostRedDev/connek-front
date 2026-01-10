@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'providers/business_provider.dart';
-import '../settings/providers/profile_provider.dart';
 import 'widgets/business_leads_widget.dart';
 import 'widgets/business_overview_widget.dart';
 

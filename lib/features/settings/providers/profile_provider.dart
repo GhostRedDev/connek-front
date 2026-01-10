@@ -68,7 +68,7 @@ class ProfileRepository {
   Future<String> uploadProfileImage(String filePath, int clientId, String type) async {
     try {
       final file = File(filePath);
-      final fileName = '${type}_$clientId\_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName = '${type}_${clientId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final path = '$clientId/$fileName';
 
       // Upload to 'client' bucket

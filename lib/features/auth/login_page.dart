@@ -166,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                           scale: 0.8,
                           child: Switch(
                             value: _rememberMe,
-                            activeColor: const Color(0xFF4F87C9),
+                            activeThumbColor: const Color(0xFF4F87C9),
                             onChanged: (val) =>
                                 setState(() => _rememberMe = val),
                           ),

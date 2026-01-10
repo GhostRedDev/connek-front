@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'business_shared_widgets.dart';
 import 'lead_newx_widget.dart';
-import 'my_bots_greg_widget.dart';
+import '../../office/widgets/greg_card.dart';
 import 'service_mini_card_widget.dart';
 import 'event_card_widget.dart';
 // import 'content_header_widget.dart'; // Unused in this file currently
@@ -91,7 +91,7 @@ class BusinessOverviewWidget extends ConsumerWidget {
                       .map(
                         (e) => Padding(
                           padding: const EdgeInsets.only(right: 10),
-                          child: MyBotsGregWidget(employee: e),
+                          child: const GregCard(),
                         ),
                       )
                       .toList(),

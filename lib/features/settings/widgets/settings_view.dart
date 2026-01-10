@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/providers/theme_provider.dart';
 import '../../auth/widgets/auth_success_overlay.dart'; // For feedback
 
 class SettingsView extends ConsumerStatefulWidget {
