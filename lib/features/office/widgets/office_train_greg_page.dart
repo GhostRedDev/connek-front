@@ -217,7 +217,12 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.only(
+        top: 101.0,
+        left: 15.0,
+        right: 15.0,
+        bottom: 10.0,
+      ),
       child: Row(
         children: [
           IconButton(
