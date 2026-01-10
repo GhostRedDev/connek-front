@@ -96,6 +96,19 @@ class BusinessRepository {
       return [];
     }
   }
+
+  Future<List<Map<String, dynamic>>> getServices(int businessId) async {
+    try {
+      final data = await _supabase
+          .from('service')
+          .select()
+          .eq('business_id', businessId);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching services: $e');
+      return [];
+    }
+  }
 }
 
 // --- Provider ---
@@ -111,12 +124,16 @@ final businessProvider =
     );
 
 class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
-  // Remove late final to prevent initialization errors on rebuild
   BusinessRepository? _repository;
   LeadsService? _leadsService;
+  RealtimeChannel? _leadsSubscription;
 
   @override
   Future<BusinessDashboardData> build() async {
+    // Handle disposal of real-time subscription
+    ref.onDispose(() {
+      _leadsSubscription?.unsubscribe();
+    });
     _repository = ref.read(businessRepositoryProvider);
     _leadsService = ref.read(leadsServiceProvider);
 
@@ -137,14 +154,15 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     final businessId = business['id'] as int;
 
     // Fetch Data
-    // We fetch leads from API now
     final results = await Future.wait([
       leadsService.fetchBusinessLeads(businessId),
       repo.getEmployees(businessId),
+      repo.getServices(businessId),
     ]);
 
     final leads = results[0] as List<Lead>;
     final employeesRaw = results[1] as List<Map<String, dynamic>>;
+    final servicesRaw = results[2] as List<Map<String, dynamic>>;
 
     // Map Employees
     final employees = employeesRaw.map((bot) {
@@ -163,13 +181,52 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       };
     }).toList();
 
+    // Map Services
+    final services = servicesRaw.map((s) {
+      // Resolve image if needed
+      String? image;
+      if (s['image_url'] != null) {
+        image = repo._resolveUrl(
+          s['image_url'],
+          'service',
+        ); // Assuming 'service' bucket or similar
+      }
+      return {...s, 'image': image};
+    }).toList();
+
+    // Setup Realtime Subscription for Leads (Example)
+    // We only subscribe once.
+    if (_leadsSubscription == null) {
+      _subscribeToLeads(businessId);
+    }
+
     return BusinessDashboardData(
       totalRequests: leads.length,
       monthEarnings: 0.0,
       activityChart: [0, 0, 0, 0, 0, 0, 0],
       recentLeads: leads,
       employees: employees,
-      services: [],
+      services: services,
     );
+  }
+
+  void _subscribeToLeads(int businessId) {
+    _leadsSubscription = Supabase.instance.client
+        .channel('public:leads:business_id=eq.$businessId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'leads', // Verify table name
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'business_id',
+            value: businessId,
+          ),
+          callback: (payload) {
+            // Reload data on change
+            ref.invalidateSelf();
+          },
+        )
+        .subscribe();
   }
 }
