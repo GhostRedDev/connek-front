@@ -28,6 +28,8 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   late TextEditingController _procedure1Controller;
   late TextEditingController _procedure2Controller;
   late TextEditingController _procedure3Controller;
+  late TextEditingController _procedureDetailsController;
+  late TextEditingController _postBookingProceduresController;
 
   // Local State
   bool _allowRescheduling = false;
@@ -53,6 +55,8 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     _procedure1Controller = TextEditingController();
     _procedure2Controller = TextEditingController();
     _procedure3Controller = TextEditingController();
+    _procedureDetailsController = TextEditingController();
+    _postBookingProceduresController = TextEditingController();
 
     // Load Data
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -199,7 +203,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                   );
                 },
               ),
-              const SizedBox(height: 70),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -384,6 +388,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             const Divider(color: Colors.white24),
             const SizedBox(height: 16),
             ...children,
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -487,6 +492,24 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         _buildProcedureStep(2, _procedure2Controller),
         const SizedBox(height: 16),
         _buildProcedureStep(3, _procedure3Controller),
+        const SizedBox(height: 24),
+        _buildTextField(
+          'Procedures details',
+          _procedureDetailsController,
+          hintText: 'Add additional instructions for Greg',
+          minLines: 5,
+        ),
+        const SizedBox(height: 24),
+        _buildTextField(
+          'Post-booking procedures',
+          _postBookingProceduresController,
+          hintText: 'Add additional instructions for Greg',
+          minLines: 5,
+        ),
+        const SizedBox(height: 24),
+        const Text('Adjuntar documentos', style: TextStyle(color: Colors.grey)),
+        const SizedBox(height: 8),
+        _buildUploadPlaceholder(),
       ],
     );
   }
