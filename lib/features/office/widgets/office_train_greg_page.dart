@@ -30,13 +30,17 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   late TextEditingController _procedure3Controller;
   late TextEditingController _procedureDetailsController;
   late TextEditingController _postBookingProceduresController;
+  late TextEditingController _confidentialInfoController;
 
   // Local State
   bool _allowRescheduling = false;
   bool _cancellationMotive = false;
   bool _requirePaymentProof = false;
+  bool _askConsent = false;
   String _refundPolicyType = 'No Refund'; // Default
+  String _dataStorageLevel = 'Básico';
   List<String> _acceptedPaymentMethods = [];
+  final List<Map<String, String>> _excludedContacts = [];
 
   // Loading state
   bool _isLoading = true;
@@ -57,6 +61,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     _procedure3Controller = TextEditingController();
     _procedureDetailsController = TextEditingController();
     _postBookingProceduresController = TextEditingController();
+    _confidentialInfoController = TextEditingController();
 
     // Load Data
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -465,7 +470,13 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           style: TextStyle(color: Colors.white),
         ),
         const SizedBox(height: 8),
-        _buildRadioGroup(['No Refund', 'Full Refund', 'Custom Refund']),
+        _buildRadioGroup(
+          options: ['No Refund', 'Full Refund', 'Custom Refund'],
+          currentValue: _refundPolicyType,
+          onChanged: (val) {
+            if (val != null) setState(() => _refundPolicyType = val);
+          },
+        ),
         const SizedBox(height: 16),
         _buildTextField(
           'Refund policy',
@@ -516,14 +527,150 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
 
   Widget _buildPrivacyTab() {
     return _buildSectionContainer(
-      title: 'Privacidad',
-      subtitle: 'Gestiona la información privada y el consentimiento.',
+      title: 'Privacidad y confidencialidad',
+      subtitle: 'Define cómo Greg maneja los datos de tus clientes',
       children: [
+        const Text(
+          'Nivel de almacenamiento de datos',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 12),
+        _buildRadioGroup(
+          options: [
+            'Ninguno - No guardar datos de clientes',
+            'Básico - Solo información esencial',
+            'Completo - Historial completo de interacciones',
+          ],
+          currentValue: _dataStorageLevel,
+          onChanged: (val) {
+            if (val != null) setState(() => _dataStorageLevel = val);
+          },
+        ),
+        const SizedBox(height: 24),
+        _buildSwitchTile(
+          title: 'Pedir consentimiento antes',
+          subtitle: '¿Solicitar permiso para guardar datos?',
+          value: _askConsent,
+          onChanged: (v) => setState(() => _askConsent = v),
+        ),
+        const SizedBox(height: 24),
         _buildTextField(
-          'Política de Privacidad',
+          'Política de privacidad (opcional)',
           _privacyPolicyController,
-          hintText: 'Información que no se debe compartir...',
+          hintText:
+              'Inform Greg about your privacy policy. What information do you collect and why? How do you protect your client\'s information?',
           minLines: 5,
+        ),
+        const SizedBox(height: 24),
+        // Confidential Info Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D1E16), // Dark green bg
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.withOpacity(0.2)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Text('🔒', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Información que Greg NO comparte con el cliente',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(
+                '',
+                _confidentialInfoController,
+                hintText:
+                    'Ej. Precios internos, márgenes de ganancia, información confidencial del negocio...',
+                minLines: 5,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Esta información será conocida por Greg pero nunca la revelará en las conversaciones',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Excluded Contacts Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1315), // Dark red bg
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red.withOpacity(0.2)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Text(
+                'Contactos Excluidos',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Define qué contactos Greg nunca debe atender para proteger tu vida personal',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF131619),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone_outlined, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${_excludedContacts.length} contactos excluidos',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // TODO: Implement add contact logic
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Añadir contacto'),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -672,7 +819,11 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     );
   }
 
-  Widget _buildRadioGroup(List<String> options) {
+  Widget _buildRadioGroup({
+    required List<String> options,
+    required String currentValue,
+    required ValueChanged<String?> onChanged,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF131619),
@@ -684,11 +835,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           return RadioListTile<String>(
             title: Text(option, style: const TextStyle(color: Colors.white)),
             value: option,
-            groupValue: _refundPolicyType,
+            groupValue: currentValue,
             activeColor: const Color(0xFF4B39EF),
-            onChanged: (val) {
-              if (val != null) setState(() => _refundPolicyType = val);
-            },
+            onChanged: onChanged,
           );
         }).toList(),
       ),
