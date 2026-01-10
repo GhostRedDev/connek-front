@@ -210,10 +210,10 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.only(
-        top: 100.0,
-        left: 20.0,
-        right: 20.0,
-        bottom: 20.0,
+        top: 101.0,
+        left: 15.0,
+        right: 15.0,
+        bottom: 10.0,
       ),
       child: Row(
         children: [
