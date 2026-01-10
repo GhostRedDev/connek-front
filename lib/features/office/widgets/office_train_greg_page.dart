@@ -158,48 +158,42 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     return Scaffold(
       backgroundColor: const Color(0xFF131619),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: NestedScrollView(
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                floatHeaderSlivers: true,
-                headerSliverBuilder: (context, innerBoxIsScrolled) => [
-                  // First sliver: The scrolling intro section
-                  SliverToBoxAdapter(child: _buildIntroSection()),
+        child: NestedScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          floatHeaderSlivers: true,
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            // Header is now a sliver to participate in NestedScrollView
+            SliverToBoxAdapter(child: _buildHeader()),
 
-                  // Wrap the pinned SliverPersistentHeader with SliverOverlapAbsorber
-                  SliverOverlapAbsorber(
-                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                      context,
-                    ),
-                    sliver: SliverPersistentHeader(
-                      delegate: _SliverAppBarDelegate(
-                        minHeight: 60,
-                        maxHeight: 60,
-                        child: _buildTabBar(),
-                      ),
-                      pinned: true,
-                    ),
-                  ),
-                ],
-                body: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildCancellationsTab(),
-                    _buildPaymentsTab(),
-                    _buildProceduresTab(),
-                    _buildPrivacyTab(),
-                    _buildPoliciesTab(),
-                    _buildLibraryTab(),
-                  ],
+            // Second sliver: The scrolling intro section
+            SliverToBoxAdapter(child: _buildIntroSection()),
+
+            // Wrap the pinned SliverPersistentHeader with SliverOverlapAbsorber
+            SliverOverlapAbsorber(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver: SliverPersistentHeader(
+                delegate: _SliverAppBarDelegate(
+                  minHeight: 60,
+                  maxHeight: 60,
+                  child: _buildTabBar(),
                 ),
+                pinned: true,
               ),
             ),
           ],
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildCancellationsTab(),
+              _buildPaymentsTab(),
+              _buildProceduresTab(),
+              _buildPrivacyTab(),
+              _buildPoliciesTab(),
+              _buildLibraryTab(),
+            ],
+          ),
         ),
       ),
     );
