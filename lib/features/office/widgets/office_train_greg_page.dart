@@ -193,18 +193,8 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                     _buildPaymentsTab(),
                     _buildProceduresTab(),
                     _buildPrivacyTab(),
-                    const Center(
-                      child: Text(
-                        'Políticas - Coming Soon',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const Center(
-                      child: Text(
-                        'Biblioteca - Coming Soon',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
+                    _buildPoliciesTab(),
+                    _buildLibraryTab(),
                   ],
                 ),
               ),
@@ -529,6 +519,42 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           _privacyPolicyController,
           hintText: 'Información que no se debe compartir...',
           minLines: 5,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPoliciesTab() {
+    return _buildSectionContainer(
+      title: 'Políticas',
+      subtitle: 'Próximamente estaremos habilitando esta sección.',
+      children: const [
+        Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Text(
+              'Políticas - Coming Soon',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLibraryTab() {
+    return _buildSectionContainer(
+      title: 'Biblioteca',
+      subtitle: 'Tu base de conocimientos para Greg.',
+      children: const [
+        Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Text(
+              'Biblioteca - Coming Soon',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          ),
         ),
       ],
     );
