@@ -158,50 +158,58 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     return Scaffold(
       backgroundColor: const Color(0xFF131619),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 20),
-              _buildIntroSection(),
-              _buildTabBar(),
-              // Dynamic Content based on Tab
-              AnimatedBuilder(
-                animation: _tabController,
-                builder: (context, _) {
-                  return IndexedStack(
-                    index: _tabController.index,
-                    children: [
-                      _buildCancellationsTab(),
-                      _buildPaymentsTab(),
-                      _buildProceduresTab(),
-                      _buildPrivacyTab(),
-                      const Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Center(
-                          child: Text(
-                            'Políticas - Coming Soon',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: NestedScrollView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                floatHeaderSlivers: true,
+                headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                  // First sliver: The scrolling intro section
+                  SliverToBoxAdapter(child: _buildIntroSection()),
+
+                  // Wrap the pinned SliverPersistentHeader with SliverOverlapAbsorber
+                  SliverOverlapAbsorber(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
+                      context,
+                    ),
+                    sliver: SliverPersistentHeader(
+                      delegate: _SliverAppBarDelegate(
+                        minHeight: 60,
+                        maxHeight: 60,
+                        child: _buildTabBar(),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Center(
-                          child: Text(
-                            'Biblioteca - Coming Soon',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
+                      pinned: true,
+                    ),
+                  ),
+                ],
+                body: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildCancellationsTab(),
+                    _buildPaymentsTab(),
+                    _buildProceduresTab(),
+                    _buildPrivacyTab(),
+                    const Center(
+                      child: Text(
+                        'Políticas - Coming Soon',
+                        style: TextStyle(color: Colors.white),
                       ),
-                    ],
-                  );
-                },
+                    ),
+                    const Center(
+                      child: Text(
+                        'Biblioteca - Coming Soon',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -209,12 +217,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.only(
-        top: 100.0,
-        left: 20.0,
-        right: 20.0,
-        bottom: 20.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       child: Row(
         children: [
           IconButton(
@@ -324,45 +327,65 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     String? subtitle,
     required List<Widget> children,
   }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E2429), // bg2Sec
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Text(
-                title,
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
+    // IMPORTANT: Wrapped in Builder to get the inner context of the NestedScrollView
+    // This allows sliverOverlapAbsorberHandleFor to work correctly
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          key: PageStorageKey<String>(title),
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+              sliver: SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2429), // bg2Sec
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            subtitle,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 16),
+                      ...children,
+                    ],
+                  ),
                 ),
               ),
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white24),
-            const SizedBox(height: 16),
-            ...children,
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -670,5 +693,39 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         ],
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.child,
+  });
+
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        child != oldDelegate.child;
   }
 }
