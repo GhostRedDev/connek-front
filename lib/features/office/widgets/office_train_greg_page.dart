@@ -158,48 +158,50 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     return Scaffold(
       backgroundColor: const Color(0xFF131619),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: NestedScrollView(
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                floatHeaderSlivers: true,
-                headerSliverBuilder: (context, innerBoxIsScrolled) => [
-                  // First sliver: The scrolling intro section
-                  SliverToBoxAdapter(child: _buildIntroSection()),
-
-                  // Wrap the pinned SliverPersistentHeader with SliverOverlapAbsorber
-                  SliverOverlapAbsorber(
-                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                      context,
-                    ),
-                    sliver: SliverPersistentHeader(
-                      delegate: _SliverAppBarDelegate(
-                        minHeight: 60,
-                        maxHeight: 60,
-                        child: _buildTabBar(),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 20),
+              _buildIntroSection(),
+              _buildTabBar(),
+              // Dynamic Content based on Tab
+              AnimatedBuilder(
+                animation: _tabController,
+                builder: (context, _) {
+                  return IndexedStack(
+                    index: _tabController.index,
+                    children: [
+                      _buildCancellationsTab(),
+                      _buildPaymentsTab(),
+                      _buildProceduresTab(),
+                      _buildPrivacyTab(),
+                      const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Text(
+                            'Políticas - Coming Soon',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ),
-                      pinned: true,
-                    ),
-                  ),
-                ],
-                body: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildCancellationsTab(),
-                    _buildPaymentsTab(),
-                    _buildProceduresTab(),
-                    _buildPrivacyTab(),
-                    _buildPoliciesTab(),
-                    _buildLibraryTab(),
-                  ],
-                ),
+                      const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Text(
+                            'Biblioteca - Coming Soon',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-            ),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
@@ -215,57 +217,33 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
       ),
       child: Row(
         children: [
-          InkWell(
-            onTap: () => context.pop(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E2429),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.arrow_back, color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Mis bots',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.pop(),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Volver',
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
           ),
           const Spacer(),
-          GestureDetector(
-            onTap: _saveData,
-            child: Row(
-              children: [
-                Text(
-                  'Greg',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/Greg_Top_Bot_CArd.png'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ],
+          TextButton.icon(
+            onPressed: _saveData,
+            icon: const Icon(Icons.check, color: Colors.white, size: 20),
+            label: Text(
+              'Guardar',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFF4B39EF),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           ),
         ],
@@ -346,65 +324,45 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     String? subtitle,
     required List<Widget> children,
   }) {
-    // IMPORTANT: Wrapped in Builder to get the inner context of the NestedScrollView
-    // This allows sliverOverlapAbsorberHandleFor to work correctly
-    return Builder(
-      builder: (BuildContext context) {
-        return CustomScrollView(
-          key: PageStorageKey<String>(title),
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-              sliver: SliverToBoxAdapter(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E2429), // bg2Sec
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Text(
-                          title,
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 8),
-                        Center(
-                          child: Text(
-                            subtitle,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      const Divider(color: Colors.white24),
-                      const SizedBox(height: 16),
-                      ...children,
-                    ],
-                  ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2429), // bg2Sec
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+                title,
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white24),
+            const SizedBox(height: 16),
+            ...children,
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -519,42 +477,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           _privacyPolicyController,
           hintText: 'Información que no se debe compartir...',
           minLines: 5,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPoliciesTab() {
-    return _buildSectionContainer(
-      title: 'Políticas',
-      subtitle: 'Próximamente estaremos habilitando esta sección.',
-      children: const [
-        Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Text(
-              'Políticas - Coming Soon',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLibraryTab() {
-    return _buildSectionContainer(
-      title: 'Biblioteca',
-      subtitle: 'Tu base de conocimientos para Greg.',
-      children: const [
-        Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Text(
-              'Biblioteca - Coming Soon',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-          ),
         ),
       ],
     );
@@ -748,39 +670,5 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         ],
       ),
     );
-  }
-}
-
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverAppBarDelegate({
-    required this.minHeight,
-    required this.maxHeight,
-    required this.child,
-  });
-
-  final double minHeight;
-  final double maxHeight;
-  final Widget child;
-
-  @override
-  double get minExtent => minHeight;
-
-  @override
-  double get maxExtent => maxHeight;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return SizedBox.expand(child: child);
-  }
-
-  @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        child != oldDelegate.child;
   }
 }
