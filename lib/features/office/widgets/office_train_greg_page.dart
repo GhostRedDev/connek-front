@@ -225,33 +225,57 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => context.pop(),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Volver',
-            style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
-          ),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: _saveData,
-            icon: const Icon(Icons.check, color: Colors.white, size: 20),
-            label: Text(
-              'Guardar',
-              style: GoogleFonts.outfit(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+          InkWell(
+            onTap: () => context.pop(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2429),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Mis bots',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF4B39EF),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _saveData,
+            child: Row(
+              children: [
+                Text(
+                  'Greg',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/Greg_Top_Bot_CArd.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
