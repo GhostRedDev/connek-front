@@ -3,8 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Keep for image resol
 import '../../../core/services/api_service.dart';
 import '../models/lead_model.dart';
 
-final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
-
 final leadsServiceProvider = Provider<LeadsService>((ref) {
   final apiService = ref.watch(
     apiServiceProvider,

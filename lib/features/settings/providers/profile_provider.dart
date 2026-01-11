@@ -13,14 +13,22 @@ class ProfileRepository {
   // Fetch Profile by Auth User ID (Create if doesn't exist)
   Future<UserProfile?> getProfile() async {
     final user = _supabase.auth.currentUser;
+    print('👤 ProfileRepository: Current Auth User: ${user?.id ?? "NULL"}');
     if (user == null) return null;
 
     try {
+      print(
+        '🔍 ProfileRepository: Fetching client data for user_id: ${user.id}...',
+      );
       final data = await _supabase
           .from('client')
           .select()
           .eq('user_id', user.id)
           .maybeSingle();
+
+      print(
+        '📥 ProfileRepository: Database response data: ${data != null ? "FOUND" : "NOT FOUND"}',
+      );
 
       if (data != null) {
         return UserProfile.fromJson(data);
@@ -43,8 +51,8 @@ class ProfileRepository {
         return UserProfile.fromJson(createdData);
       }
     } catch (e) {
-      // If error (e.g. duplicate key race condition), try fetching again or throw
-      throw Exception('Error fetching/creating profile: $e');
+      print('❌ ProfileRepository: Error in getProfile: $e');
+      return null;
     }
   }
 
