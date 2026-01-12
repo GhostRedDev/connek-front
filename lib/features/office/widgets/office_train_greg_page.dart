@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../providers/office_provider.dart';
+import 'office_menu_widget.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/models/greg_model.dart';
@@ -371,6 +373,20 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
+                const SizedBox(height: 130), // Clear Glass Header
+                OfficeMenuWidget(
+                  selectedIndex: 0, // Always "My bots" while on this page
+                  onTabSelected: (index) {
+                    if (index == 1) {
+                      // Switch to Marketplace and navigate back
+                      ref
+                          .read(officeSelectedIndexProvider.notifier)
+                          .updateIndex(1);
+                      context.pop();
+                    }
+                  },
+                ),
+                const SizedBox(height: 20),
                 _buildHeader(),
                 const SizedBox(height: 20),
                 _buildIntroSection(),
@@ -379,14 +395,17 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 AnimatedBuilder(
                   animation: _tabController,
                   builder: (context, _) {
-                    return IndexedStack(
-                      index: _tabController.index,
-                      children: [
-                        _buildCancellationsTab(),
-                        _buildPaymentsTab(),
-                        _buildProceduresTab(),
-                        _buildPrivacyTab(),
-                        const Padding(
+                    switch (_tabController.index) {
+                      case 0:
+                        return _buildCancellationsTab();
+                      case 1:
+                        return _buildPaymentsTab();
+                      case 2:
+                        return _buildProceduresTab();
+                      case 3:
+                        return _buildPrivacyTab();
+                      case 4:
+                        return const Padding(
                           padding: EdgeInsets.all(32.0),
                           child: Center(
                             child: Text(
@@ -394,13 +413,15 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                               style: TextStyle(color: Colors.white),
                             ),
                           ),
-                        ),
-                        _buildLibraryTab(),
-                      ],
-                    );
+                        );
+                      case 5:
+                        return _buildLibraryTab();
+                      default:
+                        return const SizedBox.shrink();
+                    }
                   },
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 120),
               ],
             ),
           ),
@@ -411,12 +432,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.only(
-        top: 101.0,
-        left: 15.0,
-        right: 15.0,
-        bottom: 10.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 15.0),
       child: Row(
         children: [
           InkWell(
@@ -676,7 +692,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             const Divider(color: Colors.white24),
             const SizedBox(height: 16),
             ...children,
-            const SizedBox(height: 100),
           ],
         ),
       ),

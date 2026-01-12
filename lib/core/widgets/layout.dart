@@ -226,9 +226,17 @@ HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
     );
   }
 
-  // Hide header completely for train-greg to avoid double header
   if (route.contains('/office/train-greg')) {
-    return const HeaderData(bgTrans: false, isCustom: true, height: 0);
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      height: 125,
+      actions: [
+        const HeaderAction(icon: Icons.add_circle_outline),
+        const HeaderAction(icon: Icons.chat_bubble_outline),
+        const HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
   }
 
   if (route == '/search') {
