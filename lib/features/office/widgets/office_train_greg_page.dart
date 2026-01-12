@@ -44,7 +44,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   bool _requirePaymentProof = false;
   bool _askConsent = false;
   String _refundPolicyType = 'No Refund'; // Default
-  String _dataStorageLevel = 'Básico';
+  String _dataStorageLevel = 'Básico - Solo información esencial';
   List<String> _acceptedPaymentMethods = [];
   List<String> _cancellationDocuments = []; // New local state
   final List<Map<String, String>> _excludedContacts = [];
@@ -1611,11 +1611,33 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                         color: const Color(0xFF4B39EF).withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.description_outlined,
-                        color: Color(0xFF4B39EF),
-                        size: 20,
-                      ),
+                      child:
+                          (file['name']?.toLowerCase().endsWith('.jpg') ??
+                                  false) ||
+                              (file['name']?.toLowerCase().endsWith('.jpeg') ??
+                                  false) ||
+                              (file['name']?.toLowerCase().endsWith('.png') ??
+                                  false)
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.network(
+                                'https://bzndcfewyihbytjpitil.supabase.co/storage/v1/object/public/client/${file['path'] ?? 'library/${file['filename']}'}',
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                      Icons.image_not_supported_outlined,
+                                      color: Colors.white24,
+                                      size: 20,
+                                    ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.description_outlined,
+                              color: Color(0xFF4B39EF),
+                              size: 20,
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1682,7 +1704,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx'],
+        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
         withData: true, // Required for Web to get bytes
       );
 
