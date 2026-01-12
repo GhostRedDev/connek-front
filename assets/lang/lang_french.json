@@ -1,0 +1,15 @@
+{
+    "nav_buy": "Acheter",
+    "nav_requests": "Achats",
+    "nav_support": "Support",
+    "nav_profile": "Profil",
+    "nav_sell": "Vendre",
+    "nav_office": "Bureau",
+    "switch_account": "Changer de compte",
+    "client_account": "Compte Personnel",
+    "business_account": "Compte Business",
+    "add_account": "Ajouter un compte",
+    "signed_in_as": "Connecté en tant que",
+    "settings": "Paramètres",
+    "logout": "Se déconnecter"
+}

@@ -3,36 +3,79 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../leads/models/lead_model.dart';
 
-class LeadNewxWidget extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/business_provider.dart';
+import '../lead_details_page.dart';
+
+class LeadNewxWidget extends ConsumerWidget {
   final Lead lead;
   const LeadNewxWidget({super.key, required this.lead});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Find service
+    final businessData = ref.watch(businessProvider).asData?.value;
+    Map<String, dynamic>? service;
+    if (businessData != null) {
+      try {
+        service = businessData.services.firstWhere(
+          (s) => s['id'] == lead.serviceId,
+          orElse: () => {},
+        );
+        if (service.isEmpty) service = null;
+      } catch (_) {}
+    }
+
     final name = '${lead.clientFirstName} ${lead.clientLastName}'.trim();
     // Use requestBudgetMax if available, else 0
     final amount = (lead.requestBudgetMax ?? 0) / 100.0;
 
-    return Container(
-      width: 160,
-      height: 200,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-      child: Stack(
-        children: [
-          // Background Image with Error Handling
-          Positioned.fill(
-            child: ClipRRect(
-              // Clip the image to the container's border radius
-              borderRadius: BorderRadius.circular(20),
-              child:
-                  (lead.clientImageUrl != null &&
-                      lead.clientImageUrl!.isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: lead.clientImageUrl!,
-                      fit: BoxFit.cover,
-                      color: Colors.black.withOpacity(0.3),
-                      colorBlendMode: BlendMode.darken,
-                      errorWidget: (context, url, error) => Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LeadDetailsPage(lead: lead, service: service),
+          ),
+        );
+      },
+      child: Container(
+        width: 160,
+        height: 200,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+        child: Stack(
+          children: [
+            // Background Image with Error Handling
+            Positioned.fill(
+              child: ClipRRect(
+                // Clip the image to the container's border radius
+                borderRadius: BorderRadius.circular(20),
+                child:
+                    (lead.clientImageUrl != null &&
+                        lead.clientImageUrl!.isNotEmpty)
+                    ? CachedNetworkImage(
+                        imageUrl: lead.clientImageUrl!,
+                        fit: BoxFit.cover,
+                        color: Colors.black.withOpacity(0.3),
+                        colorBlendMode: BlendMode.darken,
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[900],
+                          child: const Center(
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.white24,
+                              size: 48,
+                            ),
+                          ),
+                        ),
+                        placeholder: (context, url) => Container(
+                          color: Colors.black,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    : Container(
                         color: Colors.grey[900],
                         child: const Center(
                           child: Icon(
@@ -42,84 +85,68 @@ class LeadNewxWidget extends StatelessWidget {
                           ),
                         ),
                       ),
-                      placeholder: (context, url) => Container(
-                        color: Colors.black,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.grey[900],
-                      child: const Center(
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white24,
-                          size: 48,
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-          // Tag
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Cliente',
-                style: const TextStyle(color: Colors.white, fontSize: 10),
               ),
             ),
-          ),
-          // Price
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00C853),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '\$$amount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+            // Tag
+            Positioned(
+              top: 12,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Cliente',
+                  style: const TextStyle(color: Colors.white, fontSize: 10),
                 ),
               ),
             ),
-          ),
-          // Name
-          Positioned(
-            bottom: 12,
-            left: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Financial',
-                  style: TextStyle(color: Colors.white70, fontSize: 10),
-                ), // Static tag for now
-                Text(
-                  name,
-                  style: GoogleFonts.outfit(
+            // Price
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00C853),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '\$$amount',
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+            // Name
+            Positioned(
+              bottom: 12,
+              left: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Financial',
+                    style: TextStyle(color: Colors.white70, fontSize: 10),
+                  ), // Static tag for now
+                  Text(
+                    name,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

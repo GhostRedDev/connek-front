@@ -1,5 +1,6 @@
 class GregModel {
   final int id;
+  final int businessId; // Added businessId
   final String cancellations; // Renamed from cancellationPolicy
   final bool allowRescheduling;
   final bool cancellationMotive;
@@ -15,6 +16,7 @@ class GregModel {
   final int escalationTimeMinutes;
   final List<String> cancellationDocuments;
   final List<Map<String, String>> excludedPhones;
+  final List<String> blacklist; // Added blacklist for words
   final List<Map<String, String>> library;
   final String conversationTone;
   final bool notifications;
@@ -28,6 +30,7 @@ class GregModel {
 
   GregModel({
     required this.id,
+    required this.businessId,
     this.cancellations = '',
     this.allowRescheduling = false,
     this.cancellationMotive = false,
@@ -43,6 +46,7 @@ class GregModel {
     this.escalationTimeMinutes = 0,
     this.cancellationDocuments = const [],
     this.excludedPhones = const [],
+    this.blacklist = const [],
     this.library = const [],
     this.conversationTone = 'friendly',
     this.notifications = true,
@@ -56,6 +60,7 @@ class GregModel {
   factory GregModel.fromJson(Map<String, dynamic> json) {
     return GregModel(
       id: json['id'] as int? ?? 0,
+      businessId: json['business_id'] as int? ?? 0,
       cancellations:
           json['cancellations'] as String? ??
           json['cancellation_policy'] as String? ??
@@ -85,14 +90,13 @@ class GregModel {
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      excludedPhones: (json['blacklist'] is List)
-          ? (json['blacklist'] as List)
-                .map((e) => Map<String, String>.from(e as Map))
-                .toList()
-          : (json['excluded_phones'] is List)
+      excludedPhones: (json['excluded_phones'] is List)
           ? (json['excluded_phones'] as List)
                 .map((e) => Map<String, String>.from(e as Map))
                 .toList()
+          : [],
+      blacklist: (json['blacklist'] is List)
+          ? (json['blacklist'] as List).map((e) => e.toString()).toList()
           : [],
       library: (json['library'] is List)
           ? (json['library'] as List)
@@ -114,6 +118,7 @@ class GregModel {
 
   Map<String, dynamic> toJson() {
     return {
+      'business_id': businessId,
       'cancellations': cancellations,
       'allow_rescheduling': allowRescheduling,
       'cancellation_motive': cancellationMotive,
@@ -128,7 +133,8 @@ class GregModel {
       'refund_policy_details': refundPolicyDetails,
       'escalation_time_minutes': escalationTimeMinutes,
       'cancellation_documents': cancellationDocuments,
-      'blacklist': excludedPhones,
+      'excluded_phones': excludedPhones,
+      'blacklist': blacklist,
       'library': library,
       'conversation_tone': conversationTone,
       'notifications': notifications,
@@ -141,6 +147,7 @@ class GregModel {
   }
 
   GregModel copyWith({
+    int? businessId,
     String? cancellations,
     bool? allowRescheduling,
     bool? cancellationMotive,
@@ -156,6 +163,7 @@ class GregModel {
     int? escalationTimeMinutes,
     List<String>? cancellationDocuments,
     List<Map<String, String>>? excludedPhones,
+    List<String>? blacklist,
     List<Map<String, String>>? library,
     String? conversationTone,
     bool? notifications,
@@ -167,6 +175,7 @@ class GregModel {
   }) {
     return GregModel(
       id: id,
+      businessId: businessId ?? this.businessId,
       cancellations: cancellations ?? this.cancellations,
       allowRescheduling: allowRescheduling ?? this.allowRescheduling,
       cancellationMotive: cancellationMotive ?? this.cancellationMotive,
@@ -186,6 +195,7 @@ class GregModel {
       cancellationDocuments:
           cancellationDocuments ?? this.cancellationDocuments,
       excludedPhones: excludedPhones ?? this.excludedPhones,
+      blacklist: blacklist ?? this.blacklist,
       library: library ?? this.library,
       conversationTone: conversationTone ?? this.conversationTone,
       notifications: notifications ?? this.notifications,

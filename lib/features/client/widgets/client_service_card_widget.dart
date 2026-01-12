@@ -24,8 +24,14 @@ class ClientServiceCardWidget extends StatelessWidget {
                 top: Radius.circular(20),
               ),
               image: DecorationImage(
-                image: NetworkImage(service['image']),
+                image:
+                    (service['image'] != null &&
+                        service['image'].toString().startsWith('http'))
+                    ? NetworkImage(service['image'])
+                    : const AssetImage('assets/images/placeholder_service.png')
+                          as ImageProvider,
                 fit: BoxFit.cover,
+                onError: (exception, stackTrace) {},
               ),
             ),
             child: Stack(

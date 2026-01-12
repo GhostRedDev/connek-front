@@ -8,8 +8,11 @@ import 'core/providers/theme_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 // import 'core/services/supabase_config_service.dart';
 
+import 'package:flutter_web_plugins/url_strategy.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
 
   // LiquidGlassLayer configuration removed due to final field error
   // Using SimpleGlassContainer by default in AppLayout instead.
@@ -62,7 +65,7 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode, // Dynamic Theme Mode (System/Light/Dark)
 
-      routerConfig: router,
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }

@@ -45,6 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera for video calls.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone for voice and video calls.</string>
 	<!-- Deep Linking for Supabase Auth -->
 	<key>CFBundleURLTypes</key>
 	<array>

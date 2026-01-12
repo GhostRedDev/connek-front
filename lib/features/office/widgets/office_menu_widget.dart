@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/providers/locale_provider.dart';
 
-class OfficeMenuWidget extends StatelessWidget {
+class OfficeMenuWidget extends ConsumerWidget {
   final Function(int index) onTabSelected;
   final int selectedIndex;
 
@@ -12,8 +14,10 @@ class OfficeMenuWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
     // Theme Colors
     // Background of the pill container
@@ -53,7 +57,7 @@ class OfficeMenuWidget extends StatelessWidget {
                 context,
                 index: 0,
                 icon: Icons.smart_toy_outlined, // More specific icon
-                label: 'My bots',
+                label: t['office_tab_my_bots'] ?? 'My bots',
                 isActive: selectedIndex == 0,
                 activeBg: activeTabColor,
                 activeText: activeTextColor,
@@ -69,7 +73,7 @@ class OfficeMenuWidget extends StatelessWidget {
                 context,
                 index: 1,
                 icon: Icons.storefront_outlined,
-                label: 'Marketplace',
+                label: t['office_tab_marketplace'] ?? 'Marketplace',
                 isActive: selectedIndex == 1,
                 activeBg: activeTabColor,
                 activeText: activeTextColor,
