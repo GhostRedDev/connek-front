@@ -601,6 +601,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             ? CachedNetworkImage(
                 imageUrl: contactImage,
                 fit: BoxFit.cover,
+                // Opt: 32 * 3 = 96
+                memCacheWidth: 96,
+                memCacheHeight: 96,
                 placeholder: (context, url) =>
                     Container(color: Colors.blueGrey),
                 errorWidget: (context, url, error) => _buildInitials(initials),
