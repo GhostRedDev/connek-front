@@ -399,6 +399,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (contactInfo?['is_business'] == true) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.storefront, size: 16, color: Colors.blue),
+                ],
                 const SizedBox(width: 8),
                 CircleAvatar(
                   radius: 12,
