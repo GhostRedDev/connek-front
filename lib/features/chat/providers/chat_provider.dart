@@ -140,9 +140,22 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
             : (contactClient != null
                   ? '${contactClient['first_name']} ${contactClient['last_name']}'
                   : 'Unknown');
-        final contactImage = contactBusiness != null
+        String? contactImage = contactBusiness != null
             ? contactBusiness['profile_image']
             : (contactClient != null ? contactClient['profile_url'] : null);
+
+        if (contactImage != null && !contactImage.startsWith('http')) {
+          // Assuming 'business' bucket for business images and 'avatars' for clients?
+          // Or 'profiles'. Let's check common patterns.
+          // Earlier logs showed 'business' bucket usage.
+          // If uncertain, we might simply leave it blank or try a generic bucket.
+          // Let's assume 'business' for business and 'avatars' for clients based on standard Supabase patterns.
+          // Or better, just try to resolve it if it looks like a path.
+          final bucket = contactBusiness != null ? 'business' : 'avatars';
+          contactImage = _supabase.storage
+              .from(bucket)
+              .getPublicUrl(contactImage);
+        }
 
         final contactData = {
           'id': contactClient != null ? contactClient['id'] : 0,
@@ -278,16 +291,46 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
       */
 
       // Use Backend API to ensure notifications and bot logic triggers
-      await ApiService().post(
-        '/messages/send',
-        body: {
+      bool sentViaApi = false;
+      try {
+        final response = await ApiService().post(
+          '/messages/send',
+          body: {
+            'conversation_id': conversationId,
+            'content': content,
+            'content_type': contentType,
+            'sender': senderId,
+            'receiver': receiverId,
+          },
+        );
+
+        if (response != null &&
+            response is Map &&
+            response['success'] == true) {
+          sentViaApi = true;
+        } else {
+          print(
+            "API Send failed: ${response is Map ? response['error'] : response}",
+          );
+        }
+      } catch (e) {
+        print("API Connection error: $e");
+      }
+
+      // Fallback: Direct Supabase Insert
+      if (!sentViaApi) {
+        print("Falling back to Direct Supabase Insert for Message");
+        await _supabase.from('messages').insert({
           'conversation_id': conversationId,
           'content': content,
           'content_type': contentType,
           'sender': senderId,
           'receiver': receiverId,
-        },
-      );
+          'sender_client': isSenderClient,
+          'sender_bot': false,
+        });
+        print("✅ Direct Supabase Insert Successful");
+      }
 
       // Refresh list to update last message
       ref.invalidateSelf();

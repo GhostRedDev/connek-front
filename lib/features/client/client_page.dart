@@ -54,80 +54,73 @@ class ClientPage extends ConsumerWidget {
           leadingWidth: 0,
           titleSpacing: 0,
           title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                // Logo
-                SizedBox(
-                  height: 32,
-                  child: isDark
-                      ? Image.asset(
-                          'assets/images/connek_logo_white.png',
-                          fit: BoxFit.contain,
-                        )
-                      : Image.asset(
-                          'assets/images/logo_dark.png',
-                          fit: BoxFit.contain,
-                        ), // Fallback
-                ),
-                const Spacer(),
-                // Chat Icon
-                IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline, size: 24),
-                  onPressed: () {}, // Chat navigation
-                ),
-                // Notification Icon with Badge
-                Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined, size: 24),
-                      onPressed: () {}, // Notifications navigation
+            padding: const EdgeInsets.only(left: 16.0),
+            child: SizedBox(
+              height: 32,
+              child: isDark
+                  ? Image.asset(
+                      'assets/images/conneck_logo_white.png',
+                      fit: BoxFit.contain,
+                    )
+                  : Image.asset(
+                      'assets/images/conneck_logo_dark.png',
+                      fit: BoxFit.contain,
                     ),
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '37', // Mock badge count from screenshot
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+            ),
+          ),
+          actions: [
+            // Chat Icon
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline, size: 24),
+              onPressed: () {}, // Chat navigation
+            ),
+            // Notification Icon with Badge
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined, size: 24),
+                  onPressed: () {}, // Notifications navigation
+                ),
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '37', // Mock badge count
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                // User Avatar
-                profileAsync.when(
-                  loading: () => const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.grey,
-                  ),
-                  error: (_, __) => const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.grey,
-                  ),
-                  data: (profile) => CircleAvatar(
-                    radius: 18,
-                    backgroundImage: profile?.photoId != null
-                        ? CachedNetworkImageProvider(profile!.photoId!)
-                        : null,
-                    child: profile?.photoId == null
-                        ? const Icon(Icons.person, size: 20)
-                        : null,
                   ),
                 ),
               ],
             ),
-          ),
+            const SizedBox(width: 8),
+            // User Avatar
+            profileAsync.when(
+              loading: () =>
+                  const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
+              error: (_, __) =>
+                  const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
+              data: (profile) => CircleAvatar(
+                radius: 18,
+                backgroundImage: profile?.photoId != null
+                    ? CachedNetworkImageProvider(profile!.photoId!)
+                    : null,
+                child: profile?.photoId == null
+                    ? const Icon(Icons.person, size: 20)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 16),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(60),
             child: Container(

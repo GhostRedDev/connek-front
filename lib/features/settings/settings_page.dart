@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/providers/locale_provider.dart';
 import '../../core/providers/theme_provider.dart';
+import '../../core/services/biometric_service.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -85,6 +86,17 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+
+          // --- Security Section ---
+          _buildSectionHeader(context, t['settings_security'] ?? 'Seguridad'),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(children: [_buildBiometricOption(context, ref, t)]),
           ),
 
           const SizedBox(height: 30),
@@ -203,6 +215,42 @@ class SettingsPage extends ConsumerWidget {
       trailing: isSelected
           ? const Icon(Icons.check_circle, color: Color(0xFF4285F4))
           : null,
+    );
+  }
+
+  Widget _buildBiometricOption(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> t,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return FutureBuilder<bool>(
+      future: ref.read(biometricServiceProvider).isBiometricEnabled(),
+      builder: (context, snapshot) {
+        final isEnabled = snapshot.data ?? false;
+
+        return SwitchListTile(
+          value: isEnabled,
+          onChanged: (value) async {
+            await ref.read(biometricServiceProvider).setBiometricEnabled(value);
+            // Force rebuild to update UI state
+            (context as Element).markNeedsBuild();
+          },
+          secondary: Icon(
+            Icons.fingerprint,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
+          title: Text(
+            t['settings_biometric'] ?? 'Ingreso Biométrico',
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          activeColor: const Color(0xFF4285F4),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -315,7 +316,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final tAsync = ref.watch(translationProvider);
     Map<String, dynamic>? contactInfo;
 
-    chatsAsync.whenData((chats) {
+    // Use .asData?.value to prevent flicker during refresh (Fixes valueOrNull error)
+    final chats = chatsAsync.asData?.value ?? [];
+    if (chats.isNotEmpty) {
       final chat = chats.firstWhere(
         (c) => c.id == conversationId,
         orElse: () => ChatConversation(id: 0, contact: {}),
@@ -323,7 +326,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       if (chat.id != 0) {
         contactInfo = chat.contact;
       }
-    });
+    }
 
     final contactName =
         contactInfo?['name'] ?? (tAsync.value?['loading'] ?? 'Loading...');
@@ -404,14 +407,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                           contactImage.isNotEmpty &&
                           (contactImage.startsWith('http') ||
                               contactImage.startsWith('https'))
-                      ? NetworkImage(contactImage)
-                      : null,
-                  onBackgroundImageError:
-                      contactImage != null &&
-                          contactImage.isNotEmpty &&
-                          (contactImage.startsWith('http') ||
-                              contactImage.startsWith('https'))
-                      ? (_, __) {}
+                      ? CachedNetworkImageProvider(contactImage)
                       : null,
                   backgroundColor: Colors.transparent,
                   child:
@@ -546,11 +542,20 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   // Helper to send text
-  void _sendMessage(String text) {
+  Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
-    final int conversationId = int.tryParse(widget.chatId) ?? 0;
-    ref.read(chatProvider.notifier).sendMessage(conversationId, text);
-    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+
+    // Optimistic UI update could go here, but we rely on Stream
+
+    try {
+      final int conversationId = int.tryParse(widget.chatId) ?? 0;
+      await ref.read(chatProvider.notifier).sendMessage(conversationId, text);
+      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
+    }
   }
 
   // Helper to send audio
@@ -583,22 +588,25 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
 
     // Avatar Widget
-    final avatar = CircleAvatar(
-      radius: 16,
-      backgroundColor: Colors.blueGrey,
-      backgroundImage: (contactImage != null && contactImage.isNotEmpty)
-          ? NetworkImage(contactImage)
-          : null,
-      child: (contactImage == null || contactImage.isEmpty)
-          ? Text(
-              initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            )
-          : null,
+    final avatar = ClipOval(
+      child: Container(
+        width: 32,
+        height: 32,
+        color: Colors.blueGrey,
+        child:
+            (contactImage != null &&
+                contactImage.isNotEmpty &&
+                (contactImage.startsWith('http') ||
+                    contactImage.startsWith('https')))
+            ? CachedNetworkImage(
+                imageUrl: contactImage,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    Container(color: Colors.blueGrey),
+                errorWidget: (context, url, error) => _buildInitials(initials),
+              )
+            : _buildInitials(initials),
+      ),
     );
 
     return Align(
@@ -688,6 +696,19 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInitials(String initials) {
+    return Center(
+      child: Text(
+        initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

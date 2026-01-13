@@ -9,7 +9,6 @@ import '../../../core/models/greg_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../settings/providers/profile_provider.dart';
 import '../providers/greg_provider.dart';
-import '../../../core/providers/locale_provider.dart';
 
 class OfficeTrainGregPage extends ConsumerStatefulWidget {
   const OfficeTrainGregPage({super.key});
@@ -49,7 +48,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   List<String> _acceptedPaymentMethods = [];
   List<String> _cancellationDocuments = []; // New local state
   final List<Map<String, String>> _excludedContacts = [];
-  final List<String> _blacklist = []; // New local state for banned words
   final List<Map<String, String>> _libraryFiles = [];
   bool _isUploading = false;
 
@@ -212,8 +210,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
       _cancellationDocuments = List<String>.from(greg.cancellationDocuments);
       _excludedContacts.clear();
       _excludedContacts.addAll(greg.excludedPhones);
-      _blacklist.clear();
-      _blacklist.addAll(greg.blacklist);
       _libraryFiles.clear();
       _libraryFiles.addAll(greg.library);
 
@@ -286,7 +282,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
       privacyPolicy: _privacyPolicyController.text,
       cancellationDocuments: _cancellationDocuments,
       excludedPhones: _excludedContacts,
-      blacklist: _blacklist,
       library: _libraryFiles,
       saveInformation: mappedStorage,
       askForConsent: _askConsent,
@@ -483,26 +478,27 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   }
 
   Widget _buildIntroSection() {
-    final tAsync = ref.watch(translationProvider);
-    final t = tAsync.value ?? {};
-    String text = t['greg_intro_default'] ?? '...';
-    String title = t['greg_train_title'] ?? 'Entrena a Greg';
+    String text =
+        'Enséñame cómo funcionan tus políticas y reglas. Así podré responder como si fuera parte de tu equipo.';
+    String title = 'Entrena a Greg';
 
     switch (_tabController.index) {
       case 0:
-        text = t['greg_intro_cancellations'] ?? '...';
+        text = 'Define qué decir cuando un cliente cancela o cambia su cita.';
         break;
       case 1:
-        text = t['greg_intro_payments'] ?? '...';
+        text =
+            'Define los métodos de pago aceptados y condiciones de reembolsos.';
         break;
       case 2:
-        text = t['greg_intro_procedures'] ?? '...';
+        text = 'Define paso a paso cómo se desarrollan tus servicios.';
         break;
       case 3:
-        text = t['greg_intro_privacy'] ?? '...';
+        text = 'Define cómo Greg maneja los datos de tus clientes.';
         break;
       case 5:
-        text = t['greg_intro_library'] ?? '...';
+        text =
+            'Sube manuales, instructivos o imágenes de referencia para Greg.';
         break;
     }
 
@@ -538,7 +534,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           ),
           const SizedBox(height: 8),
           Text(
-            t['greg_intro_default'] ?? '...',
+            'Enséñame cómo funcionan tus políticas, procesos y reglas internas. Así podré responder como si fuera parte de tu equipo.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
           ),
@@ -549,8 +545,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   }
 
   Widget _buildTabBar() {
-    final tAsync = ref.watch(translationProvider);
-    final t = tAsync.value ?? {};
     return Container(
       color: const Color(0xFF131619),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -559,12 +553,12 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         isScrollable: true,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
-          color: const Color(0xFF1A2634),
+          color: const Color(0xFF1A2634), // Darker navy for active box
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: const Color(0xFF8BB7FF),
+        labelColor: const Color(0xFF8BB7FF), // Light blue selected color
         unselectedLabelColor: Colors.grey,
         labelStyle: GoogleFonts.outfit(
           fontSize: 14,
@@ -575,14 +569,14 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           fontWeight: FontWeight.w500,
         ),
         labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-        tabs: [
+        tabs: const [
           Tab(
             height: 56,
             child: Row(
               children: [
-                const Icon(Icons.highlight_off_outlined, size: 24),
-                const SizedBox(width: 8),
-                Text(t['greg_tab_cancellations'] ?? 'Cancelaciones'),
+                Icon(Icons.highlight_off_outlined, size: 24),
+                SizedBox(width: 8),
+                Text('Cancelaciones'),
               ],
             ),
           ),
@@ -590,9 +584,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             height: 56,
             child: Row(
               children: [
-                const Icon(Icons.payments_outlined, size: 24),
-                const SizedBox(width: 8),
-                Text(t['greg_tab_payments'] ?? 'Pagos'),
+                Icon(Icons.payments_outlined, size: 24),
+                SizedBox(width: 8),
+                Text('Pagos y reembolsos'),
               ],
             ),
           ),
@@ -600,9 +594,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             height: 56,
             child: Row(
               children: [
-                const Icon(Icons.list_alt_outlined, size: 24),
-                const SizedBox(width: 8),
-                Text(t['greg_tab_procedures'] ?? 'Procedimientos'),
+                Icon(Icons.list_alt_outlined, size: 24),
+                SizedBox(width: 8),
+                Text('Procedimientos'),
               ],
             ),
           ),
@@ -610,9 +604,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             height: 56,
             child: Row(
               children: [
-                const Icon(Icons.visibility_outlined, size: 24),
-                const SizedBox(width: 8),
-                Text(t['greg_tab_privacy'] ?? 'Privacidad'),
+                Icon(Icons.visibility_outlined, size: 24),
+                SizedBox(width: 8),
+                Text('Privacidad'),
               ],
             ),
           ),
@@ -620,9 +614,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             height: 56,
             child: Row(
               children: [
-                const Icon(Icons.description_outlined, size: 24),
-                const SizedBox(width: 8),
-                Text(t['greg_tab_policies'] ?? 'Políticas'),
+                Icon(Icons.description_outlined, size: 24),
+                SizedBox(width: 8),
+                Text('Políticas'),
               ],
             ),
           ),
@@ -630,9 +624,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             height: 56,
             child: Row(
               children: [
-                const Icon(Icons.menu_book_outlined, size: 24),
-                const SizedBox(width: 8),
-                Text(t['greg_tab_library'] ?? 'Biblioteca'),
+                Icon(Icons.menu_book_outlined, size: 24),
+                SizedBox(width: 8),
+                Text('Biblioteca'),
               ],
             ),
           ),
@@ -644,13 +638,8 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   Widget _buildSectionContainer({
     required String title,
     String? subtitle,
-    List<Widget>? children,
-    Widget? child,
+    required List<Widget> children,
   }) {
-    final contentChildren = [
-      if (child != null) child,
-      if (children != null) ...children,
-    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: Container(
@@ -686,7 +675,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             const SizedBox(height: 16),
             const Divider(color: Colors.white24),
             const SizedBox(height: 16),
-            ...contentChildren,
+            ...children,
             const SizedBox(height: 100),
           ],
         ),
@@ -830,21 +819,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         const SizedBox(height: 16),
         _buildSwitchTile(
           title: 'Requiere comprobante de pago',
-          subtitle:
-              '¿Solicitar comprobante al cliente? (Se guarda automáticamente)',
+          subtitle: '¿Solicitar comprobante al cliente?',
           value: _requirePaymentProof,
-          onChanged: (v) async {
-            setState(() => _requirePaymentProof = v);
-            final state = ref.read(gregProvider);
-            if (state is GregLoaded) {
-              try {
-                final service = ref.read(gregServiceProvider);
-                await service.togglePaymentProof(state.greg.businessId);
-              } catch (e) {
-                if (mounted) setState(() => _requirePaymentProof = !v);
-              }
-            }
-          },
+          onChanged: (v) => setState(() => _requirePaymentProof = v),
         ),
         const SizedBox(height: 16),
         const Text(
@@ -894,66 +871,115 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   }
 
   Widget _buildProceduresTab() {
-    final tAsync = ref.watch(translationProvider);
-    final t = tAsync.value ?? {};
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(24),
+    return _buildSectionContainer(
+      title: 'Procedimientos internos',
+      subtitle: 'Define paso a paso cómo se desarrollan tus servicios.',
       children: [
-        _buildSectionContainer(
-          title: t['greg_tab_procedures'] ?? 'Procedimientos internos',
-          subtitle:
-              t['greg_intro_procedures'] ??
-              'Define paso a paso cómo se desarrollan tus servicios.',
-          child: Column(
-            children: [
-              Text(
-                t['greg_procedures_steps'] ?? 'Procedures steps (max 3)',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
+        const Text(
+          'Pasos del procedimiento (max 3)',
+          style: TextStyle(color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        _buildProcedureStep(1, _procedure1Controller),
+        const SizedBox(height: 16),
+        _buildProcedureStep(2, _procedure2Controller),
+        const SizedBox(height: 16),
+        _buildProcedureStep(3, _procedure3Controller),
+        const SizedBox(height: 24),
+        _buildTextField(
+          'Detalles de procedimientos',
+          _procedureDetailsController,
+          hintText: 'Añade instrucciones adicionales para Greg',
+          minLines: 5,
+        ),
+        const SizedBox(height: 24),
+        _buildTextField(
+          'Procedimientos post-reserva',
+          _postBookingProceduresController,
+          hintText: 'Añade instrucciones para después de la reserva',
+          minLines: 5,
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Adjuntar documentos de cancelación',
+          style: TextStyle(color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _isUploading ? null : _pickAndUploadCancellationDocument,
+          borderRadius: BorderRadius.circular(20),
+          child: _isUploading
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF131619),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF4B39EF)),
+                  ),
+                )
+              : _buildUploadPlaceholder(),
+        ),
+        if (_cancellationDocuments.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          ..._cancellationDocuments.map(
+            (doc) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.attach_file,
+                    color: Color(0xFF4B39EF),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      doc.split('/').last,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.redAccent,
+                      size: 16,
+                    ),
+                    onPressed: () =>
+                        setState(() => _cancellationDocuments.remove(doc)),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                '1.',
-                _procedure1Controller,
-                hintText:
-                    t['greg_procedures_step_hint'] ?? 'Describe el paso...',
+            ),
+          ),
+        ],
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _saveData,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4B39EF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 8),
-              _buildTextField(
-                '2.',
-                _procedure2Controller,
-                hintText:
-                    t['greg_procedures_step_hint'] ?? 'Describe el paso...',
+              elevation: 2,
+            ),
+            child: Text(
+              'Guardar Cambios',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 8),
-              _buildTextField(
-                '3.',
-                _procedure3Controller,
-                hintText:
-                    t['greg_procedures_step_hint'] ?? 'Describe el paso...',
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                t['greg_procedures_details'] ?? 'Procedure details',
-                _procedureDetailsController,
-                hintText:
-                    t['greg_procedures_details_hint'] ??
-                    'Add additional instructions for Greg',
-                minLines: 4,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                t['greg_post_booking_procedures'] ?? 'Post-booking procedures',
-                _postBookingProceduresController,
-                hintText:
-                    t['greg_post_booking_procedures_hint'] ??
-                    'Add instructions for after the booking',
-                minLines: 4,
-              ),
-            ],
+            ),
           ),
         ),
       ],
@@ -961,117 +987,166 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   }
 
   Widget _buildPrivacyTab() {
-    final tAsync = ref.watch(translationProvider);
-    final t = tAsync.value ?? {};
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(24),
+    return _buildSectionContainer(
+      title: 'Privacidad y confidencialidad',
+      subtitle: 'Define cómo Greg maneja los datos de tus clientes',
       children: [
-        _buildSectionContainer(
-          title: t['greg_tab_privacy'] ?? 'Privacidad y confidencialidad',
-          subtitle:
-              t['greg_intro_privacy'] ??
-              'Define cómo Greg maneja los datos de tus clientes',
+        const Text(
+          'Nivel de almacenamiento de datos',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 12),
+        _buildRadioGroup(
+          options: [
+            'Ninguno - No guardar datos de clientes',
+            'Básico - Solo información esencial',
+            'Completo - Historial completo de interacciones',
+          ],
+          currentValue: _dataStorageLevel,
+          onChanged: (val) {
+            if (val != null) setState(() => _dataStorageLevel = val);
+          },
+        ),
+        const SizedBox(height: 24),
+        _buildSwitchTile(
+          title: 'Pedir consentimiento antes',
+          subtitle: '¿Solicitar permiso para guardar datos?',
+          value: _askConsent,
+          onChanged: (v) => setState(() => _askConsent = v),
+        ),
+        const SizedBox(height: 24),
+        _buildTextField(
+          'Política de privacidad (opcional)',
+          _privacyPolicyController,
+          hintText:
+              'Informa a Greg sobre tu política de privacidad. ¿Qué información recolectas y por qué? ¿Cómo proteges la información de tus clientes?',
+          minLines: 5,
+        ),
+        const SizedBox(height: 24),
+        // Confidential Info Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D1E16),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF1B5E20).withOpacity(0.4)),
+          ),
+          padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                t['greg_data_storage_level'] ?? 'Data storage level',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _dataStorageLevel,
-                dropdownColor: const Color(0xFF1A2634),
-                style: GoogleFonts.inter(color: Colors.white),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFF131619),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                isExpanded: true,
-                items:
-                    [
-                          t['greg_storage_nothing'] ??
-                              'Ninguno - No guardar datos de clientes',
-                          t['greg_storage_basic'] ??
-                              'Básico - Solo información esencial',
-                          t['greg_storage_full'] ??
-                              'Completo - Historial completo de interacciones',
-                        ]
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _dataStorageLevel = val);
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildSwitchTile(
-                title: t['greg_ask_consent'] ?? 'Ask consent beforehand',
-                subtitle:
-                    t['greg_ask_consent_sub'] ??
-                    'Request permission to save data?',
-                value: _askConsent,
-                onChanged: (val) => setState(() => _askConsent = val),
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                t['greg_privacy_policy'] ?? 'Política de privacidad (opcional)',
-                _privacyPolicyController,
-                hintText:
-                    t['greg_privacy_policy_hint'] ??
-                    'Informa a Greg sobre tu política de privacidad...',
-                minLines: 3,
-              ),
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Text(
-                    t['greg_confidential_info'] ??
-                        'Information Greg does NOT share',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
+                  const Text('🔒', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Información que Greg NO comparte con el cliente',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    t['greg_confidential_info_desc'] ??
-                        'This information will be known by Greg but never revealed in conversations',
-                    style: GoogleFonts.inter(color: Colors.grey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildTextField(
-                    '',
-                    _confidentialInfoController,
-                    hintText:
-                        t['greg_confidential_info_hint'] ??
-                        'Ej. Precios internos, márgenes de ganancia, información confidencial del negocio...',
-                    minLines: 3,
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              _buildTextField(
+                '',
+                _confidentialInfoController,
+                hintText:
+                    'Ej. Precios internos, márgenes de ganancia, información confidencial del negocio...',
+                minLines: 5,
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  'Esta información será conocida por Greg pero nunca la revelará en las conversaciones',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: Colors.white60, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Excluded Contacts Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1315),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFB71C1C).withOpacity(0.3)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Text(
+                'Contactos Excluidos',
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFFE53935),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Define qué contactos Greg nunca debe atender para proteger tu vida personal',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF131619),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.phone_outlined,
+                        color: Color(0xFFE53935),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${_excludedContacts.length} contactos excluidos',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               SizedBox(
+                width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _saveData,
+                  onPressed: _showAddContactModal,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4B39EF),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 2,
                   ),
                   child: Text(
-                    'Guardar Cambios',
+                    'Añadir contacto',
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1079,10 +1154,237 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                   ),
                 ),
               ),
+              if (_excludedContacts.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 10),
+                ..._excludedContacts.map(
+                  (contact) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                contact['name'] ?? '',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                contact['phone'] ?? '',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white38,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _excludedContacts.remove(contact);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _saveData,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4B39EF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ),
+            child: Text(
+              'Guardar Cambios',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  void _showAddContactModal() {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF131619),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom:
+              MediaQuery.of(context).viewInsets.bottom +
+              220, // Final adjustment to clear navigation bar fully
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Nuevo Contacto',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Nombre',
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: const Color(0xFF1E2429),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: phoneController,
+              style: const TextStyle(color: Colors.white),
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                hintText: 'Teléfono',
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: const Color(0xFF1E2429),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (nameController.text.isNotEmpty &&
+                      phoneController.text.isNotEmpty) {
+                    setState(() {
+                      _excludedContacts.add({
+                        'name': nameController.text,
+                        'phone': phoneController.text,
+                      });
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4B39EF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Guardar',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProcedureStep(int step, TextEditingController controller) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF131619),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: CircleAvatar(
+              radius: 12,
+              backgroundColor: const Color(0xFF4B39EF).withOpacity(0.2),
+              child: Text(
+                '$step',
+                style: const TextStyle(color: Color(0xFF4B39EF), fontSize: 12),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              minLines: 1,
+              maxLines: null,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Describe el paso...',
+                hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1446,6 +1748,58 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     setState(() {
       _libraryFiles.remove(file);
     });
+  }
+
+  Future<void> _pickAndUploadCancellationDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'png'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        final file = result.files.single;
+        if (file.size > 3 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('El archivo supera el límite de 3MB'),
+              ),
+            );
+          }
+          return;
+        }
+
+        setState(() => _isUploading = true);
+        final fileName =
+            'cancel_${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+        final filePath = 'cancellations/$fileName';
+
+        final supabase = Supabase.instance.client;
+        await supabase.storage
+            .from('client')
+            .uploadBinary(
+              filePath,
+              file.bytes!,
+              fileOptions: const FileOptions(upsert: true),
+            );
+
+        if (mounted) {
+          setState(() {
+            _cancellationDocuments.add(filePath);
+            _isUploading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al subir documento: $e')));
+      }
+    }
   }
 
   Widget _buildUploadPlaceholder() {

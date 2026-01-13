@@ -39,6 +39,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
   Timer? _timer;
   String _durationText = "0:00";
   double _dragOffset = 0.0;
+  double _dragOffsetY = 0.0;
 
   // Animation controller for mic pulsing
   late AnimationController _micAnimController;
@@ -81,6 +82,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
           _isRecording = true;
           _startTime = DateTime.now();
           _dragOffset = 0.0;
+          _dragOffsetY = 0.0;
           _isLocked = false;
         });
 
@@ -203,16 +205,30 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
 
                 // Mic / Send Button
                 GestureDetector(
-                  onTap: hasText ? _handleSendText : null,
+                  onTap: () {
+                    if (_isLocked) {
+                      _stopRecording();
+                    } else if (hasText) {
+                      _handleSendText();
+                    }
+                  },
                   onLongPress: hasText ? null : _startRecording,
                   onLongPressMoveUpdate: (details) {
                     if (_isRecording && !_isLocked) {
                       setState(() {
                         _dragOffset += details.localOffsetFromOrigin.dx;
+                        _dragOffsetY = details.localOffsetFromOrigin.dy;
                       });
                       // Unlock slide left
                       if (details.localOffsetFromOrigin.dx < -100) {
                         _stopRecording(cancel: true);
+                      }
+                      // Lock slide up
+                      if (details.localOffsetFromOrigin.dy < -60) {
+                        setState(() {
+                          _isLocked = true;
+                          _dragOffsetY = 0; // Reset position
+                        });
                       }
                     }
                   },
@@ -221,25 +237,39 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
                       _stopRecording();
                     }
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4285F4),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        if (_isRecording)
-                          BoxShadow(
-                            color: const Color(0xFF4285F4).withOpacity(0.5),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                      ],
-                    ),
-                    child: Icon(
-                      hasText ? Icons.send : Icons.mic,
-                      color: Colors.white,
+                  onLongPressCancel: () {
+                    if (_isRecording && !_isLocked) {
+                      _stopRecording(cancel: true);
+                    }
+                  },
+                  child: Transform.translate(
+                    offset: Offset(0, _isLocked ? 0 : _dragOffsetY),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _isLocked ? Colors.red : const Color(0xFF4285F4),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          if (_isRecording)
+                            BoxShadow(
+                              color:
+                                  (_isLocked
+                                          ? Colors.red
+                                          : const Color(0xFF4285F4))
+                                      .withOpacity(0.5),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                        ],
+                      ),
+                      child: Icon(
+                        _isLocked
+                            ? Icons.send
+                            : (hasText ? Icons.send : Icons.mic),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -255,6 +285,16 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
                 child: Row(
                   children: [
                     const SizedBox(width: 16),
+                    // Cancel Button (Locked Mode)
+                    if (_isLocked)
+                      TextButton(
+                        onPressed: () => _stopRecording(cancel: true),
+                        child: Text(
+                          t['cancel'] ?? 'Cancel',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+
                     // Blinking Red Dot
                     FadeIn(
                       duration: const Duration(milliseconds: 500),
@@ -294,8 +334,19 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
                     ),
                     const Spacer(),
 
-                    // The Mic Button (Visual Anchor)
-                    // Since we are overlaying, we replicate the mic button here or transparency trick.
+                    // The Mic Button (Visual Anchor) - Hidden during overlay but tracked by gesture
+                    // We can add a "Lock" icon hint if not locked
+                    if (!_isLocked)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 20, bottom: 60),
+                        child: FadeInUp(
+                          child: const Icon(
+                            Icons.lock_open,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

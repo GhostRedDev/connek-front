@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'providers/office_provider.dart';
 import 'widgets/office_menu_widget.dart';
 import 'widgets/office_my_bots_widget.dart';
 import 'widgets/office_marketplace_widget.dart';
@@ -12,11 +13,10 @@ class OfficePage extends ConsumerStatefulWidget {
 }
 
 class _OfficePageState extends ConsumerState<OfficePage> {
-  int _selectedIndex = 0; // 0: My Bots, 1: Marketplace
-
   @override
   Widget build(BuildContext context) {
     final backgroundColor = const Color(0xFF131619);
+    final selectedIndex = ref.watch(officeSelectedIndexProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -30,18 +30,18 @@ class _OfficePageState extends ConsumerState<OfficePage> {
               ), // Increased to clear the taller Glass Header (125px)
               // TOP MENU
               OfficeMenuWidget(
-                selectedIndex: _selectedIndex,
+                selectedIndex: selectedIndex,
                 onTabSelected: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
+                  ref
+                      .read(officeSelectedIndexProvider.notifier)
+                      .updateIndex(index);
                 },
               ),
 
               // CONTENT AREA
               Expanded(
                 child: IndexedStack(
-                  index: _selectedIndex,
+                  index: selectedIndex,
                   children: [
                     // Index 0: My Bots
                     const OfficeMyBotsWidget(),

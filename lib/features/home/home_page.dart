@@ -191,7 +191,6 @@ class _HomePageState extends State<HomePage>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(height: 120), // Spacer to clear Top App Bar
         Expanded(
           child: Center(
             child: Padding(
@@ -200,7 +199,6 @@ class _HomePageState extends State<HomePage>
             ),
           ),
         ),
-        const SizedBox(height: 80), // Spacer for Bottom Nav Bar balance
       ],
     );
   }

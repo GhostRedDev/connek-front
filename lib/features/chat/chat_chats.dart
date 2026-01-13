@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -125,7 +126,7 @@ class _ChatChatsState extends ConsumerState<ChatChats> {
     bool showRefresh = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 30, 30, 0),
+      padding: const EdgeInsets.fromLTRB(30, 140, 30, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -248,19 +249,37 @@ class _ChatChatsState extends ConsumerState<ChatChats> {
                   children: [
                     Stack(
                       children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Colors.grey[800],
-                          backgroundImage: chat.contact['image'] != null
-                              ? NetworkImage(chat.contact['image'])
-                              : null,
-                          child: chat.contact['image'] == null
-                              ? Text(
-                                  (chat.contact['name'] ?? 'U')[0]
-                                      .toUpperCase(),
-                                  style: const TextStyle(color: Colors.white),
-                                )
-                              : null,
+                        ClipOval(
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            color: Colors.grey[800],
+                            child: chat.contact['image'] != null
+                                ? CachedNetworkImage(
+                                    imageUrl: chat.contact['image'],
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        Container(color: Colors.grey[800]),
+                                    errorWidget: (context, url, e) => Center(
+                                      child: Text(
+                                        (chat.contact['name'] ?? 'U')[0]
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      (chat.contact['name'] ?? 'U')[0]
+                                          .toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                          ),
                         ),
                         if (chat.unreadCount > 0)
                           Positioned(

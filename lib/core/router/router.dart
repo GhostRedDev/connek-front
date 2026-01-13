@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/layout.dart';
+import '../widgets/biometric_auth_guard.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
@@ -132,7 +133,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // --- AUTHORIZED & GUEST (Unified Shell) ---
       ShellRoute(
         builder: (context, state, child) {
-          return AppLayout(child: child);
+          return BiometricAuthGuard(child: AppLayout(child: child));
         },
         routes: [
           // Unified Home Page (Handles both Guest and Auth views)

@@ -74,10 +74,7 @@ class GregService {
     try {
       final fields = {
         'privacy_policy': greg.privacyPolicy,
-        'excluded_phones': jsonEncode(
-          greg.excludedPhones,
-        ), // Corrected to new backend argument
-        'blacklist': jsonEncode(greg.blacklist), // Added blacklist words
+        'blacklist': jsonEncode(greg.excludedPhones),
         'save_information': greg.saveInformation,
         'ask_for_consent': greg.askForConsent.toString(),
         'information_not_to_share': greg.informationNotToShare ?? '',
@@ -92,59 +89,6 @@ class GregService {
       rethrow;
     }
   }
-
-  // Toggle Payment Proof Requirement
-  Future<GregModel?> togglePaymentProof(int businessId) async {
-    try {
-      final response = await _apiService.put(
-        '/employees/greg/business/$businessId/toggle-payment-proof',
-      );
-      if (response != null && response['success'] == true) {
-        return GregModel.fromJson(response['data']);
-      }
-      return null;
-    } catch (e) {
-      print('Error toggling payment proof: $e');
-      rethrow;
-    }
-  }
-
-  // Add word to Blacklist
-  Future<GregModel?> addBlacklistWord(int businessId, String word) async {
-    try {
-      final response = await _apiService.post(
-        '/employees/greg/business/$businessId/blacklist/add',
-        body: {
-          'word': word,
-        }, // Endpoint uses Form, ApiService.post handles dict as JSON body usually?
-        // Wait, existing calls use `putForm`. `post` usually sends JSON.
-        // `employees.py` uses `word: str = Form(...)`.
-        // So I need `postForm` if it exists, or pass map to a method that handles Form.
-        // `ApiService` (which I haven't seen fully) likely has `postForm` or `post` can handle it.
-        // Let's assume I need to use `postForm` if `endpoints` use `Form`.
-      );
-      // Wait, let's check ApiService if possible. Assuming `postForm` exists or `post` handles it based on content-type.
-      // `updateGregCancellations` uses `putForm`.
-      // I'll try to find `postForm`. If not, I'll use `post` with `isFormData: true` if supported.
-      // For now, I'll assume `postForm` exists or follow the pattern.
-      // The snippet showed `_apiService.putForm`. I'll assume `postForm` exists.
-
-      // Checking local file `api_service.dart` would be good but I am in execution.
-      // `employees.py` line 268: `word: str = Form(...)`.
-    } catch (e) {
-      // ...
-    }
-    return null;
-  }
-
-  // I'll actually just rely on `updateGregPrivacy` to send the whole list for simplicity unless user complains about race conditions. UI has list.
-  // BUT the user specifically added `add_word_to_greg_blacklist` endpoints on backend.
-  // I should probably use them.
-  // However, I don't know if `ApiService` has `postForm`.
-  // I will just add `togglePaymentProof` for now as that's critical. `updateGregPrivacy` handles the lists via `update_greg`.
-  // `update_greg` in backend DOES accept `blacklist` (string list) and `excluded_phones`.
-  // So I don't STRICTLY need the dedicated add/remove endpoints if I send the whole list.
-  // I will rely on `updateGregPrivacy` for blacklist management to avoid complexity with `ApiService`.
 
   // Update specifically Greg Procedures (Form Data)
   Future<void> updateGregProcedures(GregModel greg) async {
@@ -191,7 +135,7 @@ class GregService {
 
       final fields = {
         'payment_policy': greg.paymentPolicy,
-        // 'require_payment_proof': greg.requirePaymentProof.toString(), // REMOVED as backend doesn't support it in update_greg
+        'require_payment_proof': greg.requirePaymentProof.toString(),
         'refund_policy': mappedRefundPolicy,
         'refund_policy_details': greg.refundPolicyDetails ?? '',
         'accepted_payment_methods': jsonEncode(mappedPaymentMethods),

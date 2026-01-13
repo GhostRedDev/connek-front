@@ -203,16 +203,22 @@ HeaderData getHeaderConfig(
           ]
         : [];
 
-    return HeaderData(titleWidget: logoWidget, bgTrans: true, actions: actions);
+    // Home Header: Transparent, Logo, Actions
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      actions: actions,
+      height: 120, // Increased from 100 to fix overflow
+    );
   }
 
   if (route.startsWith('/business')) {
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: true,
-      height: 175, // Increased locally to fix overflow
-      // tabs: ['Overview', 'Leads', 'Clientes'], // Removed
-      bottomWidget: _BusinessSubHeader(isDark: isDark), // New Widget
+      height: 200, // Increased to 200 to clear safe area overflow
+      tabs: ['Overview', 'Leads', 'Clientes'], // Restored
+      // bottomWidget: _BusinessSubHeader(isDark: isDark), // Removed in favor of Tabs
       actions: [
         HeaderAction(icon: Icons.add_circle_outline),
         HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
@@ -234,17 +240,24 @@ HeaderData getHeaderConfig(
     );
   }
 
-  if (route.startsWith('/client')) {
+  if (route.contains('/client/dashboard/requests')) {
     return HeaderData(
       titleWidget: logoWidget,
-      bgTrans: true,
-      height: 175, // Increased locally for Chips layout
-      // tabs: [...], // Removed old tabs
-      bottomWidget: _ClientSubHeader(isDark: isDark), // New Chips Header
+      bgTrans: false,
+      showProfile: true,
       actions: [
         HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
         HeaderAction(icon: Icons.notifications_none),
       ],
+    );
+  }
+
+  if (route == '/client') {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: false,
+      isCustom: true,
+      height: 0,
     );
   }
 
@@ -262,16 +275,28 @@ HeaderData getHeaderConfig(
     );
   }
 
-  // Hide header completely for train-greg to avoid double header
   if (route.contains('/office/train-greg')) {
-    return const HeaderData(bgTrans: false, isCustom: true, height: 0);
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      height: 125,
+      actions: [
+        const HeaderAction(icon: Icons.add_circle_outline),
+        const HeaderAction(icon: Icons.chat_bubble_outline),
+        const HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
   }
 
   if (route == '/search') {
     return HeaderData(
       title: t['header_search'] ?? 'Search',
       bgTrans: false,
-      isCustom: false, // Show default header
+      isCustom: false,
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
     );
   }
 
@@ -288,6 +313,18 @@ HeaderData getHeaderConfig(
 
   if (route.startsWith('/chats/')) {
     return const HeaderData(bgTrans: false, isCustom: true, height: 0);
+  }
+
+  if (route.startsWith('/profile')) {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: false, // Opaque (Normal Color)
+      showProfile: true,
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
   }
 
   if (route.startsWith('/settings')) {
@@ -485,7 +522,11 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
                       children: [
                         // Content
                         Padding(
-                          padding: const EdgeInsets.only(top: 120),
+                          padding: EdgeInsets.only(
+                            top: (activeConfig.isCustom || activeConfig.bgTrans)
+                                ? 0
+                                : (activeConfig.height ?? 0),
+                          ),
                           child: widget.child,
                         ),
 
@@ -747,7 +788,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
         children: [
           // TOP ROW (Logo + Icons)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -769,6 +810,23 @@ class _ModernGlassAppBar extends ConsumerWidget {
                           size: 28,
                         ),
                         onPressed: () => context.pop(),
+                      )
+                    else if (location == '/chats' && config.titleWidget != null)
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1D21),
+                              size: 28,
+                            ),
+                            onPressed: () => context.go('/'),
+                          ),
+                          const SizedBox(width: 8),
+                          config.titleWidget!,
+                        ],
                       )
                     else
                     // Standard Title/Logo
@@ -865,7 +923,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
 
           // TABS ROW (If present)
           if (config.tabs.isNotEmpty) ...[
-            const Spacer(),
+            const SizedBox(height: 8),
             Container(
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
@@ -915,383 +973,43 @@ class _ModernGlassAppBar extends ConsumerWidget {
     );
 
     // ============================================
-    // ¡APPBAR REALMENTE TRANSPARENTE!
+    // ¡APPBAR SIN BLUR (SOLIDO O TRANSPARENTE)!
     // ============================================
 
-    // Para homepage y otras paginas con fondo transparente - GLASS SUTIL
-    // Para homepage y otras paginas con fondo transparente - GLASS SUTIL
+    // Si la config pide transparencia (Ej: Home), lo hacemos totalmente transparente sin blur.
     if (config.bgTrans) {
-      return Align(
-        alignment: Alignment.topCenter,
-        child: ModernGlass(
-          height: config.height ?? 100,
-          width: double.infinity,
-          borderRadius: 0,
-          opacity: isDark
-              ? 0.01
-              : 0.65, // More visible/comfortable glass in Light Mode
-          blur: isDark ? 10 : 20, // Stronger blur in light mode for comfort
-          border: false, // Sin borde para look limpio
-          tintColor: isDark ? Colors.black : Colors.white,
+      return Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        height: config.height ?? 120, // Default increased to 120 safe
+        child: Container(
+          // No color set -> Transparent and allows click-through to body
+          // This allows scrolling the list even if starting drag on header area (except on buttons)
           child: innerContent,
         ),
       );
     }
 
-    // Para otras páginas - MODERN GLASS
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ModernGlass(
-        height: config.height ?? 100,
-        width: double.infinity,
-        borderRadius: 0,
-        opacity: 0.02, // Ultra transparent as per user request
-        blur: 30, // High blur
-        border: true, // Show border to define "App Bar" area
-        tintColor: isDark ? Colors.black : Colors.white,
-        child: innerContent,
-      ),
-    );
-  }
-}
-
-// ==============================================================================
-// 5b. BUSINESS SUB HEADER
-// ==============================================================================
-
-class _BusinessSubHeader extends StatelessWidget {
-  final bool isDark;
-
-  const _BusinessSubHeader({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final tAsync = ref.watch(translationProvider);
-        final t = tAsync.value ?? {};
-        final uri = GoRouterState.of(context).uri.toString();
-
-        bool isActive(String route) =>
-            uri == route || uri.startsWith('$route/');
-
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            children: [
-              // 1. Overview
-              _HeaderChip(
-                label: t['tab_overview'] ?? 'Overview',
-                icon: Icons.dashboard_outlined,
-                isActive: uri == '/business',
-                isDark: isDark,
-                onTap: () => context.go('/business'),
-              ),
-              const SizedBox(width: 8),
-
-              // 2. Leads
-              _HeaderChip(
-                label: t['tab_leads'] ?? 'Leads',
-                icon: Icons.flash_on_outlined,
-                isActive: isActive('/business/leads'),
-                isDark: isDark,
-                onTap: () => context.go('/business/leads'),
-              ),
-              const SizedBox(width: 8),
-
-              // 3. Clientes
-              _HeaderChip(
-                label: t['subnav_clients'] ?? 'Clientes',
-                icon: Icons.people_outline,
-                isActive: isActive('/business/clients'),
-                isDark: isDark,
-                onTap: () => context.go('/business/clients'),
-              ),
-              const SizedBox(width: 8),
-
-              // 4. Ventas (Dropdown)
-              _HeaderDropdown(
-                label: t['subnav_sales'] ?? 'Ventas',
-                icon: Icons.receipt_long,
-                isDark: isDark,
-                isActive:
-                    isActive('/business/invoices') ||
-                    isActive('/business/proposals') ||
-                    isActive('/business/bookings'),
-                items: [
-                  DropdownItem(
-                    label: t['subnav_invoices'] ?? 'Facturas',
-                    route: '/business/invoices',
-                  ),
-                  DropdownItem(
-                    label: t['subnav_proposals'] ?? 'Propuestas',
-                    route: '/business/proposals',
-                  ),
-                  DropdownItem(
-                    label: t['subnav_bookings'] ?? 'Bookings',
-                    route: '/business/bookings',
-                  ),
-                ],
-                onSelected: (route) => context.go(route),
-              ),
-              const SizedBox(width: 8),
-
-              // 5. Servicios
-              _HeaderChip(
-                label: t['subnav_services'] ?? 'Servicios',
-                icon: Icons.storefront,
-                isActive: isActive('/business/services'),
-                isDark: isDark,
-                onTap: () => context.go('/business/services'),
-              ),
-              const SizedBox(width: 8),
-
-              // 6. Empleados
-              _HeaderChip(
-                label: t['subnav_employees'] ?? 'Empleados',
-                icon: Icons.work_outline,
-                isActive: isActive('/business/employees'),
-                isDark: isDark,
-                onTap: () => context.go('/business/employees'),
-              ),
-              const SizedBox(width: 8),
-
-              // 7. Perfil
-              _HeaderChip(
-                label: t['subnav_profile'] ?? 'Perfil',
-                icon: Icons.person_outline,
-                isActive: isActive('/business/profile'),
-                isDark: isDark,
-                onTap: () => context.go('/business/profile'),
-              ),
-              const SizedBox(width: 8),
-
-              // 8. Ajustes
-              _HeaderChip(
-                label: t['subnav_settings'] ?? 'Ajustes',
-                icon: Icons.settings_outlined,
-                isActive: isActive('/business/settings'),
-                isDark: isDark,
-                onTap: () => context.go('/business/settings'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class DropdownItem {
-  final String label;
-  final String route;
-  DropdownItem({required this.label, required this.route});
-}
-
-// ==============================================================================
-// 5c. CLIENT SUB HEADER (NEW)
-// ==============================================================================
-
-class _ClientSubHeader extends StatelessWidget {
-  final bool isDark;
-
-  const _ClientSubHeader({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final tAsync = ref.watch(translationProvider);
-        final t = tAsync.value ?? {};
-        final uri = GoRouterState.of(context).uri.toString();
-
-        bool isActive(String route) =>
-            uri == route || uri.startsWith('$route/');
-
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            children: [
-              // 1. Overview (Resumen)
-              _HeaderChip(
-                label: t['tab_overview'] ?? 'Resumen',
-                icon: Icons.dashboard_outlined,
-                isActive: uri == '/client',
-                isDark: isDark,
-                onTap: () => context.go('/client'),
-              ),
-              const SizedBox(width: 8),
-
-              // 2. Market (Mercado) - Maps to /search or /client/request
-              _HeaderChip(
-                label: t['tab_market'] ?? 'Mercado',
-                icon: Icons.store_mall_directory_outlined,
-                isActive: uri.startsWith('/search'),
-                isDark: isDark,
-                onTap: () => context.go('/search'),
-              ),
-              const SizedBox(width: 8),
-
-              // 3. Orders (Ordenes) - Maps to /client/dashboard/requests
-              _HeaderChip(
-                label: t['tab_orders'] ?? 'Ordenes',
-                icon: Icons.receipt_long_outlined,
-                isActive: uri.startsWith('/client/dashboard/requests'),
-                isDark: isDark,
-                onTap: () => context.go('/client/dashboard/requests'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _HeaderChip extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final bool isActive;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _HeaderChip({
-    required this.label,
-    this.icon,
-    required this.isActive,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = isActive
-        ? (isDark ? Colors.white : const Color(0xFF1A1D21))
-        : (isDark ? Colors.white.withOpacity(0.08) : Colors.transparent);
-
-    final fgColor = isActive
-        ? (isDark ? Colors.black : Colors.white)
-        : (isDark ? Colors.white70 : Colors.grey[700]);
-
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(20),
-            border: isActive ? null : Border.all(color: Colors.transparent),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18, color: fgColor),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  color: fgColor,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderDropdown extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isDark;
-  final bool isActive;
-  final List<DropdownItem> items;
-  final ValueChanged<String> onSelected;
-
-  const _HeaderDropdown({
-    required this.label,
-    required this.icon,
-    required this.isDark,
-    required this.isActive,
-    required this.items,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = isActive
-        ? (isDark ? Colors.white : const Color(0xFF1A1D21))
-        : (isDark ? Colors.white.withOpacity(0.08) : Colors.transparent);
-
-    final fgColor = isActive
-        ? (isDark ? Colors.black : Colors.white)
-        : (isDark ? Colors.white70 : Colors.grey[700]);
-
-    return MenuAnchor(
-      builder: (context, controller, child) {
-        return Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: () {
-              if (controller.isOpen) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(20),
-                border: isActive ? null : Border.all(color: Colors.transparent),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 18, color: fgColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: GoogleFonts.inter(
-                      color: fgColor,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, size: 16, color: fgColor),
-                ],
-              ),
+    // Para el resto (Ej: Search, Business), usamos color sólido del tema.
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      height: config.height ?? 130,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Solid color for opacity
+          border: Border(
+            bottom: BorderSide(
+              color: isDark ? Colors.white10 : Colors.grey[200]!,
+              width: 1,
             ),
           ),
-        );
-      },
-      menuChildren: items.map((item) {
-        return MenuItemButton(
-          onPressed: () => onSelected(item.route),
-          child: Text(item.label),
-        );
-      }).toList(),
-      style: MenuStyle(
-        backgroundColor: MaterialStateProperty.all(
-          isDark ? const Color(0xFF1E1E1E) : Colors.white,
         ),
-        elevation: MaterialStateProperty.all(4),
-        shape: MaterialStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+        child: innerContent, // Content (Buttons, etc.)
       ),
     );
   }
@@ -1338,6 +1056,13 @@ class _ModernGlassNavBar extends ConsumerWidget {
                     t['nav_requests'] ?? 'Compras',
                     '/client/dashboard/requests',
                     isActive('/client/dashboard/requests'),
+                  ),
+                  _buildNavItem(
+                    context,
+                    Icons.search_rounded,
+                    t['nav_market'] ?? 'Buscar',
+                    '/search',
+                    isActive('/search'),
                   ),
                   _buildNavItem(
                     context,
