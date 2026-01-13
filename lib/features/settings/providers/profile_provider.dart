@@ -1,7 +1,9 @@
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';
 
 // --- Repository ---
 
@@ -120,6 +122,9 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
 
   @override
   Future<UserProfile?> build() async {
+    // Watch Auth State to refetch profile on login/logout
+    ref.watch(authStateProvider);
+
     _repository = ref.read(profileRepositoryProvider);
     return _fetchProfile();
   }
