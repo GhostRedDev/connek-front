@@ -41,6 +41,7 @@ import '../../features/business/wizard/create_business_step_7.dart';
 import '../../features/business/wizard/create_business_step_8.dart';
 import '../../features/office/office_page.dart';
 import '../../features/office/widgets/office_train_greg_page.dart';
+import '../../features/office/widgets/office_settings_greg_page.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -80,6 +81,10 @@ final router = GoRouter(
             GoRoute(
               path: 'train-greg',
               builder: (context, state) => const OfficeTrainGregPage(),
+            ),
+            GoRoute(
+              path: 'settings-greg',
+              builder: (context, state) => const OfficeSettingsGregPage(),
             ),
           ],
         ),

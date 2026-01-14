@@ -59,7 +59,8 @@ class GregNotifier extends Notifier<GregState> {
       await service.updateGreg(updatedGreg);
       state = GregLoaded(updatedGreg); // Optimistic update
     } catch (e) {
-      print("Update failed: $e");
+      debugPrint("❌ GregNotifier: updateGreg failed: $e");
+      rethrow;
     }
   }
 
@@ -114,6 +115,25 @@ class GregNotifier extends Notifier<GregState> {
       state = GregLoaded(updatedGreg); // Optimistic update
     } catch (e) {
       print("Library update failed: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> toggleActivation(int businessId, bool activate) async {
+    try {
+      final service = ref.read(gregServiceProvider);
+      GregModel? updatedGreg;
+      if (activate) {
+        updatedGreg = await service.activateGreg(businessId);
+      } else {
+        updatedGreg = await service.deactivateGreg(businessId);
+      }
+
+      if (updatedGreg != null) {
+        state = GregLoaded(updatedGreg);
+      }
+    } catch (e) {
+      debugPrint("❌ GregNotifier: toggleActivation failed: $e");
       rethrow;
     }
   }

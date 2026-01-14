@@ -474,6 +474,18 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                   ),
                 ),
                 const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => context.push('/office/settings-greg'),
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  splashRadius: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
                 Container(
                   width: 40,
                   height: 40,

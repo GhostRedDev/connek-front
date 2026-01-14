@@ -102,7 +102,7 @@ class ApiService {
         }
       });
       final bodyString = parts.join('&');
-      debugPrint('📦 Body String: $bodyString');
+      debugPrint('📦 FINAL BODY SENT TO SERVER: $bodyString');
 
       final response = await http.put(
         url,
@@ -176,21 +176,44 @@ class ApiService {
     print('📥 Response [${response.statusCode}]: ${response.body}');
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
-      return json.decode(response.body);
+      final decodedBody = response.body;
+      dynamic decoded;
+      try {
+        decoded = json.decode(decodedBody);
+      } catch (e) {
+        print('⚠️ API Response is not valid JSON: $decodedBody');
+        print('📥 RAW BODY: $decodedBody');
+        throw Exception(
+          'API Error (${response.statusCode}): Response is not valid JSON.',
+        );
+      }
+
+      if (decoded is Map && decoded['success'] == false) {
+        final message =
+            decoded['error']?.toString() ??
+            decoded['message']?.toString() ??
+            'API Error: success=false';
+        print('⚠️ API logical error: $message');
+        throw Exception(message);
+      }
+      return decoded;
     } else {
       // Try to parse error message
+      final errorBody = response.body;
       try {
-        final errorBody = json.decode(response.body);
+        final decodedError = json.decode(errorBody);
         final message =
-            errorBody['error'] ??
-            errorBody['message'] ??
-            errorBody['detail'] ??
+            decodedError['error']?.toString() ??
+            decodedError['message']?.toString() ??
+            decodedError['detail']?.toString() ??
             'Error: ${response.statusCode}';
         print('⚠️ API Error Message: $message');
         throw Exception(message);
       } catch (e) {
-        if (e is Exception) rethrow;
-        throw Exception('API Error: ${response.statusCode}');
+        print('⚠️ API Error Body is not valid JSON: $errorBody');
+        throw Exception(
+          'API Error (${response.statusCode}): ${errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody}',
+        );
       }
     }
   }
