@@ -14,8 +14,16 @@ class ClientLeadCardWidget extends StatelessWidget {
         color: Theme.of(context).cardColor, // Adaptive bg
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(
-          image: NetworkImage(lead['image']),
+          image:
+              (lead['image'] != null &&
+                  lead['image'].toString().startsWith('http'))
+              ? NetworkImage(lead['image'])
+              : const AssetImage('assets/images/placeholder_user.png')
+                    as ImageProvider,
           fit: BoxFit.cover,
+          onError: (exception, stackTrace) {
+            // Fail silently
+          },
           colorFilter: ColorFilter.mode(
             Colors.black.withOpacity(0.2),
             BlendMode.darken,

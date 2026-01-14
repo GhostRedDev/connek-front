@@ -58,7 +58,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           cursorColor: Colors.white,
           decoration: InputDecoration(
             isDense: true,
-            hintText: widget.hintText ?? 'Busca un servicio o empresa',
+            hintText: widget.hintText ?? 'Search for a service or business',
             hintStyle: GoogleFonts.inter(
               color: Colors.white70,
               fontWeight: FontWeight.w400,
@@ -71,33 +71,26 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               borderRadius: BorderRadius.circular(100),
             ),
             focusedBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.transparent,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.transparent, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
             errorBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
-            prefixIcon: const Icon(
-              Icons.search,
-              color: Colors.white70,
-            ),
+            prefixIcon: const Icon(Icons.search, color: Colors.white70),
             filled: true,
-            fillColor: const Color(0xFF22262B).withOpacity(0.5), // Semi-transparent fill to match theme
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            fillColor: const Color(
+              0xFF22262B,
+            ).withOpacity(0.5), // Semi-transparent fill to match theme
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
           ),
         ),
       ),

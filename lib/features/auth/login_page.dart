@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/auth_success_overlay.dart';
+import '../../core/providers/locale_provider.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _passwordVisible = false;
@@ -26,6 +28,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
@@ -105,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     const SizedBox(height: 20),
                     Text(
-                      'Search and find services',
+                      t['login_title'] ?? 'Search and find services',
                       style: GoogleFonts.poppins(
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                         fontSize: 22,
@@ -115,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 24),
 
                     // Email Field
-                    _buildLabel('Email', context),
+                    _buildLabel(t['email_label'] ?? 'Email', context),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _emailController,
@@ -124,14 +129,14 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       decoration: _inputDecoration(
                         context,
-                        hint: 'Enter your email',
+                        hint: t['email_hint'] ?? 'Enter your email',
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
                     // Password Field
-                    _buildLabel('Password', context),
+                    _buildLabel(t['password_label'] ?? 'Password', context),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _passwordController,
@@ -141,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                       obscureText: !_passwordVisible,
                       decoration: _inputDecoration(
                         context,
-                        hint: 'Enter your password',
+                        hint: t['password_hint'] ?? 'Enter your password',
                         suffixIcon: IconButton(
                           icon: Icon(
                             _passwordVisible
@@ -173,7 +178,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Remember me',
+                          t['remember_me'] ?? 'Remember me',
                           style: TextStyle(
                             color: Colors.grey[400],
                             fontSize: 14,
@@ -182,9 +187,9 @@ class _LoginPageState extends State<LoginPage> {
                         const Spacer(),
                         TextButton(
                           onPressed: () => context.push('/forgot-password'),
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(color: Color(0xFF4F87C9)),
+                          child: Text(
+                            t['forgot_password'] ?? 'Forgot password?',
+                            style: const TextStyle(color: Color(0xFF4F87C9)),
                           ),
                         ),
                       ],
@@ -225,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
                                 await showAuthSuccessDialog(
                                   context,
                                   message:
-                                      'Has sido logueado exitosamente.\nBienvenido a Comeet.',
+                                      'Has sido logueado exitosamente.\nBienvenido a Comeet.', // Maybe translate too?
                                   isLogin: true,
                                 );
 
@@ -275,7 +280,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         child: Text(
-                          'Sign in',
+                          t['sign_in_button'] ?? 'Sign in',
                           style: GoogleFonts.outfit(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -293,7 +298,7 @@ class _LoginPageState extends State<LoginPage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'Or',
+                            t['or_divider'] ?? 'Or',
                             style: TextStyle(color: Colors.grey[500]),
                           ),
                         ),
@@ -305,7 +310,7 @@ class _LoginPageState extends State<LoginPage> {
 
                     // Google Sign In
                     _buildSocialButton(
-                      label: 'Sign in with Google',
+                      label: t['sign_in_google'] ?? 'Sign in with Google',
                       icon: Icons.g_mobiledata,
                       color: Colors.white,
                       onPressed: _googleSignIn,
@@ -313,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 16),
                     // Apple Sign In
                     _buildSocialButton(
-                      label: 'Sign in with Apple',
+                      label: t['sign_in_apple'] ?? 'Sign in with Apple',
                       icon: Icons.apple,
                       color: Colors.white,
                     ),
@@ -325,14 +330,14 @@ class _LoginPageState extends State<LoginPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Don't have an account? ",
+                          (t['no_account'] ?? "Don't have an account?") + " ",
                           style: TextStyle(color: Colors.grey[400]),
                         ),
                         InkWell(
                           onTap: () => context.push('/register'),
-                          child: const Text(
-                            'Sign up now',
-                            style: TextStyle(
+                          child: Text(
+                            t['sign_up_link'] ?? 'Sign up now',
+                            style: const TextStyle(
                               color: Color(0xFF4F87C9),
                               fontWeight: FontWeight.bold,
                             ),

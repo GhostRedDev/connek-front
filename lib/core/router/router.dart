@@ -1,5 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/layout.dart';
+import '../widgets/biometric_auth_guard.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
@@ -10,6 +14,7 @@ import '../../features/search/search_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/settings/profile_page.dart';
 import '../../features/chat/chat_chats.dart';
+import '../../features/notifications/notification_page.dart'; // Added
 import '../../features/chat/chat_page.dart';
 import '../../features/client/client_page.dart';
 import '../../features/client/create_request_page.dart';
@@ -30,6 +35,7 @@ import '../../features/business/business_sheet_create_portfolio.dart';
 import '../../features/business/business_dashboard_employees.dart';
 import '../../features/business/business_dashboard_services.dart';
 import '../../features/business/business_dashboard_add_services.dart';
+import '../../features/business/business_dashboard_leads.dart'; // Added
 import '../../features/business/create_business_d_cover.dart';
 import '../../features/business/wizard/create_business_step_1.dart';
 import '../../features/business/wizard/create_business_step_2.dart';
@@ -43,28 +49,13 @@ import '../../features/office/office_page.dart';
 import '../../features/office/widgets/office_train_greg_page.dart';
 import '../../features/office/widgets/office_settings_greg_page.dart';
 
-final router = GoRouter(
-  initialLocation: '/',
-  routes: [
-    // --- UNAUTHORIZED ROUTES (No App Bar/NavBar) ---
-    // Note: '/' is now the Unified Home inside the Shell
-    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) => const RegisterPage(),
-    ),
-    GoRoute(
-      path: '/forgot-password',
-      builder: (context, state) => const ForgotPasswordPage(),
-    ),
-    GoRoute(
-      path: '/reset-password',
-      builder: (context, state) => const ResetPasswordPage(),
-    ),
-    GoRoute(
-      path: '/confirm-phone',
-      builder: (context, state) => const ConfirmPhonePage(),
-    ),
+// Providers for Redirection Logic
+import '../providers/user_mode_provider.dart';
+import '../../features/settings/providers/profile_provider.dart';
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final userMode = ref.watch(userModeProvider);
+  final profileAsync = ref.watch(profileProvider);
 
     // --- AUTHORIZED & GUEST (Unified Shell) ---
     ShellRoute(
@@ -239,5 +230,316 @@ final router = GoRouter(
         ),
       ],
     ),
-  ],
-);
+    redirect: (context, state) {
+      final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
+      final isBusinessRoute = state.uri.toString().startsWith('/business');
+      final isOfficeRoute = state.uri.toString().startsWith('/office');
+
+      // 1. Basic Auth Guard
+      // If needed, but generally we allow guest access to home/search.
+      // Assuming business/office/client are protected by Supabase RLS anyway,
+      // but UI redirection is nicer.
+
+      if (!isLoggedIn) {
+        if (isBusinessRoute ||
+            isOfficeRoute ||
+            state.uri.toString().startsWith('/client')) {
+          return '/login';
+        }
+      }
+
+      // 2. Business Route Protection
+      if (isBusinessRoute && isLoggedIn) {
+        // Must be in Business Mode
+        if (!userMode) {
+          // If in Client Mode, redirect to Client Dashboard or Home
+          return '/client';
+        }
+
+        // Must have Business Profile (Check loaded profile)
+        // If profile is loading, we might want to wait or show loading, but redirect is sync-ish.
+        // We'll rely on the fact that if data is available and hasBusiness is false, we block.
+        // If loading, we let it pass for now and let the page handle empty states, OR block safely.
+
+        if (profileAsync.hasValue) {
+          final profile = profileAsync.value;
+          if (profile != null && !profile.hasBusiness) {
+            // User trying to access business but has no business -> maybe create one?
+            // For now, redirect to create business or home.
+            // If we want to allow access to "create business", we need an exception.
+            if (!state.uri.toString().startsWith('/business/create')) {
+              // Redirect to Wizard Step 1 if they have no business?
+              // Or just kick to client.
+              return '/business/create/step1';
+            }
+          }
+        }
+      }
+
+      // 3. Office Route Protection (Admin only - Stubbed)
+      // if (isOfficeRoute) { ... }
+
+      return null; // No redirect
+    },
+    routes: [
+      // --- UNAUTHORIZED ROUTES (No App Bar/NavBar) ---
+      // Note: '/' is now the Unified Home inside the Shell
+      // Auth Routes moved to ShellRoute for consistent layout
+
+      // Call Route (Full Screen, No Shell)
+      GoRoute(
+        path: '/call/:id',
+        builder: (context, state) {
+          final callId = state.pathParameters['id'] ?? '';
+          final isCaller = state.uri.queryParameters['isCaller'] == 'true';
+          return CallPage(callId: callId, isCaller: isCaller);
+        },
+      ),
+
+      // --- AUTHORIZED & GUEST (Unified Shell) ---
+      ShellRoute(
+        builder: (context, state, child) {
+          return BiometricAuthGuard(child: AppLayout(child: child));
+        },
+        routes: [
+          // Unified Home Page (Handles both Guest and Auth views)
+          GoRoute(path: '/', builder: (context, state) => const HomePage()),
+
+          // Auth Routes (Now using AppLayout)
+          GoRoute(
+            path: '/login',
+            builder: (context, state) => const LoginPage(),
+          ),
+          GoRoute(
+            path: '/register',
+            builder: (context, state) => const RegisterPage(),
+          ),
+          GoRoute(
+            path: '/forgot-password',
+            builder: (context, state) => const ForgotPasswordPage(),
+          ),
+          GoRoute(
+            path: '/reset-password',
+            builder: (context, state) => const ResetPasswordPage(),
+          ),
+          GoRoute(
+            path: '/confirm-phone',
+            builder: (context, state) => const ConfirmPhonePage(),
+          ),
+          GoRoute(
+            path: '/office',
+            builder: (context, state) => const OfficePage(),
+            routes: [
+              GoRoute(
+                path: 'train-greg',
+                builder: (context, state) => const OfficeTrainGregPage(),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => const SearchPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsPage(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) =>
+                ProfilePage(initialTab: state.uri.queryParameters['tab']),
+          ),
+          GoRoute(
+            path: '/chats',
+            builder: (context, state) => const ChatChats(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                pageBuilder: (context, state) {
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    child: ChatPage(chatId: state.pathParameters['id'] ?? ''),
+                    transitionDuration: const Duration(milliseconds: 200),
+                    reverseTransitionDuration: const Duration(
+                      milliseconds: 200,
+                    ),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(1.0, 0.0);
+                          const end = Offset.zero;
+                          final tween = Tween(
+                            begin: begin,
+                            end: end,
+                          ).chain(CurveTween(curve: Curves.easeOutQuad));
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
+                  );
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/notifications',
+            builder: (context, state) => const NotificationPage(),
+          ),
+
+          // Client Routes (Usually mapped to 'Buy')
+          GoRoute(
+            path: '/client',
+            builder: (context, state) => const ClientPage(),
+            routes: [
+              GoRoute(
+                path: 'request',
+                builder: (context, state) => const CreateRequestPage(),
+              ),
+              GoRoute(
+                path: 'booking',
+                builder: (context, state) => const ClientBookingService(),
+              ),
+              GoRoute(
+                path: 'dashboard/requests',
+                builder: (context, state) => const ClientDashboardRequests(),
+              ),
+              GoRoute(
+                path: 'dashboard/support',
+                builder: (context, state) => const ClientDashboardSupport(),
+              ),
+              GoRoute(
+                path: 'dashboard/chat',
+                builder: (context, state) => const ClientDashboardChat(),
+              ),
+              GoRoute(
+                path: 'dashboard/post',
+                builder: (context, state) => const ClientDashboardPost(),
+              ),
+              GoRoute(
+                path: 'dashboard/wallet',
+                builder: (context, state) => const ClientDashboardWallet(),
+              ),
+              GoRoute(
+                path: 'dashboard/booking',
+                builder: (context, state) => const ClientDashboardBooking(),
+              ),
+              GoRoute(
+                path: 'checkout',
+                builder: (context, state) => const CheckoutResume(),
+              ),
+              GoRoute(
+                path: 'request-details',
+                builder: (context, state) {
+                  final request = state.extra as ServiceRequest;
+                  return ClientRequestDetailsPage(request: request);
+                },
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => const ClientPage(),
+              ),
+            ],
+          ),
+
+          // Business Routes (Usually mapped to 'Sell')
+          GoRoute(
+            path: '/business',
+            builder: (context, state) => const BusinessPage(),
+            routes: [
+              GoRoute(
+                path: 'profile',
+                builder: (context, state) => const BusinessProfilePage(),
+              ),
+              GoRoute(
+                path: 'create-service',
+                builder: (context, state) => const BusinessSheetCreateService(),
+              ),
+              GoRoute(
+                path: 'create-portfolio',
+                builder: (context, state) =>
+                    const BusinessSheetCreatePortfolio(),
+              ),
+              GoRoute(
+                path: 'employees',
+                builder: (context, state) => const BusinessDashboardEmployees(),
+              ),
+              GoRoute(
+                path: 'services',
+                builder: (context, state) => const BusinessDashboardServices(),
+              ),
+              GoRoute(
+                path: 'add-services',
+                builder: (context, state) =>
+                    const BusinessDashboardAddServices(),
+              ),
+              GoRoute(
+                path: 'cover',
+                builder: (context, state) => const CreateBusinessDCover(),
+              ),
+              GoRoute(
+                path: 'leads',
+                builder: (context, state) => const BusinessDashboardLeads(),
+              ),
+              // Wizard
+              GoRoute(
+                path: 'create/step1',
+                builder: (context, state) => const CreateBusinessStep1(),
+              ),
+              GoRoute(
+                path: 'create/step2',
+                builder: (context, state) => const CreateBusinessStep2(),
+              ),
+              GoRoute(
+                path: 'create/step3',
+                builder: (context, state) => const CreateBusinessStep3(),
+              ),
+              GoRoute(
+                path: 'create/step4',
+                builder: (context, state) => const CreateBusinessStep4(),
+              ),
+              GoRoute(
+                path: 'create/step5',
+                builder: (context, state) => const CreateBusinessStep5(),
+              ),
+              GoRoute(
+                path: 'create/step6',
+                builder: (context, state) => const CreateBusinessStep6(),
+              ),
+              GoRoute(
+                path: 'create/step7',
+                builder: (context, state) => const CreateBusinessStep7(),
+              ),
+              GoRoute(
+                path: 'create/step8',
+                builder: (context, state) => const CreateBusinessStep8(),
+              ),
+            ],
+          ),
+
+          GoRoute(
+            path: '/payments',
+            builder: (context, state) => const PaymentMethodList(),
+          ),
+        ],
+      ),
+    ],
+  );
+});
+
+// Helper for stream listening
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen(
+      (dynamic _) => notifyListeners(),
+    );
+  }
+
+  late final dynamic _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}

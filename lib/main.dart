@@ -4,20 +4,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/router.dart';
 import 'core/providers/theme_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 // import 'core/services/supabase_config_service.dart';
 
+import 'package:flutter_web_plugins/url_strategy.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
 
   // LiquidGlassLayer configuration removed due to final field error
   // Using SimpleGlassContainer by default in AppLayout instead.
+
+  // Optimize Font Loading for Web to prevent Layout Shift/Assertion
+  // await GoogleFonts.pendingFonts([
+  //   GoogleFonts.inter(),
+  //   GoogleFonts.roboto(),
+  // ]);
+  // Actually, waiting for them can slow startup.
+  // Better to just ensure they are fetched or use a fallback.
+  // The assertion "RenderParagraph._scheduleSystemFontsUpdate" happens when fonts load mid-frame.
+  // We can try to suppress it by ensuring WidgetsBinding is fully ready? It is.
 
   await _startApp();
 }
 
 Future<void> _startApp() async {
+  // Prevent Font Scaling issues
+  // ignore: deprecated_member_use
+  GoogleFonts.config.allowRuntimeFetching = true;
+
   // Hardcoded Supabase Config to prevent startup hang
   const supabaseUrl = 'https://bzndcfewyihbytjpitil.supabase.co';
   const supabaseKey =
@@ -62,7 +80,7 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode, // Dynamic Theme Mode (System/Light/Dark)
 
-      routerConfig: router,
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }

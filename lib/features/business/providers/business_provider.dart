@@ -1,10 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../settings/providers/profile_provider.dart';
 import '../../leads/services/leads_service.dart';
 import '../../leads/models/lead_model.dart';
 import '../../../core/services/api_service.dart'; // Import ApiService
-// import '../../auth/providers/auth_provider.dart'; // Removed
+import '../../../core/providers/auth_provider.dart';
 
 // --- Models ---
 
@@ -15,6 +17,7 @@ class BusinessDashboardData {
   final List<Lead> recentLeads;
   final List<Map<String, dynamic>> employees;
   final List<Map<String, dynamic>> services;
+  final List<Map<String, dynamic>> clients; // Added
 
   BusinessDashboardData({
     required this.totalRequests,
@@ -23,6 +26,7 @@ class BusinessDashboardData {
     required this.recentLeads,
     required this.employees,
     required this.services,
+    required this.clients, // Added
   });
 
   factory BusinessDashboardData.empty() {
@@ -33,15 +37,12 @@ class BusinessDashboardData {
       recentLeads: [],
       employees: [],
       services: [],
+      clients: [], // Added
     );
   }
 }
 
 // --- Repository ---
-
-// Moved import to top, removing this line.
-
-// ...
 
 class BusinessRepository {
   final SupabaseClient _supabase;
@@ -58,14 +59,21 @@ class BusinessRepository {
 
   Future<Map<String, dynamic>?> getMyBusiness(int clientId) async {
     try {
-      final data = await _supabase
-          .from('business')
-          .select()
-          .eq('owner_client_id', clientId)
-          .maybeSingle();
-      return data;
+      // Fetch accounts to find the business
+      final response = await _apiService.get(
+        '/clients/accounts?client_id=$clientId',
+      );
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        final businesses = data['businesses'];
+        if (businesses is List && businesses.isNotEmpty) {
+          // Return the first business found (map format)
+          return Map<String, dynamic>.from(businesses[0]);
+        }
+      }
+      return null;
     } catch (e) {
-      print('Error fetching business: $e');
+      print('Error fetching business via API: $e');
       return null;
     }
   }
@@ -80,13 +88,9 @@ class BusinessRepository {
         if (data is List) {
           return List<Map<String, dynamic>>.from(data);
         } else if (data is Map) {
-          // If it returns a map, assume it might be a single object or we need to extract a list
-          // Logging this for debugging would be ideal, but for now let's see if we can just wrap it?
-          // Or maybe it has a nested list?
           if (data.containsKey('employees')) {
             return List<Map<String, dynamic>>.from(data['employees']);
           }
-          // Fallback: treat as single object
           return [Map<String, dynamic>.from(data)];
         }
       }
@@ -99,14 +103,158 @@ class BusinessRepository {
 
   Future<List<Map<String, dynamic>>> getServices(int businessId) async {
     try {
-      final data = await _supabase
-          .from('service')
-          .select()
-          .eq('business_id', businessId);
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      print('Error fetching services: $e');
+      final response = await _apiService.get('/services/business/$businessId');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
       return [];
+    } catch (e) {
+      print('Error fetching services via API: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getClients(int businessId) async {
+    try {
+      final response = await _apiService.get('/business/$businessId/clients');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      return []; // Return empty list if no data or malformed
+    } catch (e) {
+      print('Error fetching clients via API: $e');
+      return [];
+    }
+  }
+
+  // --- Business Mutations ---
+
+  Future<Map<String, dynamic>?> createBusiness(
+    Map<String, dynamic> businessData,
+  ) async {
+    try {
+      final response = await _apiService.post(
+        '/business/new',
+        body: businessData,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error creating business: $e');
+      throw e;
+    }
+  }
+
+  Future<bool> deleteBusiness(int businessId, int clientId) async {
+    try {
+      final response = await _apiService.delete(
+        '/business/$businessId?client_id=$clientId',
+      );
+      return response != null && response['success'] == true;
+    } catch (e) {
+      print('Error deleting business: $e');
+      return false;
+    }
+  }
+
+  Future<List<String>> uploadBusinessFiles(
+    int businessId,
+    List<File> files,
+  ) async {
+    // Note: This requires converting dart:io File to http.MultipartFile
+    // Helper needed or assume files are handled in UI before repository?
+    // Usually Repository takes simpler types. Let's assume File path or bytes.
+    // For now, skipping generic upload until logic is confirmed or using ApiService.postMultipart
+    return [];
+  }
+
+  // --- Services Mutations ---
+
+  Future<Map<String, dynamic>?> createService(
+    Map<String, dynamic> serviceData,
+  ) async {
+    try {
+      // serviceData should mirror the Form fields expected by backend
+      final response = await _apiService.post(
+        '/services/create',
+        body: serviceData,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error creating service: $e');
+      return null; // Or throw
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateService(
+    int serviceId,
+    Map<String, dynamic> serviceData,
+  ) async {
+    try {
+      final response = await _apiService.put(
+        '/services/$serviceId',
+        body: serviceData,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error updating service: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteService(int serviceId) async {
+    try {
+      final response = await _apiService.delete('/services/$serviceId');
+      return response != null && response['success'] == true;
+    } catch (e) {
+      print('Error deleting service: $e');
+      return false;
+    }
+  }
+
+  // --- Business Clients Mutations ---
+
+  Future<Map<String, dynamic>?> createBusinessClient(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _apiService.post(
+        '/business/business-clients/create',
+        body: data,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error creating business client: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteBusinessClient(int id) async {
+    try {
+      final response = await _apiService.delete(
+        '/business/business-clients/$id',
+      );
+      return response != null && response['success'] == true;
+    } catch (e) {
+      print('Error deleting business client: $e');
+      return false;
     }
   }
 }
@@ -141,6 +289,12 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     final repo = _repository!;
     final leadsService = _leadsService!;
 
+    // Watch Auth to trigger refresh on state change
+    final authState = ref.watch(authStateProvider);
+    if (authState.value?.session == null) {
+      return BusinessDashboardData.empty();
+    }
+
     final profile = ref.watch(profileProvider).value;
     if (profile == null) {
       return BusinessDashboardData.empty();
@@ -158,11 +312,22 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       leadsService.fetchBusinessLeads(businessId),
       repo.getEmployees(businessId),
       repo.getServices(businessId),
+      repo.getClients(businessId), // Added
     ]);
 
     final leads = results[0] as List<Lead>;
     final employeesRaw = results[1] as List<Map<String, dynamic>>;
     final servicesRaw = results[2] as List<Map<String, dynamic>>;
+    final clientsRaw = results[3] as List<Map<String, dynamic>>; // Added
+
+    // Map Clients (Optional: Enrich with image logic if needed)
+    final clients = clientsRaw.map((c) {
+      // Ensure image is full URL if needed, but client images are usually URLs from auth
+      // or relative paths if stored in bucket.
+      // Let's assume they are ready for UI or need basic handling.
+      // If image is null, UI handles it.
+      return c;
+    }).toList();
 
     // Map Employees
     final employees = employeesRaw.map((bot) {
@@ -194,12 +359,6 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       return {...s, 'image': image};
     }).toList();
 
-    // Setup Realtime Subscription for Leads (Example)
-    // We only subscribe once.
-    if (_leadsSubscription == null) {
-      _subscribeToLeads(businessId);
-    }
-
     return BusinessDashboardData(
       totalRequests: leads.length,
       monthEarnings: 0.0,
@@ -207,26 +366,38 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       recentLeads: leads,
       employees: employees,
       services: services,
+      clients: clients,
     );
   }
-
-  void _subscribeToLeads(int businessId) {
-    _leadsSubscription = Supabase.instance.client
-        .channel('public:leads:business_id=eq.$businessId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'leads', // Verify table name
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'business_id',
-            value: businessId,
-          ),
-          callback: (payload) {
-            // Reload data on change
-            ref.invalidateSelf();
-          },
-        )
-        .subscribe();
-  }
 }
+
+// Lightweight Provider for fetching Business Name only
+final myBusinessNameProvider = FutureProvider<String?>((ref) async {
+  final profile = ref.watch(profileProvider).value;
+  if (profile == null) return null;
+
+  final repo = ref.read(businessRepositoryProvider);
+  final business = await repo.getMyBusiness(profile.id);
+  return business?['name'] as String?;
+});
+
+final myBusinessLogoProvider = FutureProvider<String?>((ref) async {
+  final profile = ref.watch(profileProvider).value;
+  if (profile == null) return null;
+
+  final repo = ref.read(businessRepositoryProvider);
+  final business = await repo.getMyBusiness(profile.id);
+  // 'image' or 'logo_url' - checking repository or creating resolver
+  // Based on getEmployees mapping, it seems images are usually resolved.
+  // Let's assume 'image' key from DB and resolve it.
+  final rawImage = business?['image'] as String?;
+  if (rawImage == null) return null;
+
+  if (rawImage.startsWith('http')) return rawImage;
+  // Resolve using repository helper logic (re-implemented here or made public)
+  // Repo helper is private. Let's make it public or duplicate logic safely.
+  // Assuming 'business' bucket for business logo.
+  return Supabase.instance.client.storage
+      .from('business')
+      .getPublicUrl(rawImage);
+});

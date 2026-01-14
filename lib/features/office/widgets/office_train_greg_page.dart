@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../providers/office_provider.dart';
-import 'office_menu_widget.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/models/greg_model.dart';
@@ -46,7 +44,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   bool _requirePaymentProof = false;
   bool _askConsent = false;
   String _refundPolicyType = 'No Refund'; // Default
-  String _dataStorageLevel = 'Básico - Solo información esencial';
+  String _dataStorageLevel = 'Básico';
   List<String> _acceptedPaymentMethods = [];
   List<String> _cancellationDocuments = []; // New local state
   final List<Map<String, String>> _excludedContacts = [];
@@ -373,20 +371,6 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-                const SizedBox(height: 130), // Clear Glass Header
-                OfficeMenuWidget(
-                  selectedIndex: 0, // Always "My bots" while on this page
-                  onTabSelected: (index) {
-                    if (index == 1) {
-                      // Switch to Marketplace and navigate back
-                      ref
-                          .read(officeSelectedIndexProvider.notifier)
-                          .updateIndex(1);
-                      context.pop();
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
                 _buildHeader(),
                 const SizedBox(height: 20),
                 _buildIntroSection(),
@@ -395,17 +379,14 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 AnimatedBuilder(
                   animation: _tabController,
                   builder: (context, _) {
-                    switch (_tabController.index) {
-                      case 0:
-                        return _buildCancellationsTab();
-                      case 1:
-                        return _buildPaymentsTab();
-                      case 2:
-                        return _buildProceduresTab();
-                      case 3:
-                        return _buildPrivacyTab();
-                      case 4:
-                        return const Padding(
+                    return IndexedStack(
+                      index: _tabController.index,
+                      children: [
+                        _buildCancellationsTab(),
+                        _buildPaymentsTab(),
+                        _buildProceduresTab(),
+                        _buildPrivacyTab(),
+                        const Padding(
                           padding: EdgeInsets.all(32.0),
                           child: Center(
                             child: Text(
@@ -413,15 +394,13 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                               style: TextStyle(color: Colors.white),
                             ),
                           ),
-                        );
-                      case 5:
-                        return _buildLibraryTab();
-                      default:
-                        return const SizedBox.shrink();
-                    }
+                        ),
+                        _buildLibraryTab(),
+                      ],
+                    );
                   },
                 ),
-                const SizedBox(height: 120),
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -432,7 +411,12 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15.0),
+      padding: const EdgeInsets.only(
+        top: 101.0,
+        left: 15.0,
+        right: 15.0,
+        bottom: 10.0,
+      ),
       child: Row(
         children: [
           InkWell(
@@ -704,6 +688,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             const Divider(color: Colors.white24),
             const SizedBox(height: 16),
             ...children,
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -1638,33 +1623,11 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                         color: const Color(0xFF4B39EF).withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child:
-                          (file['name']?.toLowerCase().endsWith('.jpg') ??
-                                  false) ||
-                              (file['name']?.toLowerCase().endsWith('.jpeg') ??
-                                  false) ||
-                              (file['name']?.toLowerCase().endsWith('.png') ??
-                                  false)
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Image.network(
-                                'https://bzndcfewyihbytjpitil.supabase.co/storage/v1/object/public/client/${file['path'] ?? 'library/${file['filename']}'}',
-                                width: 40,
-                                height: 40,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      color: Colors.white24,
-                                      size: 20,
-                                    ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.description_outlined,
-                              color: Color(0xFF4B39EF),
-                              size: 20,
-                            ),
+                      child: const Icon(
+                        Icons.description_outlined,
+                        color: Color(0xFF4B39EF),
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1731,7 +1694,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['pdf', 'doc', 'docx'],
         withData: true, // Required for Web to get bytes
       );
 

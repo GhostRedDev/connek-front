@@ -2,14 +2,17 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeSearchWidget extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/locale_provider.dart';
+
+class HomeSearchWidget extends ConsumerStatefulWidget {
   const HomeSearchWidget({super.key});
 
   @override
-  State<HomeSearchWidget> createState() => _HomeSearchWidgetState();
+  ConsumerState<HomeSearchWidget> createState() => _HomeSearchWidgetState();
 }
 
-class _HomeSearchWidgetState extends State<HomeSearchWidget>
+class _HomeSearchWidgetState extends ConsumerState<HomeSearchWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -30,6 +33,9 @@ class _HomeSearchWidgetState extends State<HomeSearchWidget>
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Container(
@@ -43,7 +49,7 @@ class _HomeSearchWidgetState extends State<HomeSearchWidget>
               text: TextSpan(
                 children: [
                   TextSpan(
-                    text: 'Find services in\n',
+                    text: t['home_title_find_services'] ?? 'Find services in\n',
                     style: TextStyle(
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                       fontSize: 32,
@@ -98,7 +104,7 @@ class _HomeSearchWidgetState extends State<HomeSearchWidget>
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Search...',
+                        hintText: t['home_search_hint'] ?? 'Search...',
                         hintStyle: TextStyle(
                           color: Theme.of(context).hintColor.withOpacity(0.7),
                         ),
@@ -138,8 +144,8 @@ class _HomeSearchWidgetState extends State<HomeSearchWidget>
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Search',
+                    child: Text(
+                      t['home_button_search'] ?? 'Search',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -152,8 +158,8 @@ class _HomeSearchWidgetState extends State<HomeSearchWidget>
                   child: ElevatedButton.icon(
                     onPressed: () {},
                     icon: const Icon(Icons.auto_awesome, size: 20),
-                    label: const Text(
-                      'Request',
+                    label: Text(
+                      t['home_button_request'] ?? 'Request',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

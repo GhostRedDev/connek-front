@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ResetPasswordPage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/locale_provider.dart';
+
+class ResetPasswordPage extends ConsumerStatefulWidget {
   const ResetPasswordPage({super.key});
 
   @override
-  State<ResetPasswordPage> createState() => _ResetPasswordPageState();
+  ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
 }
 
-class _ResetPasswordPageState extends State<ResetPasswordPage> {
+class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
 
@@ -27,13 +30,15 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   Future<void> _handleUpdatePassword() async {
     if (_formKey.currentState?.validate() ?? false) {
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Passwords don't match!")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Passwords don't match!")));
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password updated successfully (Placeholder)")),
+        const SnackBar(
+          content: Text("Password updated successfully (Placeholder)"),
+        ),
       );
       context.go('/login'); // Redirect to login after reset
     }
@@ -41,6 +46,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
@@ -79,7 +87,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                       ),
                     ),
-                     // Logo
+                    // Logo
                     Align(
                       alignment: Alignment.center,
                       child: Padding(
@@ -90,7 +98,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             'assets/images/conneck_logo_white.png',
                             width: 100,
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Text('connek', style: TextStyle(color: Colors.white, fontSize: 30)),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Text(
+                                  'connek',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 30,
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -99,9 +114,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 ),
               ),
             ),
-            
+
             SliverToBoxAdapter(
-               child: Padding(
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Form(
                   key: _formKey,
@@ -110,7 +125,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     children: [
                       const SizedBox(height: 20),
                       Text(
-                        'Set new password',
+                        t['auth_reset_title'] ?? 'Set new password',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontSize: 22,
@@ -118,45 +133,81 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
+
                       // Password Field
-                      Text('New Password', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+                      Text(
+                        t['auth_label_new_password'] ?? 'New Password',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: !_passwordVisible,
                         style: GoogleFonts.inter(color: Colors.white),
                         decoration: _inputDecoration(
-                          hint: 'Enter new password',
+                          hint:
+                              t['auth_hint_new_password'] ??
+                              'Enter new password',
                           suffixIcon: IconButton(
-                            icon: Icon(_passwordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey),
-                            onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                            icon: Icon(
+                              _passwordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () => setState(
+                              () => _passwordVisible = !_passwordVisible,
+                            ),
                           ),
                         ),
-                        validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? (t['auth_error_required'] ?? 'Required')
+                            : null,
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Confirm Password Field
-                      Text('Confirm Password', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+                      Text(
+                        t['auth_label_confirm_new_password'] ??
+                            'Confirm Password',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: !_confirmPasswordVisible,
                         style: GoogleFonts.inter(color: Colors.white),
                         decoration: _inputDecoration(
-                          hint: 'Confirm new password',
+                          hint:
+                              t['auth_hint_confirm_new_password'] ??
+                              'Confirm new password',
                           suffixIcon: IconButton(
-                            icon: Icon(_confirmPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey),
-                            onPressed: () => setState(() => _confirmPasswordVisible = !_confirmPasswordVisible),
+                            icon: Icon(
+                              _confirmPasswordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () => setState(
+                              () => _confirmPasswordVisible =
+                                  !_confirmPasswordVisible,
+                            ),
                           ),
                         ),
-                        validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? (t['auth_error_required'] ?? 'Required')
+                            : null,
                       ),
-                      
+
                       const SizedBox(height: 30),
-                      
+
                       // Reset Button
                       SizedBox(
                         width: double.infinity,
@@ -166,16 +217,24 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             backgroundColor: const Color(0xFF4F87C9),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: Text('Reset password', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: Text(
+                            t['auth_button_reset_password'] ?? 'Reset password',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 40),
                     ],
                   ),
                 ),
-               ),
+              ),
             ),
           ],
         ),
@@ -185,18 +244,21 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   InputDecoration _inputDecoration({required String hint, Widget? suffixIcon}) {
     return InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[600]),
-        filled: true,
-        fillColor: const Color(0xFF22262B),
-        hoverColor: Colors.white.withOpacity(0.05),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.white24, width: 1.0),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        suffixIcon: suffixIcon,
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[600]),
+      filled: true,
+      fillColor: const Color(0xFF22262B),
+      hoverColor: Colors.white.withOpacity(0.05),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.white24, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      suffixIcon: suffixIcon,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'widgets/business_leads_widget.dart';
 import 'widgets/business_overview_widget.dart';
+import 'widgets/business_clients_widget.dart'; // Added
 
 class BusinessPage extends ConsumerStatefulWidget {
   const BusinessPage({super.key});
@@ -29,7 +30,7 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
         const BusinessLeadsWidget(),
 
         // TAB 3: CLIENTS
-        const Center(child: Text("Business Clients - Coming Soon")),
+        const BusinessClientsWidget(),
       ],
     );
   }

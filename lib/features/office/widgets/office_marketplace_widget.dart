@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'marketplace_bot_card.dart';
+import '../../../../core/providers/locale_provider.dart';
 
-class OfficeMarketplaceWidget extends StatefulWidget {
+class OfficeMarketplaceWidget extends ConsumerStatefulWidget {
   const OfficeMarketplaceWidget({super.key});
 
   @override
-  State<OfficeMarketplaceWidget> createState() =>
+  ConsumerState<OfficeMarketplaceWidget> createState() =>
       _OfficeMarketplaceWidgetState();
 }
 
-class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
+class _OfficeMarketplaceWidgetState
+    extends ConsumerState<OfficeMarketplaceWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -67,7 +72,7 @@ class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Marketplace',
+                    t['office_marketplace_title'] ?? 'Marketplace',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
                       fontSize: 26,
@@ -77,7 +82,8 @@ class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Explora nuestra colección de bots especializados diseñados para transformar tu negocio',
+                    t['office_marketplace_subtitle'] ??
+                        'Explora nuestra colección de bots especializados diseñados para transformar tu negocio',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 14,
@@ -97,7 +103,7 @@ class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Connek assistants',
+                t['office_assistants_title'] ?? 'Connek assistants',
                 style: GoogleFonts.outfit(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -106,7 +112,8 @@ class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Bots con mejor desempeño general',
+                t['office_assistants_subtitle'] ??
+                    'Bots con mejor desempeño general',
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: isDark ? Colors.grey[500] : Colors.grey[600],
@@ -118,9 +125,10 @@ class _OfficeMarketplaceWidgetState extends State<OfficeMarketplaceWidget> {
           const SizedBox(height: 16),
 
           // Bot Card (Greg)
-          const MarketplaceBotCard(
+          MarketplaceBotCard(
             name: 'Greg',
             description:
+                t['bot_greg_description'] ??
                 'Bot especializado en atención al cliente 24/7 con IA avanzada. Gestiona citas, responde dudas y más.',
             imageUrl:
                 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=256&q=80', // Placeholder or real URL

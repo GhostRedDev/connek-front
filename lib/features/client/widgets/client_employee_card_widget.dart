@@ -70,7 +70,13 @@ class ClientEmployeeCardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           CircleAvatar(
-            backgroundImage: NetworkImage(employee['image']),
+            backgroundImage:
+                (employee['image'] != null &&
+                    employee['image'].toString().startsWith('http'))
+                ? NetworkImage(employee['image'])
+                : const AssetImage('assets/images/placeholder_user.png')
+                      as ImageProvider,
+            onBackgroundImageError: (_, __) {},
             radius: 30,
           ),
           const SizedBox(height: 8),
