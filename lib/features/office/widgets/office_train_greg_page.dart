@@ -358,7 +358,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF131619),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Scrollbar(
           controller: _scrollController,
@@ -424,18 +424,24 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2429),
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white12),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withOpacity(0.1),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                  Icon(
+                    Icons.arrow_back,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Mis bots',
                     style: GoogleFonts.outfit(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -533,13 +539,16 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           Text(
             text,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+            style: GoogleFonts.inter(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             title,
             style: GoogleFonts.outfit(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -548,7 +557,10 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           Text(
             'Enséñame cómo funcionan tus políticas, procesos y reglas internas. Así podré responder como si fuera parte de tu equipo.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+            style: GoogleFonts.inter(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 24),
         ],
@@ -558,14 +570,14 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
 
   Widget _buildTabBar() {
     return Container(
-      color: const Color(0xFF131619),
+      color: Theme.of(context).scaffoldBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: TabBar(
         controller: _tabController,
         isScrollable: true,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
-          color: const Color(0xFF1A2634), // Darker navy for active box
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
@@ -656,9 +668,11 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E2429), // bg2Sec
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -668,7 +682,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
               child: Text(
                 title,
                 style: GoogleFonts.outfit(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 24,
                   fontWeight: FontWeight.w500,
                 ),
@@ -680,7 +694,12 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 child: Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+                  style: GoogleFonts.inter(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
@@ -1038,9 +1057,15 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         // Confidential Info Section
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0D1E16),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF0D1E16)
+                : Colors.green.shade50,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF1B5E20).withOpacity(0.4)),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1B5E20).withOpacity(0.4)
+                  : Colors.green.shade200,
+            ),
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1054,7 +1079,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                     child: Text(
                       'Información que Greg NO comparte con el cliente',
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1075,7 +1100,12 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 child: Text(
                   'Esta información será conocida por Greg pero nunca la revelará en las conversaciones',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: Colors.white60, fontSize: 12),
+                  style: GoogleFonts.inter(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -1085,9 +1115,15 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         // Excluded Contacts Section
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1315),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E1315)
+                : Colors.red.shade50,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFB71C1C).withOpacity(0.3)),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFFB71C1C).withOpacity(0.3)
+                  : Colors.red.shade200,
+            ),
           ),
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -1104,14 +1140,21 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
               Text(
                 'Define qué contactos Greg nunca debe atender para proteger tu vida personal',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+                style: GoogleFonts.inter(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF131619),
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
+                  ),
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -1135,7 +1178,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                     Text(
                       '${_excludedContacts.length} contactos excluidos',
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1150,8 +1193,8 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 child: ElevatedButton(
                   onPressed: _showAddContactModal,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    backgroundColor: Theme.of(context).cardColor,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1168,8 +1211,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
               ),
               if (_excludedContacts.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Divider(color: Colors.white10),
-                const SizedBox(height: 10),
+                Divider(color: Theme.of(context).dividerColor.withOpacity(0.1)),
                 ..._excludedContacts.map(
                   (contact) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -1188,14 +1230,18 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                               Text(
                                 contact['name'] ?? '',
                                 style: GoogleFonts.outfit(
-                                  color: Colors.white,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                   fontSize: 16,
                                 ),
                               ),
                               Text(
                                 contact['phone'] ?? '',
                                 style: GoogleFonts.inter(
-                                  color: Colors.white38,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.4),
                                   fontSize: 14,
                                 ),
                               ),
@@ -1256,7 +1302,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF131619),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -1276,7 +1322,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: Theme.of(context).dividerColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1284,7 +1330,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             Text(
               'Nuevo Contacto',
               style: GoogleFonts.outfit(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -1292,31 +1338,43 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             const SizedBox(height: 24),
             TextField(
               controller: nameController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: 'Nombre',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.4),
+                ),
                 filled: true,
-                fillColor: const Color(0xFF1E2429),
+                fillColor: Theme.of(context).cardColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white10),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: phoneController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
                 hintText: 'Teléfono',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.4),
+                ),
                 filled: true,
-                fillColor: const Color(0xFF1E2429),
+                fillColor: Theme.of(context).cardColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white10),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
+                  ),
                 ),
               ),
             ),
@@ -1362,9 +1420,11 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   Widget _buildProcedureStep(int step, TextEditingController controller) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF131619),
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -1385,13 +1445,21 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           Expanded(
             child: TextField(
               controller: controller,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 14,
+              ),
               minLines: 1,
               maxLines: null,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: 'Describe el paso...',
-                hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                hintStyle: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.4),
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
@@ -1414,7 +1482,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           Text(
             label,
             style: GoogleFonts.outfit(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -1426,28 +1494,37 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           minLines: minLines,
           maxLines: minLines > 1 ? null : 1,
           keyboardType: keyboardType,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.inter(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 14,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: GoogleFonts.inter(color: Colors.white38),
+            hintStyle: GoogleFonts.inter(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
             filled: true,
-            fillColor: const Color(0xFF131619),
+            fillColor: Theme.of(context).scaffoldBackgroundColor,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+              borderSide: BorderSide(
+                color: Theme.of(context).dividerColor.withOpacity(0.1),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+              borderSide: BorderSide(
+                color: Theme.of(context).dividerColor.withOpacity(0.1),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: Color(0xFF4B39EF),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
                 width: 1.5,
               ),
             ),
@@ -1465,9 +1542,11 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF131619),
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -1479,7 +1558,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 Text(
                   title,
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1489,7 +1568,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                   Text(
                     subtitle,
                     style: GoogleFonts.inter(
-                      color: Colors.white54,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 13,
                     ),
                   ),
@@ -1501,9 +1582,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             value: value,
             onChanged: onChanged,
             activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF4B39EF),
+            activeTrackColor: Theme.of(context).primaryColor,
             inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.white10,
+            inactiveTrackColor: Theme.of(context).dividerColor,
           ),
         ],
       ),
@@ -1515,9 +1596,12 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
       children: options.map((option) {
         final isSelected = _acceptedPaymentMethods.contains(option);
         return CheckboxListTile(
-          title: Text(option, style: const TextStyle(color: Colors.white)),
+          title: Text(
+            option,
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
           value: isSelected,
-          activeColor: const Color(0xFF4B39EF),
+          activeColor: Theme.of(context).primaryColor,
           contentPadding: EdgeInsets.zero,
           onChanged: (val) {
             setState(() {
@@ -1540,9 +1624,11 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF131619),
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
+        ),
       ),
       child: Column(
         children: options.map((option) {

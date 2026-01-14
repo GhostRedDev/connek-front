@@ -13,7 +13,7 @@ import '../../features/notifications/providers/notification_provider.dart'; // A
 import '../../features/call/services/call_service.dart'; // Added
 import '../../features/call/widgets/incoming_call_overlay.dart'; // Added
 import '../../core/providers/user_mode_provider.dart'; // Added
-import '../../features/business/providers/business_provider.dart'; // Added for Business Name
+
 import '../../core/providers/locale_provider.dart'; // Added for Localization
 
 // Removed local import of login_dropdown_button.dart since we are migrating it here
@@ -217,7 +217,16 @@ HeaderData getHeaderConfig(
       titleWidget: logoWidget,
       bgTrans: true,
       height: 200, // Increased to 200 to clear safe area overflow
-      tabs: ['Overview', 'Leads', 'Clientes'], // Restored
+      tabs: [
+        t['tab_overview'] ?? 'Overview',
+        t['tab_leads'] ?? 'Leads',
+        t['tab_clients'] ?? 'Clientes',
+        t['tab_sales'] ?? 'Ventas',
+        t['tab_services'] ?? 'Servicios',
+        t['tab_employees'] ?? 'Empleados',
+        t['tab_profile'] ?? 'Perfil',
+        t['tab_settings'] ?? 'Ajustes',
+      ],
       // bottomWidget: _BusinessSubHeader(isDark: isDark), // Removed in favor of Tabs
       actions: [
         HeaderAction(icon: Icons.add_circle_outline),
@@ -601,7 +610,9 @@ class _ModernSidebar extends StatelessWidget {
             color: isDark ? const Color(0xFF131619) : Colors.white,
             border: Border(
               right: BorderSide(
-                color: isDark ? Colors.white10 : Colors.grey[200]!,
+                color: isDark
+                    ? Colors.white10
+                    : (Colors.grey[200] ?? Colors.grey),
                 width: 1,
               ),
             ),
@@ -804,9 +815,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
                       IconButton(
                         icon: Icon(
                           Icons.close,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF1A1D21),
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 28,
                         ),
                         onPressed: () => context.pop(),
@@ -817,9 +826,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
                           IconButton(
                             icon: Icon(
                               Icons.arrow_back,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF1A1D21),
+                              color: Theme.of(context).colorScheme.onSurface,
                               size: 28,
                             ),
                             onPressed: () => context.go('/'),
@@ -836,9 +843,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
                       Text(
                         config.title!,
                         style: TextStyle(
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF1A1D21),
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'Roboto',
@@ -859,9 +864,9 @@ class _ModernGlassAppBar extends ConsumerWidget {
                                 action.icon,
                                 color:
                                     action.color ??
-                                    (isDark
-                                        ? Colors.white70
-                                        : const Color(0xFF1A1D21)),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.7),
                                 size: 28,
                               ),
                               onPressed:
@@ -929,11 +934,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.grey.withOpacity(
-                            0.2,
-                          ), // Gray border for Light Mode
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
                     width: 1,
                   ),
                 ),
@@ -946,11 +947,13 @@ class _ModernGlassAppBar extends ConsumerWidget {
                   vertical: 8,
                 ),
                 indicator: BoxDecoration(
-                  color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                  color: Theme.of(context).colorScheme.onSurface,
                   borderRadius: BorderRadius.circular(50),
                 ),
-                labelColor: isDark ? const Color(0xFF1A1D21) : Colors.white,
-                unselectedLabelColor: isDark ? Colors.white70 : Colors.black54,
+                labelColor: Theme.of(context).colorScheme.surface,
+                unselectedLabelColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.6),
                 // We need google fonts imported here, assuming it is.
                 // If not, we use system font or standard TextStyles.
                 // Assuming imported as project uses it.
@@ -1004,7 +1007,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
           ).scaffoldBackgroundColor, // Solid color for opacity
           border: Border(
             bottom: BorderSide(
-              color: isDark ? Colors.white10 : Colors.grey[200]!,
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
               width: 1,
             ),
           ),
@@ -1024,7 +1027,6 @@ class _ModernGlassNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isBusinessMode = ref.watch(userModeProvider);
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
@@ -1046,7 +1048,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
               opacity: 0.08,
               blur: 30,
               border: true,
-              tintColor: isDark ? Colors.black : Colors.white,
+              tintColor: Theme.of(context).cardColor,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -1101,7 +1103,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                 opacity: 0.08,
                 blur: 30,
                 border: true,
-                tintColor: isDark ? Colors.black : Colors.white,
+                tintColor: Theme.of(context).cardColor,
                 child: _buildNavItems(context, isActive, t),
               ),
             ),
@@ -1177,10 +1179,8 @@ class _ModernGlassNavBar extends ConsumerWidget {
   ) {
     // Only use blue accent if active
     final color = active
-        ? const Color(0xFF4285F4)
-        : (Theme.of(context).brightness == Brightness.dark
-              ? Colors.white70
-              : Colors.black54);
+        ? Theme.of(context).colorScheme.secondary
+        : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
 
     return Expanded(
       child: Material(
@@ -1313,17 +1313,13 @@ class LoginDropdownButton extends ConsumerWidget {
 
         // Resolve Image Source
         String? displayImage;
-        if (isLoggedIn) {
+        if (isLoggedIn && user != null) {
           if (isBusinessMode) {
-            // Watch Business Logo
-            final businessLogoAsync = ref.watch(myBusinessLogoProvider);
-            displayImage = businessLogoAsync.value;
-            // Fallback to user photo if logo not set yet? Or show placeholder?
-            // User requested "fot de mi negocio", if null maybe icon or user fallback.
-            // We'll fallback to user photo if business logo is missing, or specific icon.
-            displayImage ??= user?.photoId;
+            // Use Business Profile Image
+            displayImage = user.businessProfileImage ?? user.photoId;
           } else {
-            displayImage = user?.photoId;
+            // Use Client Profile Image
+            displayImage = user.photoId;
           }
         }
 
@@ -1552,7 +1548,6 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
 
     // Access Providers
     final isBusinessMode = ref.watch(userModeProvider);
-    final businessNameAsync = ref.watch(myBusinessNameProvider);
     final profile = ref.watch(profileProvider).value;
     final hasBusiness = profile?.hasBusiness ?? false;
 
@@ -1590,8 +1585,12 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
             ref.read(userModeProvider.notifier).setMode(false);
             context.pop(); // Close sheet
             // Optionally navigate to home to refresh view
-            if (GoRouterState.of(context).uri.toString() !=
-                '/client/dashboard/requests') {
+            if (widget.currentRoute != '/client/dashboard/requests') {
+              // Context might be unstable for .go if not carefully handled, but usually safe.
+              // Better: use the GoRouter attached to the context safe way?
+              // Actually context.go is an extension.
+              // The issue was GoRouterState.of(context) which fails.
+              // context.go() does lookup too but finding the Delegate not the State.
               context.go('/client/dashboard/requests');
             }
           },
@@ -1601,30 +1600,29 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
 
         // 2. BUSINESS ACCOUNT (If exists)
         if (hasBusiness)
-          businessNameAsync.when(
-            data: (businessName) => _buildAccountOption(
-              context: context,
-              isSelected: isBusinessMode,
-              name: businessName ?? (t['business_account'] ?? 'My Business'),
-              subtitle: t['business_account'] ?? 'Business Account',
-              photoUrl: null, // Could fetch business logo if available
-              icon: Icons.store_rounded,
-              onTap: () {
-                ref.read(userModeProvider.notifier).setMode(true);
-                context.pop();
-                context.go('/business');
-              },
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const SizedBox.shrink(),
+          _buildAccountOption(
+            context: context,
+            isSelected: isBusinessMode,
+            name:
+                profile?.businessName ??
+                (t['business_account'] ?? 'My Business'),
+            subtitle: t['business_account'] ?? 'Business Account',
+            photoUrl:
+                profile?.businessProfileImage, // Use the image from profile
+            icon: Icons.store_rounded,
+            onTap: () {
+              ref.read(userModeProvider.notifier).setMode(true);
+              context.pop();
+              context.go('/business');
+            },
           )
         else
           // Upsell/Create Business Optional
           _buildAccountOption(
             context: context,
             isSelected: false,
-            name: 'Create Business',
-            subtitle: 'Start selling services',
+            name: t['create_business_title'] ?? 'Create Business',
+            subtitle: t['create_business_subtitle'] ?? 'Start selling services',
             icon: Icons.add_business_rounded,
             onTap: () {
               context.pop();
@@ -1649,7 +1647,9 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(50),
               border: Border.all(
-                color: isDark ? Colors.white24 : Colors.grey[300]!,
+                color: isDark
+                    ? Colors.white24
+                    : (Colors.grey[300] ?? Colors.grey),
                 width: 1,
               ),
             ),
@@ -1687,7 +1687,7 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'Language / Idioma',
+            t['menu_language'] ?? 'Language / Idioma',
             style: GoogleFonts.inter(
               color: subTextColor,
               fontSize: 12,
@@ -1828,7 +1828,7 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
     final borderColor = isSelected
         ? const Color(0xFF4F87C9)
-        : (isDark ? Colors.white24 : Colors.grey[300]!);
+        : (isDark ? Colors.white24 : (Colors.grey[300] ?? Colors.grey));
     final bgColor = isSelected
         ? const Color(0xFF4F87C9).withOpacity(0.15)
         : Colors.transparent;

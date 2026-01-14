@@ -436,6 +436,49 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               maxLines: 4,
             ),
 
+            if (user.hasBusiness) ...[
+              const SizedBox(height: 30),
+              _buildLabel("Información del Negocio", textColor, isHeader: true),
+              const SizedBox(height: 16),
+
+              // Business Image
+              if (user.businessProfileImage != null)
+                Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: NetworkImage(user.businessProfileImage!),
+                        fit: BoxFit.cover,
+                      ),
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _buildLabel("Nombre de la Empresa", labelColor),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  user.businessName ?? 'Sin nombre',
+                  style: TextStyle(color: textColor, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Para editar los datos del negocio, ve a la sección 'Mi Negocio'.",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+
             const SizedBox(height: 30),
 
             _buildLabel("Información de contacto", textColor, isHeader: true),

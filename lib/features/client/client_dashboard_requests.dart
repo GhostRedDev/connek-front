@@ -193,6 +193,8 @@ class _ClientDashboardRequestsState
             'amount': req.amount.toStringAsFixed(0),
             'image': req.imageUrl,
           },
+          width: double.infinity,
+          height: 180,
         ),
       ),
     );

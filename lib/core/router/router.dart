@@ -14,12 +14,16 @@ import '../../features/search/search_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/settings/profile_page.dart';
 import '../../features/chat/chat_chats.dart';
+import '../../features/chat/chat_page.dart'; // Restore this
 import '../../features/notifications/notification_page.dart'; // Added
-import '../../features/chat/chat_page.dart';
+import '../../features/chat/new_chat_page.dart';
+import '../../features/call/pages/call_page.dart'; // Corrected CallPage import
+
 import '../../features/client/client_page.dart';
 import '../../features/client/create_request_page.dart';
 import '../../features/client/client_booking_service.dart';
 import '../../features/client/client_dashboard_requests.dart';
+import '../../features/client/client_dashboard_support.dart'; // Added ClientDashboardSupport
 import '../../features/client/client_dashboard_chat.dart';
 import '../../features/client/client_dashboard_post.dart';
 import '../../features/client/client_dashboard_wallet.dart';
@@ -53,187 +57,28 @@ import '../../features/office/widgets/office_settings_greg_page.dart';
 import '../providers/user_mode_provider.dart';
 import '../../features/settings/providers/profile_provider.dart';
 
+// Global Key for Root Navigator (to cover shell)
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final userMode = ref.watch(userModeProvider);
-  final profileAsync = ref.watch(profileProvider);
+  // DO NOT watch providers here to avoid recreating GoRouter on every change.
+  // Instead, read them inside the redirect callback.
 
-    // --- AUTHORIZED & GUEST (Unified Shell) ---
-    ShellRoute(
-      builder: (context, state, child) {
-        return AppLayout(child: child);
-      },
-      routes: [
-        // Unified Home Page (Handles both Guest and Auth views)
-        GoRoute(path: '/', builder: (context, state) => const HomePage()),
-        GoRoute(
-          path: '/office',
-          builder: (context, state) => const OfficePage(),
-          routes: [
-            GoRoute(
-              path: 'train-greg',
-              builder: (context, state) => const OfficeTrainGregPage(),
-            ),
-            GoRoute(
-              path: 'settings-greg',
-              builder: (context, state) => const OfficeSettingsGregPage(),
-            ),
-          ],
-        ),
-        GoRoute(
-          path: '/search',
-          builder: (context, state) => const SearchPage(),
-        ),
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) => const SettingsPage(),
-        ),
-        GoRoute(
-          path: '/profile',
-          builder: (context, state) =>
-              ProfilePage(initialTab: state.uri.queryParameters['tab']),
-        ),
-        GoRoute(
-          path: '/chats',
-          builder: (context, state) => const ChatChats(),
-          routes: [
-            GoRoute(
-              path: ':id',
-              builder: (context, state) =>
-                  ChatPage(chatId: state.pathParameters['id'] ?? ''),
-            ),
-          ],
-        ),
-
-        // Client Routes (Usually mapped to 'Buy')
-        GoRoute(
-          path: '/client',
-          builder: (context, state) => const ClientPage(),
-          routes: [
-            GoRoute(
-              path: 'request',
-              builder: (context, state) => const CreateRequestPage(),
-            ),
-            GoRoute(
-              path: 'booking',
-              builder: (context, state) => const ClientBookingService(),
-            ),
-            GoRoute(
-              path: 'dashboard/requests',
-              builder: (context, state) => const ClientDashboardRequests(),
-            ),
-            GoRoute(
-              path: 'dashboard/chat',
-              builder: (context, state) => const ClientDashboardChat(),
-            ),
-            GoRoute(
-              path: 'dashboard/post',
-              builder: (context, state) => const ClientDashboardPost(),
-            ),
-            GoRoute(
-              path: 'dashboard/wallet',
-              builder: (context, state) => const ClientDashboardWallet(),
-            ),
-            GoRoute(
-              path: 'dashboard/booking',
-              builder: (context, state) => const ClientDashboardBooking(),
-            ),
-            GoRoute(
-              path: 'checkout',
-              builder: (context, state) => const CheckoutResume(),
-            ),
-            GoRoute(
-              path: 'request-details',
-              builder: (context, state) {
-                final request = state.extra as ServiceRequest;
-                return ClientRequestDetailsPage(request: request);
-              },
-            ),
-            GoRoute(
-              path: ':id',
-              builder: (context, state) => const ClientPage(),
-            ),
-          ],
-        ),
-
-        // Business Routes (Usually mapped to 'Sell')
-        GoRoute(
-          path: '/business',
-          builder: (context, state) => const BusinessPage(),
-          routes: [
-            GoRoute(
-              path: 'profile',
-              builder: (context, state) => const BusinessProfilePage(),
-            ),
-            GoRoute(
-              path: 'create-service',
-              builder: (context, state) => const BusinessSheetCreateService(),
-            ),
-            GoRoute(
-              path: 'create-portfolio',
-              builder: (context, state) => const BusinessSheetCreatePortfolio(),
-            ),
-            GoRoute(
-              path: 'employees',
-              builder: (context, state) => const BusinessDashboardEmployees(),
-            ),
-            GoRoute(
-              path: 'services',
-              builder: (context, state) => const BusinessDashboardServices(),
-            ),
-            GoRoute(
-              path: 'add-services',
-              builder: (context, state) => const BusinessDashboardAddServices(),
-            ),
-            GoRoute(
-              path: 'cover',
-              builder: (context, state) => const CreateBusinessDCover(),
-            ),
-            // Wizard
-            GoRoute(
-              path: 'create/step1',
-              builder: (context, state) => const CreateBusinessStep1(),
-            ),
-            GoRoute(
-              path: 'create/step2',
-              builder: (context, state) => const CreateBusinessStep2(),
-            ),
-            GoRoute(
-              path: 'create/step3',
-              builder: (context, state) => const CreateBusinessStep3(),
-            ),
-            GoRoute(
-              path: 'create/step4',
-              builder: (context, state) => const CreateBusinessStep4(),
-            ),
-            GoRoute(
-              path: 'create/step5',
-              builder: (context, state) => const CreateBusinessStep5(),
-            ),
-            GoRoute(
-              path: 'create/step6',
-              builder: (context, state) => const CreateBusinessStep6(),
-            ),
-            GoRoute(
-              path: 'create/step7',
-              builder: (context, state) => const CreateBusinessStep7(),
-            ),
-            GoRoute(
-              path: 'create/step8',
-              builder: (context, state) => const CreateBusinessStep8(),
-            ),
-          ],
-        ),
-
-        GoRoute(
-          path: '/payments',
-          builder: (context, state) => const PaymentMethodList(),
-        ),
-      ],
+  return GoRouter(
+    navigatorKey: rootNavigatorKey, // Use key
+    initialLocation: '/',
+    // Refresh listener for auth changes (optional but good practice)
+    refreshListenable: GoRouterRefreshStream(
+      Supabase.instance.client.auth.onAuthStateChange,
     ),
     redirect: (context, state) {
       final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
       final isBusinessRoute = state.uri.toString().startsWith('/business');
       final isOfficeRoute = state.uri.toString().startsWith('/office');
+
+      // Access current state via ref.read
+      final userMode = ref.read(userModeProvider);
+      final profileAsync = ref.read(profileProvider);
 
       // 1. Basic Auth Guard
       // If needed, but generally we allow guest access to home/search.
@@ -296,6 +141,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // New Chat (Full Screen, No Shell)
+      GoRoute(
+        path: '/chats/new',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const NewChatPage(),
+      ),
+
       // --- AUTHORIZED & GUEST (Unified Shell) ---
       ShellRoute(
         builder: (context, state, child) {
@@ -333,6 +185,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'train-greg',
                 builder: (context, state) => const OfficeTrainGregPage(),
+              ),
+              GoRoute(
+                path: 'settings-greg',
+                builder: (context, state) => const OfficeSettingsGregPage(),
               ),
             ],
           ),

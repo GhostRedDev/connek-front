@@ -84,6 +84,11 @@
     "tab_orders": "Ordenes",
     "tab_leads": "Leads",
     "tab_clients": "Clientes",
+    "tab_sales": "Ventas",
+    "tab_services": "Servicios",
+    "tab_employees": "Empleados",
+    "tab_profile": "Perfil",
+    "tab_settings": "Ajustes",
     "subnav_clients": "Clientes",
     "subnav_sales": "Ventas",
     "subnav_services": "Servicios",
@@ -231,5 +236,10 @@
     "auth_button_reset_password": "Restablecer contraseña",
     "auth_error_passwords_match": "¡Las contraseñas no coinciden!",
     "auth_error_required": "Requerido",
-    "auth_error_valid_email": "Correo válido requerido"
+    "auth_error_valid_email": "Correo válido requerido",
+    "create_business_title": "Crear Negocio",
+    "create_business_subtitle": "Empieza a vender servicios",
+    "menu_language": "Idioma / Language",
+    "settings_security": "Seguridad",
+    "settings_biometric": "Ingreso Biométrico"
 }

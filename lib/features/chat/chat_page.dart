@@ -32,29 +32,45 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   final ScrollController _scrollController = ScrollController();
   final _supabase = Supabase.instance.client;
   int _myClientId = 0;
+  int _myBusinessId = 0;
 
   @override
   void initState() {
     super.initState();
-    _fetchMyClientId();
+    _fetchMyIds();
   }
 
-  Future<void> _fetchMyClientId() async {
+  Future<void> _fetchMyIds() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
     try {
+      // 1. Fetch Client ID
       final res = await _supabase
           .from('client')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
+
       if (res != null && mounted) {
         setState(() {
           _myClientId = res['id'];
         });
+
+        // 2. Fetch Business ID (if exists)
+        final busRes = await _supabase
+            .from('business')
+            .select('id')
+            .eq('owner_user', user.id) // Correct column is owner_user
+            .maybeSingle();
+
+        if (busRes != null && mounted) {
+          setState(() {
+            _myBusinessId = busRes['id'];
+          });
+        }
       }
     } catch (e) {
-      print('Error fetching my client ID: $e');
+      print('Error fetching my IDs: $e');
     }
   }
 
@@ -138,9 +154,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final textColor = isDark ? Colors.white : Colors.black87;
+        final bgColor = Theme.of(context).cardColor;
+        final textColor = Theme.of(context).colorScheme.onSurface;
         final tAsync = ref.watch(translationProvider);
 
         return Container(
@@ -217,7 +232,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _buildMessageContent(ChatMessage msg, bool isMe, bool isDark) {
+  Widget _buildMessageContent(ChatMessage msg, bool isMe) {
     final bool isImage = msg.contentType == 'image';
 
     if (isImage) {
@@ -236,7 +251,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     return Text(
       msg.content,
       style: GoogleFonts.inter(
-        color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black87),
+        color: isMe ? Colors.white : Theme.of(context).colorScheme.onSurface,
         fontSize: 15,
         height: 1.4,
       ),
@@ -307,8 +322,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF131619) : Colors.white;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final int conversationId = int.tryParse(widget.chatId) ?? 0;
 
     // We can access 'chats' to get the contact info for the header
@@ -321,7 +335,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     if (chats.isNotEmpty) {
       final chat = chats.firstWhere(
         (c) => c.id == conversationId,
-        orElse: () => ChatConversation(id: 0, contact: {}),
+        orElse: () =>
+            ChatConversation(id: 0, contact: {}, createdAt: DateTime.now()),
       );
       if (chat.id != 0) {
         contactInfo = chat.contact;
@@ -336,7 +351,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: bgColor, // isDark ? Colors.transparent : Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
         surfaceTintColor: bgColor,
         leading: widget.isEmbedded
@@ -344,11 +359,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             : Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: CircleAvatar(
-                  backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                  backgroundColor: Theme.of(context).cardColor,
                   child: IconButton(
                     icon: Icon(
                       Icons.arrow_back,
-                      color: isDark ? Colors.white : Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                       size: 20,
                     ),
                     onPressed: () => context.pop(),
@@ -378,11 +393,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05), // Glassy
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.1),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -391,7 +406,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   child: Text(
                     contactName,
                     style: GoogleFonts.inter(
-                      color: isDark ? Colors.white : Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -517,12 +532,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final bool isMe = (msg.sender == _myClientId);
+                    // Correctly Identify 'Me' whether I sent as Client or Business
+                    final bool isMe =
+                        (msg.sender == _myClientId ||
+                        msg.sender == _myBusinessId);
 
                     return _buildMessage(
                       msg,
                       isMe,
-                      isDark,
                       context,
                       contactImage: contactImage,
                       contactName: contactName,
@@ -573,7 +590,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget _buildMessage(
     ChatMessage msg,
     bool isMe,
-    bool isDark,
     BuildContext context, {
     String? contactImage,
     String? contactName,
@@ -648,9 +664,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  color: isMe
-                      ? null
-                      : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
+                  color: isMe ? null : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
@@ -663,7 +677,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Theme.of(context).shadowColor.withOpacity(0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -676,7 +690,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     // If it's a group chat, showing name is good.
                     // But for 1:1, usually hidden.
                     // Let's hide name inside bubble for now since we have avatar.
-                    _buildMessageContent(msg, isMe, isDark),
+                    _buildMessageContent(msg, isMe),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisSize: MainAxisSize.min,

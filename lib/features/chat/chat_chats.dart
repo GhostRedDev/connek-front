@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'providers/chat_provider.dart';
 import 'chat_page.dart'; // Import ChatPage for Split View
+import 'new_chat_page.dart';
 
 class ChatChats extends ConsumerStatefulWidget {
   const ChatChats({super.key});
@@ -106,11 +107,9 @@ class _ChatChatsState extends ConsumerState<ChatChats> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Feature coming soon: Select Contact'),
-            ),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const NewChatPage()));
         },
         label: const Text('Nuevo Chat'),
         icon: const Icon(Icons.message),

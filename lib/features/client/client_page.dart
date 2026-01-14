@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/providers/locale_provider.dart';
 import '../settings/providers/profile_provider.dart';
+import '../../core/widgets/layout.dart'; // Added for Glass Effect
 
 // Dashboard Views
 import 'client_dashboard_orders.dart';
@@ -49,6 +50,13 @@ class ClientPage extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
+          flexibleSpace: const ModernGlass(
+            borderRadius: 0,
+            border: false,
+            blur: 10,
+            opacity: 0.1, // Subtle tint
+            child: SizedBox.expand(),
+          ),
           elevation: 0,
           toolbarHeight: 70,
           leadingWidth: 0,

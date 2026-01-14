@@ -1,17 +1,19 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../leads/models/lead_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'providers/business_provider.dart';
 
-class LeadDetailsPage extends StatelessWidget {
+class LeadDetailsPage extends ConsumerWidget {
   final Lead lead;
   final Map<String, dynamic>? service;
 
   const LeadDetailsPage({super.key, required this.lead, this.service});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
@@ -38,13 +40,30 @@ class LeadDetailsPage extends StatelessWidget {
     }
 
     // Service Info
-    final serviceName = service != null
-        ? service!['title'] ?? 'Servicio'
+    Map<String, dynamic>? resolvedService = service;
+
+    if (resolvedService == null) {
+      final businessData = ref.watch(businessProvider).value;
+      if (businessData != null) {
+        try {
+          resolvedService = businessData.services.firstWhere(
+            (s) => s['id'] == lead.serviceId,
+            orElse: () => {},
+          );
+          if (resolvedService.isEmpty) resolvedService = null;
+        } catch (_) {}
+      }
+    }
+
+    final serviceName = resolvedService != null
+        ? resolvedService['title'] ?? 'Servicio'
         : 'Servicio';
-    final servicePrice = service != null
-        ? service!['priceRange'] ?? '\$--'
+    final servicePrice = resolvedService != null
+        ? resolvedService['priceRange'] ?? '\$--'
         : '\$--';
-    final serviceImage = service != null ? service!['image'] : null;
+    final serviceImage = resolvedService != null
+        ? resolvedService['image']
+        : null;
 
     return Scaffold(
       backgroundColor: bgColor,

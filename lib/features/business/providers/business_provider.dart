@@ -272,6 +272,7 @@ final businessProvider =
     );
 
 class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
+  final _supabase = Supabase.instance.client;
   BusinessRepository? _repository;
   LeadsService? _leadsService;
   RealtimeChannel? _leadsSubscription;
@@ -307,6 +308,11 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
 
     final businessId = business['id'] as int;
 
+    // Setup Subscription if not active
+    if (_leadsSubscription == null) {
+      _subscribeToLeads(businessId);
+    }
+
     // Fetch Data
     final results = await Future.wait([
       leadsService.fetchBusinessLeads(businessId),
@@ -334,7 +340,12 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       final botImageRaw = bot['profile_image'] ?? bot['image'];
       String? image;
       if (botImageRaw != null) {
-        image = repo._resolveUrl(botImageRaw.toString(), 'business');
+        String path = botImageRaw.toString();
+        // If it's just a filename (no slashes) and likely not a full URL, prepend businessId
+        if (!path.startsWith('http') && !path.contains('/')) {
+          path = '$businessId/$path';
+        }
+        image = repo._resolveUrl(path, 'business');
       }
 
       return {
@@ -342,7 +353,7 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
         'role': 'Asistente IA',
         'tag': 'General',
         'status': 'Activo',
-        'image': image,
+        'image': image, // Fixed: Now includes businessId/filename
       };
     }).toList();
 
@@ -350,11 +361,21 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     final services = servicesRaw.map((s) {
       // Resolve image if needed
       String? image;
-      if (s['image_url'] != null) {
-        image = repo._resolveUrl(
-          s['image_url'],
-          'service',
-        ); // Assuming 'service' bucket or similar
+      // Backend uses 'profile_image' key and stores in 'business' bucket
+      // Path: businessId/services/serviceId/filename
+      final createProfileImage = s['profile_image'];
+
+      if (createProfileImage != null &&
+          createProfileImage.toString().isNotEmpty) {
+        String filename = createProfileImage.toString();
+        // If it's just a filename, construct the full path
+        if (!filename.startsWith('http') && !filename.contains('/')) {
+          // We need service ID. 's' is the service map.
+          final serviceId = s['id'];
+          filename = '$businessId/services/$serviceId/$filename';
+        }
+
+        image = repo._resolveUrl(filename, 'business');
       }
       return {...s, 'image': image};
     }).toList();
@@ -368,6 +389,26 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       services: services,
       clients: clients,
     );
+  }
+
+  void _subscribeToLeads(int businessId) {
+    _leadsSubscription = _supabase
+        .channel('public:service_requests:business:$businessId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'service_requests',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'business_id',
+            value: businessId,
+          ),
+          callback: (payload) {
+            print('Realtime: Business Lead update -> Refreshing dashboard');
+            ref.invalidateSelf();
+          },
+        )
+        .subscribe();
   }
 }
 
@@ -394,10 +435,15 @@ final myBusinessLogoProvider = FutureProvider<String?>((ref) async {
   if (rawImage == null) return null;
 
   if (rawImage.startsWith('http')) return rawImage;
-  // Resolve using repository helper logic (re-implemented here or made public)
-  // Repo helper is private. Let's make it public or duplicate logic safely.
-  // Assuming 'business' bucket for business logo.
-  return Supabase.instance.client.storage
-      .from('business')
-      .getPublicUrl(rawImage);
+
+  // Fix: Prepend businessId folder if missing
+  // The business repository logic should be reused or duplicated here safest
+  final businessId =
+      business!['id']; // Safe because rawImage passed earlier check implies business exists
+  String path = rawImage;
+  if (!path.contains('/')) {
+    path = '$businessId/$path';
+  }
+
+  return Supabase.instance.client.storage.from('business').getPublicUrl(path);
 });

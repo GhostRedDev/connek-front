@@ -16,24 +16,24 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
       // Background is handled by parent gradient, so transparent here or removed
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 24, // horizontal spacing
+            runSpacing: 12, // vertical spacing
             children: [
               _buildLink(t['footer_terms'] ?? 'Terms of Use'),
-              const SizedBox(width: 24),
               _buildLink(t['footer_privacy'] ?? 'Privacy Policy'),
-              const SizedBox(width: 24),
               _buildLink(t['footer_cookies'] ?? 'Cookies'),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 24,
+            runSpacing: 12,
             children: [
               _buildLink(t['footer_how_it_works'] ?? 'How it works'),
-              const SizedBox(width: 24),
               _buildLink(t['footer_about'] ?? 'About'),
-              const SizedBox(width: 24),
               _buildLink(t['footer_contact'] ?? 'Contact Us'),
             ],
           ),

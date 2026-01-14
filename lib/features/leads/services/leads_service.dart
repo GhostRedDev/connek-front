@@ -44,10 +44,14 @@ class LeadsService {
       if (imagePath != null &&
           imagePath.isNotEmpty &&
           !imagePath.startsWith('http')) {
+        // Fix: Prepend clientId folder if missing
+        if (!imagePath.contains('/')) {
+          final clientId = client['id'];
+          imagePath = '$clientId/$imagePath';
+        }
+
         final publicUrl = Supabase.instance.client.storage
-            .from(
-              'client',
-            ) // Assuming bucket is 'client' based on context, previously it was 'profile' maybe?
+            .from('client')
             .getPublicUrl(imagePath);
         client['photo_id'] = publicUrl;
         client['profile_url'] = publicUrl; // Ensure both are identical
