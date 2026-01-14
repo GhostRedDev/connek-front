@@ -1,0 +1,88 @@
+﻿{
+  "custom_policies": {
+    "anyOf": [
+      {
+        "items": {
+          "$ref": "#/components/schemas/GregCustomPolicies"
+        },
+        "type": "array"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Custom Policies"
+  },
+  "excluded_phones": {
+    "anyOf": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Excluded Phones"
+  },
+  "library": {
+    "anyOf": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Library"
+  },
+  "blacklist": {
+    "anyOf": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Blacklist"
+  },
+  "procedures": {
+    "anyOf": [
+      {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Procedures"
+  },
+  "accepted_payment_methods": {
+    "anyOf": [
+      {
+        "items": {
+          "$ref": "#/components/schemas/GregPaymentMethods"
+        },
+        "type": "array"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Accepted Payment Methods"
+  },
+  "cancellation_documents": {
+    "anyOf": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Cancellation Documents"
+  }
+}

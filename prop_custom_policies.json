@@ -1,0 +1,14 @@
+{
+  "anyOf": [
+    {
+      "items": {
+        "$ref": "#/components/schemas/GregCustomPolicies"
+      },
+      "type": "array"
+    },
+    {
+      "type": "null"
+    }
+  ],
+  "title": "Custom Policies"
+}

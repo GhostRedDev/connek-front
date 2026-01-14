@@ -19,7 +19,7 @@ class GregCard extends StatelessWidget {
             color: const Color(0x33000000),
             offset: const Offset(0, 2),
             spreadRadius: 2,
-          )
+          ),
         ],
       ),
       child: Stack(
@@ -30,7 +30,9 @@ class GregCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
                   child: Image.asset(
                     'assets/images/GREG_CARD_1.png',
                     width: double.infinity,
@@ -41,10 +43,15 @@ class GregCard extends StatelessWidget {
               // Action Area
               Container(
                 decoration: const BoxDecoration(
-                   color: Color(0xFF1A1F24), // Slightly darker bottom area
-                   borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                  color: Color(0xFF1A1F24), // Slightly darker bottom area
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(16),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -52,13 +59,20 @@ class GregCard extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          context.push('/office/train-greg'); // Navigation to training page
+                          context.push(
+                            '/office/train-greg',
+                          ); // Navigation to training page
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF133A6C), // Deep Blue Button
+                          backgroundColor: const Color(
+                            0xFF133A6C,
+                          ), // Deep Blue Button
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 0,
+                            vertical: 0,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -74,8 +88,7 @@ class GregCard extends StatelessWidget {
                     // Settings Icon
                     InkWell(
                       onTap: () {
-                         // Goto settings (maybe same page for now)
-                         context.push('/office/train-greg');
+                        context.push('/office/settings-greg');
                       },
                       child: const Icon(
                         Icons.settings_outlined,
@@ -88,7 +101,7 @@ class GregCard extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // "Activo" Badge
           Positioned(
             top: 12,
@@ -109,9 +122,9 @@ class GregCard extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Name "Greg"
-           Positioned(
+          Positioned(
             bottom: 60, // Above the buttons
             left: 0,
             right: 0,
@@ -127,8 +140,8 @@ class GregCard extends StatelessWidget {
                       color: Colors.black45,
                       offset: Offset(0, 1),
                       blurRadius: 2,
-                    )
-                  ]
+                    ),
+                  ],
                 ),
               ),
             ),

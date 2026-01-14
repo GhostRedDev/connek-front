@@ -47,8 +47,7 @@ import '../../features/business/wizard/create_business_step_7.dart';
 import '../../features/business/wizard/create_business_step_8.dart';
 import '../../features/office/office_page.dart';
 import '../../features/office/widgets/office_train_greg_page.dart';
-import '../../features/client/client_dashboard_support.dart'; // Added
-import '../../features/call/pages/call_page.dart';
+import '../../features/office/widgets/office_settings_greg_page.dart';
 
 // Providers for Redirection Logic
 import '../providers/user_mode_provider.dart';
@@ -58,11 +57,178 @@ final routerProvider = Provider<GoRouter>((ref) {
   final userMode = ref.watch(userModeProvider);
   final profileAsync = ref.watch(profileProvider);
 
-  return GoRouter(
-    initialLocation: '/',
-    // Refresh listener for auth changes (optional but good practice)
-    refreshListenable: GoRouterRefreshStream(
-      Supabase.instance.client.auth.onAuthStateChange,
+    // --- AUTHORIZED & GUEST (Unified Shell) ---
+    ShellRoute(
+      builder: (context, state, child) {
+        return AppLayout(child: child);
+      },
+      routes: [
+        // Unified Home Page (Handles both Guest and Auth views)
+        GoRoute(path: '/', builder: (context, state) => const HomePage()),
+        GoRoute(
+          path: '/office',
+          builder: (context, state) => const OfficePage(),
+          routes: [
+            GoRoute(
+              path: 'train-greg',
+              builder: (context, state) => const OfficeTrainGregPage(),
+            ),
+            GoRoute(
+              path: 'settings-greg',
+              builder: (context, state) => const OfficeSettingsGregPage(),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/search',
+          builder: (context, state) => const SearchPage(),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) =>
+              ProfilePage(initialTab: state.uri.queryParameters['tab']),
+        ),
+        GoRoute(
+          path: '/chats',
+          builder: (context, state) => const ChatChats(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (context, state) =>
+                  ChatPage(chatId: state.pathParameters['id'] ?? ''),
+            ),
+          ],
+        ),
+
+        // Client Routes (Usually mapped to 'Buy')
+        GoRoute(
+          path: '/client',
+          builder: (context, state) => const ClientPage(),
+          routes: [
+            GoRoute(
+              path: 'request',
+              builder: (context, state) => const CreateRequestPage(),
+            ),
+            GoRoute(
+              path: 'booking',
+              builder: (context, state) => const ClientBookingService(),
+            ),
+            GoRoute(
+              path: 'dashboard/requests',
+              builder: (context, state) => const ClientDashboardRequests(),
+            ),
+            GoRoute(
+              path: 'dashboard/chat',
+              builder: (context, state) => const ClientDashboardChat(),
+            ),
+            GoRoute(
+              path: 'dashboard/post',
+              builder: (context, state) => const ClientDashboardPost(),
+            ),
+            GoRoute(
+              path: 'dashboard/wallet',
+              builder: (context, state) => const ClientDashboardWallet(),
+            ),
+            GoRoute(
+              path: 'dashboard/booking',
+              builder: (context, state) => const ClientDashboardBooking(),
+            ),
+            GoRoute(
+              path: 'checkout',
+              builder: (context, state) => const CheckoutResume(),
+            ),
+            GoRoute(
+              path: 'request-details',
+              builder: (context, state) {
+                final request = state.extra as ServiceRequest;
+                return ClientRequestDetailsPage(request: request);
+              },
+            ),
+            GoRoute(
+              path: ':id',
+              builder: (context, state) => const ClientPage(),
+            ),
+          ],
+        ),
+
+        // Business Routes (Usually mapped to 'Sell')
+        GoRoute(
+          path: '/business',
+          builder: (context, state) => const BusinessPage(),
+          routes: [
+            GoRoute(
+              path: 'profile',
+              builder: (context, state) => const BusinessProfilePage(),
+            ),
+            GoRoute(
+              path: 'create-service',
+              builder: (context, state) => const BusinessSheetCreateService(),
+            ),
+            GoRoute(
+              path: 'create-portfolio',
+              builder: (context, state) => const BusinessSheetCreatePortfolio(),
+            ),
+            GoRoute(
+              path: 'employees',
+              builder: (context, state) => const BusinessDashboardEmployees(),
+            ),
+            GoRoute(
+              path: 'services',
+              builder: (context, state) => const BusinessDashboardServices(),
+            ),
+            GoRoute(
+              path: 'add-services',
+              builder: (context, state) => const BusinessDashboardAddServices(),
+            ),
+            GoRoute(
+              path: 'cover',
+              builder: (context, state) => const CreateBusinessDCover(),
+            ),
+            // Wizard
+            GoRoute(
+              path: 'create/step1',
+              builder: (context, state) => const CreateBusinessStep1(),
+            ),
+            GoRoute(
+              path: 'create/step2',
+              builder: (context, state) => const CreateBusinessStep2(),
+            ),
+            GoRoute(
+              path: 'create/step3',
+              builder: (context, state) => const CreateBusinessStep3(),
+            ),
+            GoRoute(
+              path: 'create/step4',
+              builder: (context, state) => const CreateBusinessStep4(),
+            ),
+            GoRoute(
+              path: 'create/step5',
+              builder: (context, state) => const CreateBusinessStep5(),
+            ),
+            GoRoute(
+              path: 'create/step6',
+              builder: (context, state) => const CreateBusinessStep6(),
+            ),
+            GoRoute(
+              path: 'create/step7',
+              builder: (context, state) => const CreateBusinessStep7(),
+            ),
+            GoRoute(
+              path: 'create/step8',
+              builder: (context, state) => const CreateBusinessStep8(),
+            ),
+          ],
+        ),
+
+        GoRoute(
+          path: '/payments',
+          builder: (context, state) => const PaymentMethodList(),
+        ),
+      ],
     ),
     redirect: (context, state) {
       final isLoggedIn = Supabase.instance.client.auth.currentSession != null;

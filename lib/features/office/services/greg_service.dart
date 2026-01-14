@@ -16,6 +16,8 @@ class GregService {
         '/employees/greg/business/$businessId',
       );
 
+      debugPrint('📡 GregService: GET Greg response: $response');
+
       if (response == null || response['success'] != true) {
         debugPrint('⚠️ GregService: API returned failure or null');
         return null;
@@ -27,23 +29,66 @@ class GregService {
         return null;
       }
 
-      debugPrint('📦 GregService: Mapping GregModel from data...');
-      return GregModel.fromJson(data);
+      debugPrint('📦 GregService: Mapping GregModel from raw data: $data');
+      final model = GregModel.fromJson(data);
+      // Explicitly set/override businessId to ensure it's preserved
+      return model.copyWith(businessId: businessId);
     } catch (e) {
       debugPrint('❌ GregService: Error fetching Greg: $e');
       return null;
     }
   }
 
-  // Update Greg configuration (Generic JSON update if supported)
   Future<void> updateGreg(GregModel greg) async {
+    debugPrint(
+      '📡 GregService: Updating Greg settings for business ${greg.businessId}',
+    );
     try {
-      await _apiService.put(
-        '/employees/greg/business/${greg.id}',
-        body: greg.toJson(),
+      final String refundPolicy = greg.refundPolicy.isEmpty
+          ? 'no_refund'
+          : greg.refundPolicy;
+
+      final Map<String, dynamic> fields = {
+        'cancellations': greg.cancellations,
+        'allow_rescheduling': greg.allowRescheduling,
+        'cancellation_motive': greg.cancellationMotive,
+        'procedures':
+            greg.procedures, // raw list for form array (expects array)
+        'procedures_details': greg.proceduresDetails ?? '',
+        'post_booking_procedures': greg.postBookingProcedures ?? '',
+        'privacy_policy': greg.privacyPolicy,
+        'payment_policy': greg.paymentPolicy,
+        'accepted_payment_methods':
+            greg.acceptedPaymentMethods, // raw list (OpenAPI type: array)
+        'require_payment_proof': greg.requirePaymentProof,
+        'refund_policy': refundPolicy,
+        'refund_policy_details': greg.refundPolicyDetails ?? '',
+        'escalation_time_minutes': greg.escalationTimeMinutes,
+        'cancellation_documents':
+            greg.cancellationDocuments, // raw list (DB expects array)
+        'blacklist': jsonEncode(
+          greg.blacklist,
+        ), // jsonb type, needs stringified array
+        'excluded_phones': jsonEncode(greg.excludedPhones), // One string
+        'library': jsonEncode(greg.library), // One string
+        'conversation_tone': greg.conversationTone,
+        'notifications': greg.notifications,
+        'active': greg.active,
+        'save_information': greg.saveInformation,
+        'ask_for_consent': greg.askForConsent,
+        'information_not_to_share': greg.informationNotToShare ?? '',
+        'custom_policies':
+            greg.customPolicies?.map((e) => jsonEncode(e)).toList() ?? [],
+      };
+
+      final response = await _apiService.putUrlEncoded(
+        '/employees/greg/business/${greg.businessId}',
+        fields,
       );
+      debugPrint('📥 GregService: Update response: $response');
+      debugPrint('✅ GregService: Greg settings updated successfully');
     } catch (e) {
-      print('Error updating Greg via API: $e');
+      debugPrint('❌ GregService: Error updating Greg via API: $e');
       rethrow;
     }
   }
@@ -64,7 +109,7 @@ class GregService {
         fields: fields,
       );
     } catch (e) {
-      print('Error updating Greg cancellations via Form API: $e');
+      debugPrint('❌ Error updating Greg cancellations via API: $e');
       rethrow;
     }
   }
@@ -85,7 +130,7 @@ class GregService {
         fields: fields,
       );
     } catch (e) {
-      print('Error updating Greg privacy via Form API: $e');
+      debugPrint('❌ Error updating Greg privacy via API: $e');
       rethrow;
     }
   }
@@ -93,8 +138,8 @@ class GregService {
   // Update specifically Greg Procedures (Form Data)
   Future<void> updateGregProcedures(GregModel greg) async {
     try {
-      final fields = {
-        'procedures': jsonEncode(greg.procedures),
+      final Map<String, dynamic> fields = {
+        'procedures': greg.procedures, // raw list for form array
         'procedures_details': greg.proceduresDetails ?? '',
         'post_booking_procedures': greg.postBookingProcedures ?? '',
         'cancellation_documents': jsonEncode(greg.cancellationDocuments),
@@ -105,7 +150,7 @@ class GregService {
         fields: fields,
       );
     } catch (e) {
-      print('Error updating Greg procedures via Form API: $e');
+      debugPrint('❌ Error updating Greg procedures via API: $e');
       rethrow;
     }
   }
@@ -113,32 +158,16 @@ class GregService {
   // Update specifically Greg Payments (Form Data)
   Future<void> updateGregPayments(GregModel greg) async {
     try {
-      // Mapping UI labels to backend Enums
-      final paymentMap = {
-        'Connek Wallet': 'connek_wallet',
-        'Card': 'card',
-        'Bank Transfer': 'bank_transfer',
-        'Cash': 'cash',
-      };
-
-      final refundMap = {
-        'No Refund': 'no_refund',
-        'Full Refund': 'full_refund',
-        'Custom Refund': 'custom_refund',
-      };
-
-      final mappedPaymentMethods = greg.acceptedPaymentMethods
-          .map((m) => paymentMap[m] ?? m.toLowerCase().replaceAll(' ', '_'))
-          .toList();
-
-      final mappedRefundPolicy = refundMap[greg.refundPolicy] ?? 'no_refund';
-
-      final fields = {
+      final String refundPolicy = greg.refundPolicy.isEmpty
+          ? 'no_refund'
+          : greg.refundPolicy;
+      final Map<String, dynamic> fields = {
         'payment_policy': greg.paymentPolicy,
-        'require_payment_proof': greg.requirePaymentProof.toString(),
-        'refund_policy': mappedRefundPolicy,
+        'require_payment_proof': greg.requirePaymentProof,
+        'refund_policy': refundPolicy,
         'refund_policy_details': greg.refundPolicyDetails ?? '',
-        'accepted_payment_methods': jsonEncode(mappedPaymentMethods),
+        'accepted_payment_methods':
+            greg.acceptedPaymentMethods, // raw list for form array
       };
 
       await _apiService.putForm(
@@ -146,7 +175,7 @@ class GregService {
         fields: fields,
       );
     } catch (e) {
-      print('Error updating Greg payments via Form API: $e');
+      debugPrint('❌ Error updating Greg payments via API: $e');
       rethrow;
     }
   }
@@ -154,10 +183,7 @@ class GregService {
   // Update specifically Greg Document Library (Form Data)
   Future<void> updateGregLibrary(GregModel greg) async {
     try {
-      final fields = {
-        // The brief says "library" must be a JSON string.
-        'library': jsonEncode(greg.library),
-      };
+      final Map<String, dynamic> fields = {'library': jsonEncode(greg.library)};
 
       await _apiService.putForm(
         '/employees/greg/business/${greg.id}',
@@ -165,6 +191,52 @@ class GregService {
       );
     } catch (e) {
       print('Error updating Greg library via Form API: $e');
+      rethrow;
+    }
+  }
+
+  // Activate Greg (Atomic endpoint)
+  Future<GregModel?> activateGreg(int businessId) async {
+    debugPrint('📡 GregService: ACTIVATE Greg for business $businessId');
+    try {
+      final response = await _apiService.put(
+        '/employees/greg/business/$businessId/activate',
+        body: {},
+      );
+
+      if (response != null &&
+          response['success'] == true &&
+          response['data'] != null) {
+        return GregModel.fromJson(
+          response['data'],
+        ).copyWith(businessId: businessId);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ GregService: Error activating Greg: $e');
+      rethrow;
+    }
+  }
+
+  // Deactivate Greg (Atomic endpoint)
+  Future<GregModel?> deactivateGreg(int businessId) async {
+    debugPrint('📡 GregService: DEACTIVATE Greg for business $businessId');
+    try {
+      final response = await _apiService.put(
+        '/employees/greg/business/$businessId/deactivate',
+        body: {},
+      );
+
+      if (response != null &&
+          response['success'] == true &&
+          response['data'] != null) {
+        return GregModel.fromJson(
+          response['data'],
+        ).copyWith(businessId: businessId);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ GregService: Error deactivating Greg: $e');
       rethrow;
     }
   }

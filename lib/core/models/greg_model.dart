@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class GregModel {
   final int id;
   final String cancellations; // Renamed from cancellationPolicy
@@ -24,7 +26,7 @@ class GregModel {
   final String saveInformation;
   final bool askForConsent;
   final String? informationNotToShare;
-  final String? customPolicies;
+  final List<Map<String, String>>? customPolicies;
 
   GregModel({
     required this.id,
@@ -53,59 +55,94 @@ class GregModel {
     this.customPolicies,
   });
 
-  factory GregModel.fromJson(Map<String, dynamic> json) {
+  static List<T> _parseList<T>(
+    dynamic jsonValue, [
+    T Function(dynamic)? mapper,
+  ]) {
+    if (jsonValue == null) return [];
+    List<dynamic> list;
+    if (jsonValue is String) {
+      try {
+        final decoded = json.decode(jsonValue);
+        if (decoded is List) {
+          list = decoded;
+        } else {
+          return [];
+        }
+      } catch (e) {
+        return [];
+      }
+    } else if (jsonValue is List) {
+      list = jsonValue;
+    } else {
+      return [];
+    }
+
+    if (mapper != null) {
+      return list.map((e) => mapper(e)).toList();
+    }
+    return list.cast<T>();
+  }
+
+  factory GregModel.fromJson(Map<String, dynamic> map) {
     return GregModel(
-      id: json['id'] as int? ?? 0,
+      id: map['id'] as int? ?? 0,
+      businessId: map['business_id'] as int? ?? 0,
       cancellations:
-          json['cancellations'] as String? ??
-          json['cancellation_policy'] as String? ??
+          map['cancellations'] as String? ??
+          map['cancellation_policy'] as String? ??
           '',
-      allowRescheduling: json['allow_rescheduling'] as bool? ?? false,
-      cancellationMotive: json['cancellation_motive'] as bool? ?? false,
-      procedures:
-          (json['procedures'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      proceduresDetails: json['procedures_details'] as String?,
-      postBookingProcedures: json['post_booking_procedures'] as String?,
-      privacyPolicy: json['privacy_policy'] as String? ?? '',
-      paymentPolicy: json['payment_policy'] as String? ?? '',
-      acceptedPaymentMethods:
-          (json['accepted_payment_methods'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      requirePaymentProof: json['require_payment_proof'] as bool? ?? false,
-      refundPolicy: json['refund_policy'] as String? ?? '',
-      refundPolicyDetails: json['refund_policy_details'] as String?,
-      escalationTimeMinutes: json['escalation_time_minutes'] as int? ?? 0,
-      cancellationDocuments:
-          (json['cancellation_documents'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      excludedPhones: (json['blacklist'] is List)
-          ? (json['blacklist'] as List)
-                .map((e) => Map<String, String>.from(e as Map))
-                .toList()
-          : (json['excluded_phones'] is List)
-          ? (json['excluded_phones'] as List)
-                .map((e) => Map<String, String>.from(e as Map))
-                .toList()
-          : [],
-      library: (json['library'] is List)
-          ? (json['library'] as List)
-                .map((e) => Map<String, String>.from(e as Map))
-                .toList()
-          : [],
-      conversationTone: json['conversation_tone'] as String? ?? 'friendly',
-      notifications: json['notifications'] as bool? ?? true,
-      active: json['active'] as bool? ?? true,
-      saveInformation: json['save_information'] as String? ?? 'nothing',
-      askForConsent: json['ask_for_consent'] as bool? ?? false,
-      informationNotToShare: json['information_not_to_share'] as String?,
-      customPolicies: json['custom_policies'] as String?,
+      allowRescheduling: map['allow_rescheduling'] as bool? ?? false,
+      cancellationMotive: map['cancellation_motive'] as bool? ?? false,
+      procedures: _parseList<String>(map['procedures'], (e) => e.toString()),
+      proceduresDetails: map['procedures_details'] as String?,
+      postBookingProcedures: map['post_booking_procedures'] as String?,
+      privacyPolicy: map['privacy_policy'] as String? ?? '',
+      paymentPolicy: map['payment_policy'] as String? ?? '',
+      acceptedPaymentMethods: _parseList<String>(
+        map['accepted_payment_methods'],
+        (e) => e.toString(),
+      ),
+      requirePaymentProof: map['require_payment_proof'] as bool? ?? false,
+      refundPolicy: map['refund_policy'] as String? ?? '',
+      refundPolicyDetails: map['refund_policy_details'] as String?,
+      escalationTimeMinutes: map['escalation_time_minutes'] as int? ?? 0,
+      cancellationDocuments: _parseList<String>(
+        map['cancellation_documents'],
+        (e) => e.toString(),
+      ),
+      blacklist: _parseList<String>(
+        map['blacklist'] ?? map['black_list'],
+        (e) => e.toString(),
+      ),
+      excludedPhones: _parseList<Map<String, String>>(map['excluded_phones'], (
+        e,
+      ) {
+        if (e is Map) {
+          return e.map((k, v) => MapEntry(k.toString(), v.toString()));
+        }
+        return {};
+      }),
+      library: _parseList<Map<String, String>>(map['library'], (e) {
+        if (e is Map) {
+          return e.map((k, v) => MapEntry(k.toString(), v.toString()));
+        }
+        return {};
+      }),
+      conversationTone: map['conversation_tone'] as String? ?? 'friendly',
+      notifications: map['notifications'] as bool? ?? true,
+      active: map['active'] as bool? ?? true,
+      saveInformation: map['save_information'] as String? ?? 'nothing',
+      askForConsent: map['ask_for_consent'] as bool? ?? false,
+      informationNotToShare: map['information_not_to_share'] as String?,
+      customPolicies: _parseList<Map<String, String>>(map['custom_policies'], (
+        e,
+      ) {
+        if (e is Map) {
+          return e.map((k, v) => MapEntry(k.toString(), v.toString()));
+        }
+        return {};
+      }),
     );
   }
 
@@ -160,7 +197,7 @@ class GregModel {
     String? saveInformation,
     bool? askForConsent,
     String? informationNotToShare,
-    String? customPolicies,
+    List<Map<String, String>>? customPolicies,
   }) {
     return GregModel(
       id: id,
