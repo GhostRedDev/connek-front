@@ -1,0 +1,15 @@
+{
+    "nav_buy": "Купить",
+    "nav_requests": "Заказы",
+    "nav_support": "Поддержка",
+    "nav_profile": "Профиль",
+    "nav_sell": "Продать",
+    "nav_office": "Офис",
+    "switch_account": "Сменить режим",
+    "client_account": "Личный аккаунт",
+    "business_account": "Бизнес аккаунт",
+    "add_account": "Добавить аккаунт",
+    "signed_in_as": "Вы вошли как",
+    "settings": "Настройки",
+    "logout": "Выйти"
+}
