@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -17,7 +16,8 @@ class BusinessDashboardData {
   final List<Lead> recentLeads;
   final List<Map<String, dynamic>> employees;
   final List<Map<String, dynamic>> services;
-  final List<Map<String, dynamic>> clients; // Added
+  final List<Map<String, dynamic>> clients;
+  final Map<String, dynamic>? businessProfile; // Added
 
   BusinessDashboardData({
     required this.totalRequests,
@@ -26,7 +26,8 @@ class BusinessDashboardData {
     required this.recentLeads,
     required this.employees,
     required this.services,
-    required this.clients, // Added
+    required this.clients,
+    this.businessProfile, // Added
   });
 
   factory BusinessDashboardData.empty() {
@@ -37,7 +38,8 @@ class BusinessDashboardData {
       recentLeads: [],
       employees: [],
       services: [],
-      clients: [], // Added
+      clients: [],
+      businessProfile: null, // Added
     );
   }
 }
@@ -165,6 +167,25 @@ class BusinessRepository {
     }
   }
 
+  Future<Map<String, dynamic>?> updateBusiness(
+    int businessId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _apiService.put(
+        '/business/$businessId',
+        body: data,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error updating business: $e');
+      return null;
+    }
+  }
+
   Future<List<String>> uploadBusinessFiles(
     int businessId,
     List<File> files,
@@ -276,12 +297,14 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
   BusinessRepository? _repository;
   LeadsService? _leadsService;
   RealtimeChannel? _leadsSubscription;
+  RealtimeChannel? _employeesSubscription; // Added
 
   @override
   Future<BusinessDashboardData> build() async {
     // Handle disposal of real-time subscription
     ref.onDispose(() {
       _leadsSubscription?.unsubscribe();
+      _employeesSubscription?.unsubscribe();
     });
     _repository = ref.read(businessRepositoryProvider);
     _leadsService = ref.read(leadsServiceProvider);
@@ -311,6 +334,9 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     // Setup Subscription if not active
     if (_leadsSubscription == null) {
       _subscribeToLeads(businessId);
+    }
+    if (_employeesSubscription == null) {
+      _subscribeToEmployees(businessId);
     }
 
     // Fetch Data
@@ -388,6 +414,7 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       employees: employees,
       services: services,
       clients: clients,
+      businessProfile: business, // Added
     );
   }
 
@@ -409,6 +436,44 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
           },
         )
         .subscribe();
+  }
+
+  void _subscribeToEmployees(int businessId) {
+    _employeesSubscription =
+        _supabase // Assigned to field
+            .channel('public:employees:business:$businessId')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'employees', // Assuming 'employees' table
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'business_id',
+                value: businessId,
+              ),
+              callback: (payload) {
+                print(
+                  'Realtime: Business Employees update -> Refreshing dashboard',
+                );
+                ref.invalidateSelf();
+              },
+            )
+            .subscribe();
+  }
+
+  Future<bool> updateBusinessProfile(Map<String, dynamic> data) async {
+    final currentState = state.value;
+    if (currentState?.businessProfile == null) return false;
+
+    final businessId = currentState!.businessProfile!['id'];
+    final success = await _repository?.updateBusiness(businessId, data);
+
+    if (success != null) {
+      // Refresh data
+      ref.invalidateSelf();
+      return true;
+    }
+    return false;
   }
 }
 
@@ -447,3 +512,18 @@ final myBusinessLogoProvider = FutureProvider<String?>((ref) async {
 
   return Supabase.instance.client.storage.from('business').getPublicUrl(path);
 });
+
+// State for Sales Tab Dropdown Selection
+final selectedSalesViewProvider =
+    NotifierProvider<SelectedSalesViewNotifier, String>(
+      SelectedSalesViewNotifier.new,
+    );
+
+class SelectedSalesViewNotifier extends Notifier<String> {
+  @override
+  String build() => 'ventas';
+
+  void setView(String view) {
+    state = view;
+  }
+}

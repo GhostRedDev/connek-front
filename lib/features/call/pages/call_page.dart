@@ -8,8 +8,14 @@ import '../services/call_service.dart';
 class CallPage extends ConsumerStatefulWidget {
   final String callId;
   final bool isCaller; // True if starting call, False if answering
+  final bool isVideo; // New flag for Audio vs Video
 
-  const CallPage({super.key, required this.callId, required this.isCaller});
+  const CallPage({
+    super.key,
+    required this.callId,
+    required this.isCaller,
+    this.isVideo = true, // Default to true for backward compatibility
+  });
 
   @override
   ConsumerState<CallPage> createState() => _CallPageState();
@@ -22,11 +28,12 @@ class _CallPageState extends ConsumerState<CallPage> {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
   bool _micMuted = false;
-  bool _cameraOff = false;
+  late bool _cameraOff; // Initialize based on isVideo
 
   @override
   void initState() {
     super.initState();
+    _cameraOff = !widget.isVideo; // If audio call, camera starts OFF
     _initRenderers();
   }
 
@@ -68,17 +75,17 @@ class _CallPageState extends ConsumerState<CallPage> {
     };
 
     _peerConnection!.onTrack = (event) {
-      if (event.streams.isNotEmpty) {
-        setState(() {
+      if (event.streams.isNotEmpty && mounted) {
+        safeSetState(() {
           _remoteRenderer.srcObject = event.streams[0];
         });
       }
     };
 
-    // Get User Media
+    // Get User Media - DIFFERENTIATE AUDIO/VIDEO
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
-      'video': {'facingMode': 'user'},
+      'video': widget.isVideo ? {'facingMode': 'user'} : false,
     };
 
     _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
@@ -183,6 +190,9 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   void _toggleCamera() {
+    // Only allow toggling if it's a Video call. Audio-only calls shouldn't enable camera randomly.
+    if (!widget.isVideo) return;
+
     setState(() {
       _cameraOff = !_cameraOff;
     });
@@ -202,13 +212,27 @@ class _CallPageState extends ConsumerState<CallPage> {
   void dispose() {
     _offerRetryTimer?.cancel();
 
-    // Dispose resources strictly here to avoid double-dispose race conditions
+    // Stop listening to events
+    try {
+      _callService.dispose();
+    } catch (_) {}
+
+    // Cleanup Renderers safely
+    _localRenderer.srcObject = null;
+    _remoteRenderer.srcObject = null;
+    // Delay disposal slightly to allow UI to unmount? No, standard verify.
     _localRenderer.dispose();
     _remoteRenderer.dispose();
+
     _localStream?.dispose();
     _peerConnection?.dispose();
 
     super.dispose();
+  }
+
+  // Helper to safely setState
+  void safeSetState(VoidCallback fn) {
+    if (mounted) setState(fn);
   }
 
   @override
@@ -217,40 +241,89 @@ class _CallPageState extends ConsumerState<CallPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Remote Video (Full Screen)
-          Positioned.fill(
-            child: RTCVideoView(
-              _remoteRenderer,
-              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-            ),
-          ),
-
-          // Local Video (Small Overlay)
-          Positioned(
-            right: 20,
-            bottom: 140, // Above controls
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Colors.blueAccent,
-                  width: 2,
-                ), // Azul chiquito
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10), // Inner radius
-                child: SizedBox(
-                  width: 100,
-                  height: 150,
+          // Remote Video (Full Screen) OR Avatar
+          widget.isVideo
+              ? Positioned.fill(
                   child: RTCVideoView(
-                    _localRenderer,
-                    mirror: true,
+                    _remoteRenderer,
                     objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                  ),
+                )
+              : Positioned.fill(
+                  child: Container(
+                    color: const Color(0xFF1A1A1A), // Dark grey background
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Avatar
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blueAccent.withOpacity(0.2),
+                              border: Border.all(
+                                color: Colors.blueAccent,
+                                width: 3,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blueAccent.withOpacity(0.4),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "En Llamada...",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+          // Local Video (Small Overlay) - Only if Video enabled
+          if (widget.isVideo)
+            Positioned(
+              right: 20,
+              bottom: 140, // Above controls
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.blueAccent,
+                    width: 2,
+                  ), // Azul chiquito
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10), // Inner radius
+                  child: SizedBox(
+                    width: 100,
+                    height: 150,
+                    child: RTCVideoView(
+                      _localRenderer,
+                      mirror: true,
+                      objectFit:
+                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
           // Controls
           Positioned(
@@ -275,15 +348,18 @@ class _CallPageState extends ConsumerState<CallPage> {
                   child: const Icon(Icons.call_end, color: Colors.white),
                   onPressed: _hangUp,
                 ),
-                FloatingActionButton(
-                  heroTag: 'camera',
-                  backgroundColor: _cameraOff ? Colors.white : Colors.white24,
-                  child: Icon(
-                    _cameraOff ? Icons.videocam_off : Icons.videocam,
-                    color: _cameraOff ? Colors.black : Colors.white,
+
+                // Camera Toggle - Disabled/Hidden for Audio calls
+                if (widget.isVideo)
+                  FloatingActionButton(
+                    heroTag: 'camera',
+                    backgroundColor: _cameraOff ? Colors.white : Colors.white24,
+                    child: Icon(
+                      _cameraOff ? Icons.videocam_off : Icons.videocam,
+                      color: _cameraOff ? Colors.black : Colors.white,
+                    ),
+                    onPressed: _toggleCamera,
                   ),
-                  onPressed: _toggleCamera,
-                ),
               ],
             ),
           ),

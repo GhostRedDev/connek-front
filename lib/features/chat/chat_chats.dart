@@ -143,7 +143,11 @@ class _ChatChatsState extends ConsumerState<ChatChats> {
               if (showRefresh)
                 IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: () => ref.refresh(chatProvider),
+                  onPressed: () {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref.refresh(chatProvider);
+                    });
+                  },
                   color: Colors.grey,
                 ),
             ],

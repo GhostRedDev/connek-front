@@ -83,7 +83,7 @@ class GregService {
 
       final response = await _apiService.putUrlEncoded(
         '/employees/greg/business/${greg.businessId}',
-        fields,
+        body: fields,
       );
       debugPrint('📥 GregService: Update response: $response');
       debugPrint('✅ GregService: Greg settings updated successfully');

@@ -39,7 +39,10 @@ class LeadsService {
     try {
       final request = jsonItem['requests'] ?? {};
       final client = request['client'] ?? {};
-      String? imagePath = client['photo_id'] ?? client['profile_url'];
+      String? imagePath =
+          client['photo_id'] ??
+          client['profile_url'] ??
+          client['profile_image'];
 
       if (imagePath != null &&
           imagePath.isNotEmpty &&
@@ -54,7 +57,9 @@ class LeadsService {
             .from('client')
             .getPublicUrl(imagePath);
         client['photo_id'] = publicUrl;
-        client['profile_url'] = publicUrl; // Ensure both are identical
+        client['profile_url'] = publicUrl;
+        client['profile_image'] =
+            publicUrl; // Ensure profile_image is also updated
       }
     } catch (e) {
       print('Error resolving image url: $e');

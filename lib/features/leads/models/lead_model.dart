@@ -77,7 +77,8 @@ class Lead {
     final client = request['client'] ?? {};
 
     // Prioritize photo_id as it seems to hold the updated public URL
-    String? imageUrl = client['photo_id'] ?? client['profile_url'];
+    String? imageUrl =
+        client['photo_id'] ?? client['profile_url'] ?? client['profile_image'];
 
     return Lead(
       id: json['id'],

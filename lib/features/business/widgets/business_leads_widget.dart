@@ -33,7 +33,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
       data: (data) {
         final allLeads = data.recentLeads;
 
-        // --- Filter Logic ---
+        // --- Filter Logic (Leads) ---
         List<Lead> filteredLeads = allLeads.where((lead) {
           // 1. Status Filter
           bool statusMatch = true;
@@ -71,7 +71,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
             final isDesktop = constraints.maxWidth > 800;
 
             return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 210, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

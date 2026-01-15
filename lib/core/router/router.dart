@@ -59,6 +59,7 @@ import '../../features/settings/providers/profile_provider.dart';
 
 // Global Key for Root Navigator (to cover shell)
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+bool _isFirstLoad = true; // Track initial app load
 
 final routerProvider = Provider<GoRouter>((ref) {
   // DO NOT watch providers here to avoid recreating GoRouter on every change.
@@ -72,6 +73,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       Supabase.instance.client.auth.onAuthStateChange,
     ),
     redirect: (context, state) {
+      // Force Home on Initial Load (Disable Deep Linking/Persistence on Reload)
+      if (_isFirstLoad) {
+        _isFirstLoad = false;
+        if (state.uri.toString() != '/') {
+          return '/';
+        }
+      }
+
       final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
       final isBusinessRoute = state.uri.toString().startsWith('/business');
       final isOfficeRoute = state.uri.toString().startsWith('/office');
@@ -137,7 +146,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final callId = state.pathParameters['id'] ?? '';
           final isCaller = state.uri.queryParameters['isCaller'] == 'true';
-          return CallPage(callId: callId, isCaller: isCaller);
+          // Default to true if not specified (or check explicit 'false')
+          final isVideo = state.uri.queryParameters['isVideo'] != 'false';
+          return CallPage(callId: callId, isCaller: isCaller, isVideo: isVideo);
         },
       ),
 

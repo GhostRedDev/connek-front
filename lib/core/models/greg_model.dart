@@ -28,6 +28,9 @@ class GregModel {
   final String? informationNotToShare;
   final List<Map<String, String>>? customPolicies;
 
+  final int businessId;
+  final List<String> blacklist;
+
   GregModel({
     required this.id,
     this.cancellations = '',
@@ -53,6 +56,8 @@ class GregModel {
     this.askForConsent = false,
     this.informationNotToShare,
     this.customPolicies,
+    this.businessId = 0,
+    this.blacklist = const [],
   });
 
   static List<T> _parseList<T>(
@@ -162,7 +167,7 @@ class GregModel {
       'refund_policy_details': refundPolicyDetails,
       'escalation_time_minutes': escalationTimeMinutes,
       'cancellation_documents': cancellationDocuments,
-      'blacklist': excludedPhones,
+      'blacklist': blacklist, // Fixed: was excludedPhones
       'library': library,
       'conversation_tone': conversationTone,
       'notifications': notifications,
@@ -171,6 +176,7 @@ class GregModel {
       'ask_for_consent': askForConsent,
       'information_not_to_share': informationNotToShare,
       'custom_policies': customPolicies,
+      'business_id': businessId,
     };
   }
 
@@ -198,6 +204,8 @@ class GregModel {
     bool? askForConsent,
     String? informationNotToShare,
     List<Map<String, String>>? customPolicies,
+    int? businessId,
+    List<String>? blacklist,
   }) {
     return GregModel(
       id: id,
@@ -229,6 +237,8 @@ class GregModel {
       informationNotToShare:
           informationNotToShare ?? this.informationNotToShare,
       customPolicies: customPolicies ?? this.customPolicies,
+      businessId: businessId ?? this.businessId,
+      blacklist: blacklist ?? this.blacklist,
     );
   }
 }

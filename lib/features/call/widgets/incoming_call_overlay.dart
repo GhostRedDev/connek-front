@@ -18,6 +18,8 @@ class IncomingCallOverlay extends StatelessWidget {
     final name = caller['name'] ?? 'Unknown Caller';
     final image = caller['image'];
 
+    final isVideo = caller['isVideo'] ?? true;
+
     return Positioned(
       top: 50,
       left: 20,
@@ -58,7 +60,9 @@ class IncomingCallOverlay extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Incoming Video Call...',
+                      isVideo
+                          ? 'Videollamada Entrante...'
+                          : 'Llamada Entrante...',
                       style: GoogleFonts.inter(
                         color: Colors.grey,
                         fontSize: 12,
@@ -93,8 +97,8 @@ class IncomingCallOverlay extends StatelessWidget {
                     color: Colors.green,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.videocam,
+                  child: Icon(
+                    isVideo ? Icons.videocam : Icons.call,
                     color: Colors.white,
                     size: 20,
                   ),

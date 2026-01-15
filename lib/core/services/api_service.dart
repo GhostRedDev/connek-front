@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -83,7 +84,7 @@ class ApiService {
 
       // Build body string supporting repeated keys for lists
       final List<String> parts = [];
-      body.forEach((key, value) {
+      body?.forEach((key, value) {
         if (value is List) {
           for (var item in value) {
             parts.add(
@@ -102,12 +103,54 @@ class ApiService {
       final response = await http.delete(
         url,
         headers: headers,
-        body: body != null ? json.encode(body) : null,
+        body: bodyString.isNotEmpty ? bodyString : null,
       );
       return _processResponse(response);
     } catch (e) {
       print('❌ API DELETE Error: $e');
       throw Exception('API DELETE Error: $e');
+    }
+  }
+
+  Future<dynamic> putUrlEncoded(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+
+      debugPrint('🚀 API PUT URL-Encoded: $url');
+      debugPrint('📦 Headers: $headers');
+
+      // Build body string
+      final List<String> parts = [];
+      body?.forEach((key, value) {
+        if (value is List) {
+          for (var item in value) {
+            parts.add(
+              '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(item.toString())}',
+            );
+          }
+        } else if (value != null) {
+          parts.add(
+            '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(value.toString())}',
+          );
+        }
+      });
+      final bodyString = parts.join('&');
+      debugPrint('📦 FINAL BODY SENT TO SERVER: $bodyString');
+
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: bodyString.isNotEmpty ? bodyString : null,
+      );
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API PUT URL-Encoded Error: $e');
+      throw Exception('API PUT URL-Encoded Error: $e');
     }
   }
 

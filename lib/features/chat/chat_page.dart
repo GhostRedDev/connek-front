@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:animate_do/animate_do.dart';
+
 import 'widgets/chat_input_area.dart';
 import 'providers/chat_provider.dart';
 import '../call/services/call_service.dart';
@@ -264,32 +264,66 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }) async {
     if (contactInfo == null) return;
 
-    final receiverId = contactInfo['id']; // int ID
-    if (receiverId == null) {
-      final t = ref.read(translationProvider).value;
+    final receiverId = contactInfo['id'];
+    if (receiverId == null) return;
+
+    // Prevent Self-Call
+    if (receiverId == _myClientId || receiverId == _myBusinessId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            t?['chat_cannot_call'] ?? 'Cannot call: User ID not found',
-          ),
+        const SnackBar(
+          content: Text('Cannot call yourself / No puedes llamarte a ti mismo'),
         ),
       );
       return;
     }
 
-    // 1. Fetch My Profile (Name/Image)
-    final user = _supabase.auth.currentUser;
-    final myName = user?.userMetadata?['full_name'] ?? user?.email ?? 'Caller';
-    final myImage = user?.userMetadata?['avatar_url'];
+    // 1. Fetch My Profile (Name/Image) from DB
+    // Use the ID we already fetched in _fetchMyIds
+    // Determine if we are acting as Business or Client?
+    // Usually standard chat is Client-to-Client unless Business mode.
+    // For now, prioritize Business if _myBusinessId > 0, else Client.
+    // Or check user mode? We don't have userModeProvider here easily (can watch it).
+
+    // Simple fallback:
+    String myName = 'Caller';
+    String? myImage;
+    int myId = _myClientId;
+
+    try {
+      if (_myClientId != 0) {
+        final res = await _supabase
+            .from('client')
+            .select('first_name, last_name, profile_url, photo_id')
+            .eq('id', _myClientId)
+            .single();
+        final fName = res['first_name'] ?? '';
+        final lName = res['last_name'] ?? '';
+        myName = '$fName $lName'.trim();
+        if (myName.isEmpty) myName = 'Usuario';
+
+        // Fix Image URL
+        // photo_id is often the full URL or null. profile_url might be filename.
+        // Prioritize photo_id if it starts with http
+        if (res['photo_id'] != null &&
+            res['photo_id'].toString().startsWith('http')) {
+          myImage = res['photo_id'];
+        }
+      }
+    } catch (e) {
+      print('Error fetching my profile for call: $e');
+    }
+
+    if (myName.isEmpty) myName = 'Unknown';
 
     // 2. Generate Call ID
     final callId = DateTime.now().millisecondsSinceEpoch.toString();
 
-    // 3. Notify Receiver
-    // Pass isVideo param? Currently generic call.
-    // We append query param for local usage or signal it in metadata.
-    context.push('/call/$callId?isCaller=true&isVideo=$isVideo');
+    // 3. Navigate Local
+    if (mounted) {
+      context.push('/call/$callId?isCaller=true&isVideo=$isVideo');
+    }
 
+    // 4. Notify Receiver
     try {
       final callService = CallService(
         _supabase,
@@ -301,8 +335,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       await callService.startCallNotification(receiverId, {
         'name': myName,
         'image': myImage,
-        'id': _myClientId,
-        'isVideo': isVideo, // Pass to receiver
+        'id': myId,
+        'isVideo': isVideo,
       }, callId);
     } catch (e) {
       print('Error notifying call: $e');
@@ -598,12 +632,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
     // Logic for Initials if image missing
     String initials = '?';
-    if (contactName != null && contactName.isNotEmpty) {
-      final parts = contactName.split(' ');
-      if (parts.length > 1) {
+    if (contactName != null && contactName.trim().isNotEmpty) {
+      final cleanName = contactName.trim();
+      final parts = cleanName.split(' ');
+      if (parts.length > 1 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
         initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      } else {
-        initials = contactName[0].toUpperCase();
+      } else if (cleanName.isNotEmpty) {
+        initials = cleanName[0].toUpperCase();
       }
     }
 

@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/business_leads_widget.dart';
 import 'widgets/business_overview_widget.dart';
 import 'widgets/business_clients_widget.dart'; // Added
+import 'providers/business_provider.dart'; // Added
+import 'widgets/business_services_widget.dart';
+import 'widgets/business_employees_widget.dart';
+import 'widgets/business_profile_widget.dart'; // Added // Added // Added
 
 class BusinessPage extends ConsumerStatefulWidget {
   const BusinessPage({super.key});
@@ -21,36 +25,54 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
     // We don't need a Scaffold or Stack for header anymore.
     // Just the TabBarView content.
 
-    return DefaultTabController(
-      length: 8, // Updated to 8 tabs
-      child: TabBarView(
-        children: [
-          // TAB 1: OVERVIEW
-          BusinessOverviewWidget(),
+    return TabBarView(
+      children: [
+        // TAB 1: OVERVIEW
+        BusinessOverviewWidget(),
 
-          // TAB 2: LEADS
-          const BusinessLeadsWidget(),
+        // TAB 2: LEADS
+        const BusinessLeadsWidget(),
 
-          // TAB 3: CLIENTS
-          const BusinessClientsWidget(),
+        // TAB 3: CLIENTS
+        const BusinessClientsWidget(),
 
-          // TAB 4: SALES
-          const _BusinessPlaceholder(title: 'Ventas'),
+        // TAB 4: SALES
+        // TAB 4: SALES
+        const BusinessSalesTab(),
 
-          // TAB 5: SERVICES
-          const _BusinessPlaceholder(title: 'Servicios'),
+        // TAB 5: SERVICES
+        const BusinessServicesWidget(),
 
-          // TAB 6: EMPLOYEES
-          const _BusinessPlaceholder(title: 'Empleados'),
+        // TAB 6: EMPLOYEES
+        const BusinessEmployeesWidget(),
 
-          // TAB 7: PROFILE
-          const _BusinessPlaceholder(title: 'Perfil'),
+        // TAB 7: PROFILE
+        const BusinessProfileWidget(),
 
-          // TAB 8: SETTINGS
-          const _BusinessPlaceholder(title: 'Ajustes'),
-        ],
-      ),
+        // TAB 8: SETTINGS
+        const _BusinessPlaceholder(title: 'Ajustes'),
+      ],
     );
+  }
+}
+
+class BusinessSalesTab extends ConsumerWidget {
+  const BusinessSalesTab({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final view = ref.watch(selectedSalesViewProvider);
+
+    switch (view) {
+      case 'invoices':
+        return const _BusinessPlaceholder(title: 'Ventas - Facturas');
+      case 'proposals':
+        return const _BusinessPlaceholder(title: 'Ventas - Propuestas');
+      case 'bookings':
+        return const _BusinessPlaceholder(title: 'Ventas - Bookings');
+      default:
+        return const _BusinessPlaceholder(title: 'Ventas - General');
+    }
   }
 }
 

@@ -18,6 +18,7 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
   bool _isLoading = false;
+  String _activeFilter = 'all'; // 'all', 'client', 'business'
 
   @override
   void initState() {
@@ -44,15 +45,16 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
 
   void _performSearch(String query) async {
     if (query.isEmpty) {
-      // Reload suggestions if query cleared
       _loadSuggestions();
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // Call Provider Search
-    final results = await ref.read(chatProvider.notifier).searchUsers(query);
+    // Call Provider Search with Filter
+    final results = await ref
+        .read(chatProvider.notifier)
+        .searchUsers(query, filter: _activeFilter);
 
     if (mounted) {
       setState(() {
@@ -64,15 +66,7 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
 
   void _startChat(Map<String, dynamic> user) async {
     setState(() => _isLoading = true);
-
     final isBusinessMode = ref.read(userModeProvider);
-    // Needed: ID of current user (My ID)
-    // ChatNotifier fetchConversations does logic to get ID.
-    // We should expose getMyId from ChatNotifier or fetch it again.
-    // Simpler: Reuse logic or check provider state? No, provider state is List calls.
-
-    // Quick Fix: Reuse fetch logic pattern or create helper in provider.
-    // Assuming user is authenticated if here.
 
     try {
       final myId = await ref
@@ -132,6 +126,7 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Search Bar
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -145,7 +140,20 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
               ),
               onSubmitted: _performSearch,
             ),
+            const SizedBox(height: 12),
+
+            // Filters
+            Row(
+              children: [
+                _buildFilterChip('Todos', 'all'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Personas', 'client'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Negocios', 'business'),
+              ],
+            ),
             const SizedBox(height: 16),
+
             if (_isLoading) const LinearProgressIndicator(),
 
             Expanded(
@@ -153,7 +161,6 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
                 itemCount: _searchResults.length,
                 itemBuilder: (context, index) {
                   final user = _searchResults[index];
-
                   return ListTile(
                     leading: Container(
                       width: 40,
@@ -199,6 +206,33 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _activeFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _activeFilter = value);
+        // Re-run search if text exists
+        if (_searchController.text.isNotEmpty) {
+          _performSearch(_searchController.text);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF4285F4) : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

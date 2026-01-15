@@ -25,7 +25,7 @@ class BusinessOverviewWidget extends ConsumerWidget {
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth > 800;
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 210, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: Column(
               children: [
                 const EmptySpaceTopWidget(),
