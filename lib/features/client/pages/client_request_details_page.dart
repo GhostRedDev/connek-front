@@ -253,12 +253,28 @@ class ClientRequestDetailsPage extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            request.imageUrl,
-                            width: 100,
-                            height: 70,
-                            fit: BoxFit.cover,
-                          ),
+                          child: (request.imageUrl.startsWith('http'))
+                              ? Image.network(
+                                  request.imageUrl,
+                                  width: 100,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        width: 100,
+                                        height: 70,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.image_not_supported,
+                                        ),
+                                      ),
+                                )
+                              : Container(
+                                  width: 100,
+                                  height: 70,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

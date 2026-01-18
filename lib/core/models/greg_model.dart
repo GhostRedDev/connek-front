@@ -2,8 +2,8 @@ import 'dart:convert';
 
 class GregModel {
   final int id;
-  final int businessId;
-  final String cancellations; // Renamed from cancellationPolicy
+  final int businessId; // Added back
+  final String cancellations;
   final bool allowRescheduling;
   final bool cancellationMotive;
   final List<String> procedures;
@@ -17,7 +17,7 @@ class GregModel {
   final String? refundPolicyDetails;
   final int escalationTimeMinutes;
   final List<String> cancellationDocuments;
-  final List<String> blacklist;
+  final List<String> blacklist; // Added back
   final List<Map<String, String>> excludedPhones;
   final List<Map<String, String>> library;
   final String conversationTone;
@@ -32,7 +32,7 @@ class GregModel {
 
   GregModel({
     required this.id,
-    required this.businessId,
+    this.businessId = 0,
     this.cancellations = '',
     this.allowRescheduling = false,
     this.cancellationMotive = false,
@@ -152,9 +152,8 @@ class GregModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'business_id': businessId,
       'cancellations': cancellations,
+      'business_id': businessId,
       'allow_rescheduling': allowRescheduling,
       'cancellation_motive': cancellationMotive,
       'procedures': procedures,
@@ -182,7 +181,6 @@ class GregModel {
   }
 
   GregModel copyWith({
-    int? id,
     int? businessId,
     String? cancellations,
     bool? allowRescheduling,
@@ -210,7 +208,7 @@ class GregModel {
     List<Map<String, String>>? customPolicies,
   }) {
     return GregModel(
-      id: id ?? this.id,
+      id: id,
       businessId: businessId ?? this.businessId,
       cancellations: cancellations ?? this.cancellations,
       allowRescheduling: allowRescheduling ?? this.allowRescheduling,

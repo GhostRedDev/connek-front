@@ -16,7 +16,6 @@ class ApiService {
     final session = Supabase.instance.client.auth.currentSession;
     final token = session?.accessToken;
     return {
-      'Accept': 'application/json',
       if (!isMultipart) 'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
@@ -163,6 +162,47 @@ class ApiService {
     }
   }
 
+  Future<dynamic> delete(String endpoint, {Map<String, dynamic>? body}) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+
+      debugPrint('🚀 API PUT URL-Encoded: $url');
+      debugPrint('📦 Headers: $headers');
+
+      // Build body string supporting repeated keys for lists
+      final List<String> parts = [];
+      if (body != null) {
+        body.forEach((key, value) {
+          if (value is List) {
+            for (var item in value) {
+              parts.add(
+                '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(item.toString())}',
+              );
+            }
+          } else if (value != null) {
+            parts.add(
+              '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(value.toString())}',
+            );
+          }
+        });
+      }
+      final bodyString = parts.join('&');
+      debugPrint('📦 FINAL BODY SENT TO SERVER: $bodyString');
+
+      final response = await http.delete(
+        url,
+        headers: headers,
+        body: body != null ? json.encode(body) : null,
+      );
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API DELETE Error: $e');
+      throw Exception('API DELETE Error: $e');
+    }
+  }
+
   Future<dynamic> putForm(
     String endpoint, {
     Map<String, dynamic>? fields,
@@ -181,28 +221,13 @@ class ApiService {
         fields.forEach((key, value) {
           if (value is List) {
             for (var item in value) {
-              request.fields[key] = item
-                  .toString(); // Note: http package fields Map doesn't support duplicate keys directly easily
-              // Actually, MultipartRequest.fields is a Map<String, String>, so it DOES NOT support duplicate keys.
-              // We need to use request.files or a different approach if we want duplicate keys,
-              // BUT MultipartRequest has a private _fields which is used to build the body.
-              // To support duplicate keys in MultipartRequest, we have to add them carefully.
+              request.fields[key] = item.toString();
             }
           } else {
             request.fields[key] = value.toString();
           }
         });
       }
-
-      // Re-evaluating MultipartRequest: it literally uses a Map<String, String> for fields.
-      // If we need duplicate keys, we might need a custom request or check if 'http' supports it.
-      // Standard http MultipartRequest doesn't support duplicate field keys.
-      // WORKAROUND for FastAPI: often comma separated is accepted if parsed correctly,
-      // OR we use application/x-www-form-urlencoded if no files.
-      // But the brief says "list[str]".
-
-      // Let's stick to fields.addAll for single values and see.
-      // If we MUST have duplicate keys, we'd need to manually build the multipart body.
 
       if (files != null) {
         request.files.addAll(files);

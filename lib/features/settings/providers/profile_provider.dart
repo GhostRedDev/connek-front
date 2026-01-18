@@ -1,7 +1,9 @@
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';
 
 // --- Repository ---
 
@@ -10,30 +12,71 @@ class ProfileRepository {
 
   ProfileRepository(this._supabase);
 
-  // Fetch Profile by Auth User ID (Create if doesn't exist)
-  Future<UserProfile?> getProfile() async {
-    final user = _supabase.auth.currentUser;
+  // Fetch Profile by Auth User Object (Optimized: Parallel Fetch)
+  Future<UserProfile?> getProfile({User? currUser}) async {
+    final user = currUser ?? _supabase.auth.currentUser;
     print('👤 ProfileRepository: Current Auth User: ${user?.id ?? "NULL"}');
+
     if (user == null) return null;
 
     try {
-      print(
-        '🔍 ProfileRepository: Fetching client data for user_id: ${user.id}...',
-      );
-      final data = await _supabase
-          .from('client')
-          .select()
-          .eq('user_id', user.id)
-          .maybeSingle();
+      print('🚀 ProfileRepository: FAST FETCH for ${user.id}...');
+
+      // PARALLEL REQUESTS: Fetch Client AND Business simultaneously
+      final results = await Future.wait([
+        // 0: Client Profile
+        _supabase.from('client').select().eq('user_id', user.id).maybeSingle(),
+
+        // 1: Business Profile (by owner_user)
+        _supabase
+            .from('business')
+            .select('id, name, profile_image')
+            .eq('owner_user', user.id)
+            .maybeSingle(),
+      ]);
+
+      final clientData = results[0];
+      final businessData = results[1];
 
       print(
-        '📥 ProfileRepository: Database response data: ${data != null ? "FOUND" : "NOT FOUND"}',
+        '📥 ProfileRepository: Fetch complete. Client: ${clientData != null}, Business: ${businessData != null}',
       );
 
-      if (data != null) {
-        return UserProfile.fromJson(data);
+      if (clientData != null) {
+        // Resolve Client Image
+        if (clientData['photo_id'] != null) {
+          String pid = clientData['photo_id'].toString();
+          if (pid.isNotEmpty && !pid.startsWith('http')) {
+            if (!pid.contains('/')) pid = '${clientData['id']}/$pid';
+            clientData['photo_id'] = _supabase.storage
+                .from('client')
+                .getPublicUrl(pid);
+          }
+        }
+
+        // Merge Business Data if exists
+        if (businessData != null) {
+          clientData['has_business'] = true;
+          clientData['business_name'] = businessData['name'];
+          clientData['business_profile_image'] = businessData['profile_image'];
+          clientData['business_id'] = businessData['id'];
+
+          // Resolve Business Image
+          if (clientData['business_profile_image'] != null) {
+            String bPid = clientData['business_profile_image'].toString();
+            if (bPid.isNotEmpty && !bPid.startsWith('http')) {
+              if (!bPid.contains('/')) bPid = '${businessData['id']}/$bPid';
+              clientData['business_profile_image'] = _supabase.storage
+                  .from('business')
+                  .getPublicUrl(bPid);
+            }
+          }
+        }
+
+        return UserProfile.fromJson(clientData);
       } else {
-        // Create default profile if not exists
+        // Create default profile if not exists (This is rare, usually on SignUp)
+        // We can keep this sequential as it's a one-time setup
         final newProfile = {
           'user_id': user.id,
           'email': user.email ?? '',
@@ -116,21 +159,30 @@ final profileProvider = AsyncNotifierProvider<ProfileNotifier, UserProfile?>(
 // --- Notifier ---
 
 class ProfileNotifier extends AsyncNotifier<UserProfile?> {
-  late final ProfileRepository _repository;
+  late ProfileRepository _repository;
 
   @override
   Future<UserProfile?> build() async {
+    // Watch Auth State to refetch profile on login/logout
+    final authState = ref.watch(authStateProvider);
+    final user =
+        authState.value?.session?.user ??
+        Supabase.instance.client.auth.currentUser;
+
     _repository = ref.read(profileRepositoryProvider);
-    return _fetchProfile();
+    return _fetchProfile(user: user);
   }
 
-  Future<UserProfile?> _fetchProfile() async {
-    return await _repository.getProfile();
+  Future<UserProfile?> _fetchProfile({User? user}) async {
+    return await _repository.getProfile(currUser: user);
   }
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _fetchProfile());
+    state = await AsyncValue.guard(() {
+      final user = Supabase.instance.client.auth.currentUser;
+      return _fetchProfile(user: user);
+    });
   }
 
   Future<void> updateProfile({

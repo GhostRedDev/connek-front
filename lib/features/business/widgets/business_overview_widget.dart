@@ -9,6 +9,7 @@ import 'service_mini_card_widget.dart';
 import 'event_card_widget.dart';
 // import 'content_header_widget.dart'; // Unused in this file currently
 import '../providers/business_provider.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 class BusinessOverviewWidget extends ConsumerWidget {
   const BusinessOverviewWidget({super.key});
@@ -16,128 +17,238 @@ class BusinessOverviewWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final businessData = ref.watch(businessProvider);
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
     return businessData.when(
-      data: (data) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 210, 16, 16),
-        child: Column(
-          children: [
-            const EmptySpaceTopWidget(),
-
-            // Note: Header is handled in ClientPage sliver, but user requested ContentHeaderWidget here.
-            // If I put it here, it will be double header unless I remove it from ClientPage.
-            // User code: "child: ContentHeaderWidget(...)".
-            // Since ClientPage already has a dynamic header, I will COMMENT OUT this specific header
-            // or render it IF the parent doesn't show one.
-            // Better: Render it here and SIMPLIFY ClientPage later if needed.
-            // For now, let's stick to the EXACT structure requested by the user.
-            // const ContentHeaderWidget(title: '¡Hi, Gabriel!', subtitle: 'See how your business is moving from the overview.'),
-
-            // --- Metric Blocks (Top Requests & Earnings) ---
-            Column(
+      data: (data) => LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth > 800;
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 210, 16, 16),
+            child: Column(
               children: [
-                _buildMetricBlock(
-                  context,
-                  label: 'TOTAL REQUESTS',
-                  value: '${data.totalRequests}',
-                  percentage: '12%',
-                  iconAsset:
-                      'assets/images/user_add_bg.png', // Placeholder or use Icon
-                  iconData: Icons.person_add_alt_1_rounded,
-                  colorIconBg: Colors.blueAccent,
-                ),
-                const SizedBox(height: 12),
-                _buildMetricBlock(
-                  context,
-                  label: 'EARNINGS',
-                  value: '${data.monthEarnings}',
-                  percentage: '12%',
-                  iconAsset: 'assets/images/flash_bg.png', // Placeholder
-                  iconData: Icons.flash_on_rounded,
-                  colorIconBg: Colors.amber,
-                ),
+                const EmptySpaceTopWidget(),
+
+                // --- Metric Blocks (Top Requests & Earnings) ---
+                if (isDesktop)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricBlock(
+                          context,
+                          label: t['total_requests'] ?? 'TOTAL REQUESTS',
+                          value: '${data.totalRequests}',
+                          percentage: '12%',
+                          iconAsset: 'assets/images/user_add_bg.png',
+                          iconData: Icons.person_add_alt_1_rounded,
+                          colorIconBg: Colors.blueAccent,
+                          sinceText:
+                              t['since_last_month'] ?? 'since last month',
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: _buildMetricBlock(
+                          context,
+                          label: t['earnings'] ?? 'EARNINGS',
+                          value: '${data.monthEarnings}',
+                          percentage: '12%',
+                          iconAsset: 'assets/images/flash_bg.png',
+                          iconData: Icons.flash_on_rounded,
+                          colorIconBg: Colors.amber,
+                          sinceText:
+                              t['since_last_month'] ?? 'since last month',
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Column(
+                    children: [
+                      _buildMetricBlock(
+                        context,
+                        label: t['total_requests'] ?? 'TOTAL REQUESTS',
+                        value: '${data.totalRequests}',
+                        percentage: '12%',
+                        iconAsset: 'assets/images/user_add_bg.png',
+                        iconData: Icons.person_add_alt_1_rounded,
+                        colorIconBg: Colors.blueAccent,
+                        sinceText: t['since_last_month'] ?? 'since last month',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMetricBlock(
+                        context,
+                        label: t['earnings'] ?? 'EARNINGS',
+                        value: '${data.monthEarnings}',
+                        percentage: '12%',
+                        iconAsset: 'assets/images/flash_bg.png',
+                        iconData: Icons.flash_on_rounded,
+                        colorIconBg: Colors.amber,
+                        sinceText: t['since_last_month'] ?? 'since last month',
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 20),
+
+                const SizedBox(height: 20),
+
+                if (isDesktop) ...[
+                  // Desktop Grid Layout
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Column 1: Leads (60%)
+                      Expanded(
+                        flex: 3,
+                        child: _buildSectionContainer(
+                          context,
+                          title: t['recent_leads'] ?? 'Leads recientes',
+                          content: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: data.recentLeads
+                                .map((e) => LeadNewxWidget(lead: e))
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Column 2: Events (40%)
+                      Expanded(
+                        flex: 2,
+                        child: _buildSectionContainer(
+                          context,
+                          title: t['upcoming_events'] ?? 'Próximos Eventos',
+                          action: _buildSeeAllButtons(context, t),
+                          content: const Padding(
+                            padding: EdgeInsets.only(bottom: 20),
+                            child: EventCardWidget(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Column 1: Employees
+                      Expanded(
+                        child: _buildSectionContainer(
+                          context,
+                          title: t['employees'] ?? 'Empleados',
+                          content: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: data.employees
+                                .map(
+                                  (e) => const GregCard(),
+                                ) // Simplified for wrap
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Column 2: Services
+                      Expanded(
+                        child: _buildSectionContainer(
+                          context,
+                          title: t['services'] ?? 'Servicios',
+                          action: _buildSeeAllButtons(context, t),
+                          content: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: data.services
+                                .map((e) => ServiceMiniCardWidget(service: e))
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  // Mobile Vertical Layout
+                  _buildSectionContainer(
+                    context,
+                    title: t['recent_leads'] ?? 'Leads recientes',
+                    content: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: data.recentLeads
+                            .map(
+                              (e) => Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: LeadNewxWidget(lead: e),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildSectionContainer(
+                    context,
+                    title: t['employees'] ?? 'Empleados',
+                    content: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: data.employees
+                            .map(
+                              (e) => Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: const GregCard(),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildSectionContainer(
+                    context,
+                    title: t['services'] ?? 'Servicios',
+                    action: _buildSeeAllButtons(context, t),
+                    content: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: data.services
+                            .map(
+                              (e) => Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: ServiceMiniCardWidget(service: e),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildSectionContainer(
+                    context,
+                    title: t['events'] ?? 'Eventos',
+                    action: _buildSeeAllButtons(context, t),
+                    content: const Padding(
+                      padding: EdgeInsets.only(bottom: 20),
+                      child: EventCardWidget(),
+                    ),
+                  ),
+                ],
+
+                const EmptySpaceWidget(),
               ],
             ),
-            const SizedBox(height: 20),
-
-            // --- Leads Recientes ---
-            _buildSectionContainer(
-              context,
-              title: 'Leads recientes',
-              content: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: data.recentLeads
-                      .map(
-                        (e) => Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: LeadNewxWidget(lead: e),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // --- Empleados ---
-            _buildSectionContainer(
-              context,
-              title: 'Empleados',
-              content: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: data.employees
-                      .map(
-                        (e) => Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: const GregCard(),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // --- Servicios ---
-            _buildSectionContainer(
-              context,
-              title: 'Servicios',
-              action: _buildSeeAllButtons(context),
-              content: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: data.services
-                      .map(
-                        (e) => Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: ServiceMiniCardWidget(service: e),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // --- Eventos ---
-            _buildSectionContainer(
-              context,
-              title: 'Eventos',
-              action: _buildSeeAllButtons(context),
-              content: const Padding(
-                padding: EdgeInsets.only(bottom: 20),
-                child: EventCardWidget(),
-              ),
-            ),
-
-            const EmptySpaceWidget(),
-          ],
-        ),
+          );
+        },
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text("Error: $e")),
+      error: (e, st) {
+        debugPrint('Error in BusinessOverview: $e\n$st');
+        return Center(child: SelectableText("Error loading business data: $e"));
+      },
     );
   }
 
@@ -149,6 +260,7 @@ class BusinessOverviewWidget extends ConsumerWidget {
     required String percentage,
     required IconData iconData,
     required Color colorIconBg,
+    required String sinceText,
     String? iconAsset,
   }) {
     // Approximating FlutterFlowTheme.of(context).bg2Sec
@@ -208,7 +320,7 @@ class BusinessOverviewWidget extends ConsumerWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                'desde el mes pasado',
+                sinceText,
                 style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
               ),
             ],
@@ -263,7 +375,7 @@ class BusinessOverviewWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildSeeAllButtons(BuildContext context) {
+  Widget _buildSeeAllButtons(BuildContext context, Map<String, String> t) {
     return Row(
       children: [
         Container(
@@ -284,7 +396,7 @@ class BusinessOverviewWidget extends ConsumerWidget {
             border: Border.all(color: Colors.grey.withOpacity(0.2)),
           ),
           child: Text(
-            'Todos',
+            t['see_all'] ?? 'Todos',
             style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey),
           ),
         ),

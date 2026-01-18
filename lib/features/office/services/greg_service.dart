@@ -95,21 +95,18 @@ class GregService {
 
   // Update specifically Greg Cancellations (Form Data)
   Future<void> updateGregCancellations(GregModel greg) async {
-    debugPrint(
-      '💾 GregService: updateGregCancellations for businessId: ${greg.businessId}',
-    );
     try {
-      final Map<String, dynamic> fields = {
+      final fields = {
         'cancellations': greg.cancellations,
-        'allow_rescheduling': greg.allowRescheduling,
-        'cancellation_motive': greg.cancellationMotive,
-        'escalation_time_minutes': greg.escalationTimeMinutes,
+        'allow_rescheduling': greg.allowRescheduling.toString(),
+        'cancellation_motive': greg.cancellationMotive.toString(),
+        'escalation_time_minutes': greg.escalationTimeMinutes.toString(),
         'cancellation_documents': jsonEncode(greg.cancellationDocuments),
       };
 
-      await _apiService.putUrlEncoded(
-        '/employees/greg/business/${greg.businessId}',
-        fields,
+      await _apiService.putForm(
+        '/employees/greg/business/${greg.id}',
+        fields: fields,
       );
     } catch (e) {
       debugPrint('❌ Error updating Greg cancellations via API: $e');
@@ -119,22 +116,18 @@ class GregService {
 
   // Update specifically Greg Privacy and Excluded Contacts (Form Data)
   Future<void> updateGregPrivacy(GregModel greg) async {
-    debugPrint(
-      '💾 GregService: updateGregPrivacy for businessId: ${greg.businessId}',
-    );
     try {
-      final Map<String, dynamic> fields = {
+      final fields = {
         'privacy_policy': greg.privacyPolicy,
+        'blacklist': jsonEncode(greg.excludedPhones),
         'save_information': greg.saveInformation,
-        'ask_for_consent': greg.askForConsent,
+        'ask_for_consent': greg.askForConsent.toString(),
         'information_not_to_share': greg.informationNotToShare ?? '',
-        'excluded_phones': jsonEncode(greg.excludedPhones),
-        'blacklist': jsonEncode(greg.blacklist),
       };
 
-      await _apiService.putUrlEncoded(
-        '/employees/greg/business/${greg.businessId}',
-        fields,
+      await _apiService.putForm(
+        '/employees/greg/business/${greg.id}',
+        fields: fields,
       );
     } catch (e) {
       debugPrint('❌ Error updating Greg privacy via API: $e');
@@ -144,9 +137,6 @@ class GregService {
 
   // Update specifically Greg Procedures (Form Data)
   Future<void> updateGregProcedures(GregModel greg) async {
-    debugPrint(
-      '💾 GregService: updateGregProcedures for businessId: ${greg.businessId}',
-    );
     try {
       final Map<String, dynamic> fields = {
         'procedures': greg.procedures, // raw list for form array
@@ -155,9 +145,9 @@ class GregService {
         'cancellation_documents': jsonEncode(greg.cancellationDocuments),
       };
 
-      await _apiService.putUrlEncoded(
-        '/employees/greg/business/${greg.businessId}',
-        fields,
+      await _apiService.putForm(
+        '/employees/greg/business/${greg.id}',
+        fields: fields,
       );
     } catch (e) {
       debugPrint('❌ Error updating Greg procedures via API: $e');
@@ -167,9 +157,6 @@ class GregService {
 
   // Update specifically Greg Payments (Form Data)
   Future<void> updateGregPayments(GregModel greg) async {
-    debugPrint(
-      '💾 GregService: updateGregPayments for businessId: ${greg.businessId}',
-    );
     try {
       final String refundPolicy = greg.refundPolicy.isEmpty
           ? 'no_refund'
@@ -183,9 +170,9 @@ class GregService {
             greg.acceptedPaymentMethods, // raw list for form array
       };
 
-      await _apiService.putUrlEncoded(
-        '/employees/greg/business/${greg.businessId}',
-        fields,
+      await _apiService.putForm(
+        '/employees/greg/business/${greg.id}',
+        fields: fields,
       );
     } catch (e) {
       debugPrint('❌ Error updating Greg payments via API: $e');
@@ -195,18 +182,15 @@ class GregService {
 
   // Update specifically Greg Document Library (Form Data)
   Future<void> updateGregLibrary(GregModel greg) async {
-    debugPrint(
-      '💾 GregService: updateGregLibrary for businessId: ${greg.businessId}',
-    );
     try {
       final Map<String, dynamic> fields = {'library': jsonEncode(greg.library)};
 
-      await _apiService.putUrlEncoded(
-        '/employees/greg/business/${greg.businessId}',
-        fields,
+      await _apiService.putForm(
+        '/employees/greg/business/${greg.id}',
+        fields: fields,
       );
     } catch (e) {
-      print('Error updating Greg library via API: $e');
+      print('Error updating Greg library via Form API: $e');
       rethrow;
     }
   }

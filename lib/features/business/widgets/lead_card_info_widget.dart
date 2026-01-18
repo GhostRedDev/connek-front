@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../leads/models/lead_model.dart';
+import '../providers/business_provider.dart';
+import '../lead_details_page.dart'; // Import the new page
 
-class LeadCardInfoWidget extends StatelessWidget {
+class LeadCardInfoWidget extends ConsumerWidget {
   final Lead lead;
   const LeadCardInfoWidget({super.key, required this.lead});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Find service
+    final businessData = ref.watch(businessProvider).asData?.value;
+    Map<String, dynamic>? service;
+    if (businessData != null) {
+      try {
+        service = businessData.services.firstWhere(
+          (s) => s['id'] == lead.serviceId,
+          orElse: () => {},
+        );
+        if (service.isEmpty) service = null;
+      } catch (_) {}
+    }
+
     final name = '${lead.clientFirstName} ${lead.clientLastName}'.trim();
     final role = 'Cliente';
     // Logic for amount
@@ -114,7 +131,15 @@ class LeadCardInfoWidget extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          LeadDetailsPage(lead: lead, service: service),
+                    ),
+                  );
+                },
                 icon: const Icon(
                   Icons.remove_red_eye_outlined,
                   color: Colors.grey,

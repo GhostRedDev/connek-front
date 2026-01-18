@@ -9,6 +9,12 @@ import 'package:google_fonts/google_fonts.dart'; // Added
 import '../../core/providers/theme_provider.dart'; // Added
 import '../../features/settings/providers/profile_provider.dart'; // Added
 import '../../features/auth/widgets/auth_success_overlay.dart'; // Added
+import '../../features/notifications/providers/notification_provider.dart'; // Added
+import '../../features/call/services/call_service.dart'; // Added
+import '../../features/call/widgets/incoming_call_overlay.dart'; // Added
+import '../../core/providers/user_mode_provider.dart'; // Added
+
+import '../../core/providers/locale_provider.dart'; // Added for Localization
 
 // Removed local import of login_dropdown_button.dart since we are migrating it here
 // import '../../features/home/widgets/login_dropdown_button.dart';
@@ -123,8 +129,15 @@ class HeaderAction {
   final VoidCallback? onTap;
   final String? route;
   final Color? color;
+  final int badgeCount;
 
-  const HeaderAction({required this.icon, this.onTap, this.route, this.color});
+  const HeaderAction({
+    required this.icon,
+    this.onTap,
+    this.route,
+    this.color,
+    this.badgeCount = 0,
+  });
 }
 
 class HeaderData {
@@ -136,6 +149,7 @@ class HeaderData {
   final double? height;
   final bool isCustom;
   final List<String> tabs;
+  final Widget? bottomWidget;
 
   const HeaderData({
     this.title,
@@ -146,10 +160,16 @@ class HeaderData {
     this.height = 130,
     this.isCustom = false,
     this.tabs = const [],
+    this.bottomWidget,
   });
 }
 
-HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
+HeaderData getHeaderConfig(
+  String route,
+  bool isDark,
+  bool isLoggedIn,
+  Map<String, String> t,
+) {
   Widget logoWidget = Image.asset(
     isDark
         ? 'assets/images/conneck_logo_white.png'
@@ -173,42 +193,80 @@ HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
         ? [
             HeaderAction(
               icon: Icons.chat_bubble_outline_rounded,
-              onTap: () => print('Chat'),
+              route: '/chats',
+              // badgeCount defaulted to 0
             ),
             HeaderAction(
               icon: Icons.notifications_none_rounded,
-              onTap: () => print('Notify'),
+              route: '/notifications',
             ),
           ]
         : [];
 
-    return HeaderData(titleWidget: logoWidget, bgTrans: true, actions: actions);
+    // Home Header: Transparent, Logo, Actions
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      actions: actions,
+      height: 120, // Increased from 100 to fix overflow
+    );
   }
 
   if (route.startsWith('/business')) {
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: true,
-      height: 200,
-      tabs: ['Overview', 'Leads', 'Clientes'], // Standard tabs
+      height: 200, // Increased to 200 to clear safe area overflow
+      tabs: [
+        t['tab_overview'] ?? 'Overview',
+        t['tab_leads'] ?? 'Leads',
+        t['tab_clients'] ?? 'Clientes',
+        t['tab_sales'] ?? 'Ventas',
+        t['tab_services'] ?? 'Servicios',
+        t['tab_employees'] ?? 'Empleados',
+        t['tab_profile'] ?? 'Perfil',
+        t['tab_settings'] ?? 'Ajustes',
+      ],
+      // bottomWidget: _BusinessSubHeader(isDark: isDark), // Removed in favor of Tabs
       actions: [
         HeaderAction(icon: Icons.add_circle_outline),
-        HeaderAction(icon: Icons.chat_bubble_outline),
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
         HeaderAction(icon: Icons.notifications_none),
       ],
     );
   }
 
-  if (route.startsWith('/client')) {
+  // Specific exception for Support
+  if (route.contains('/client/dashboard/support')) {
     return HeaderData(
-      titleWidget: logoWidget,
-      bgTrans: true,
-      height: 200,
-      tabs: ['Overview', 'Market', 'Orders'], // Example tabs
+      title: t['header_support'] ?? 'Support',
+      bgTrans: true, // Transparent
+      showProfile: true,
       actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline),
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
         HeaderAction(icon: Icons.notifications_none),
       ],
+    );
+  }
+
+  if (route.contains('/client/dashboard/requests')) {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: false,
+      showProfile: true,
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
+  }
+
+  if (route == '/client') {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: false,
+      isCustom: true,
+      height: 0,
     );
   }
 
@@ -220,7 +278,7 @@ HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
       tabs: [], // Tab removed as per request (moved to Profile)
       actions: [
         HeaderAction(icon: Icons.add_circle_outline),
-        HeaderAction(icon: Icons.chat_bubble_outline),
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
         HeaderAction(icon: Icons.notifications_none),
       ],
     );
@@ -240,19 +298,69 @@ HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
   }
 
   if (route == '/search') {
-    return const HeaderData(
-      title: 'Search',
+    return HeaderData(
+      title: t['header_search'] ?? 'Search',
       bgTrans: false,
-      isCustom: false, // Show default header
+      isCustom: false,
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
     );
   }
 
-  if (route.startsWith('/chats')) {
-    return const HeaderData(title: 'Messages', bgTrans: false, isCustom: false);
+  if (route == '/chats') {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      actions: [
+        HeaderAction(icon: Icons.notifications_none),
+      ], // Removed badgeCount
+      showProfile: true,
+    );
+  }
+
+  if (route.startsWith('/chats/')) {
+    return const HeaderData(bgTrans: false, isCustom: true, height: 0);
+  }
+
+  if (route.startsWith('/profile')) {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: false, // Opaque (Normal Color)
+      showProfile: true,
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
   }
 
   if (route.startsWith('/settings')) {
-    return const HeaderData(title: 'Settings', bgTrans: false, isCustom: false);
+    return HeaderData(
+      titleWidget: logoWidget, // Replaced title text with Logo
+      // title: t['header_settings'] ?? 'Settings',
+      bgTrans: true, // Transparent
+      showProfile: true, // Show user avatar
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
+  }
+
+  // Auth Routes Configuration
+  if (route == '/login' ||
+      route == '/register' ||
+      route == '/forgot-password' ||
+      route == '/reset-password' ||
+      route == '/confirm-phone') {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      showProfile: false, // No profile on auth pages
+      actions: [], // No actions on auth pages
+    );
   }
 
   return HeaderData(titleWidget: logoWidget, bgTrans: false, height: 130);
@@ -262,62 +370,206 @@ HeaderData getHeaderConfig(String route, bool isDark, bool isLoggedIn) {
 // 4. MAIN LAYOUT - SIMPLIFICADO
 // ==============================================================================
 
-class AppLayout extends StatelessWidget {
+// ==============================================================================
+// 4. MAIN LAYOUT - SIMPLIFICADO
+// ==============================================================================
+
+class AppLayout extends ConsumerStatefulWidget {
   final Widget child;
 
   const AppLayout({required this.child, super.key});
 
   @override
+  ConsumerState<AppLayout> createState() => _AppLayoutState();
+}
+
+class _AppLayoutState extends ConsumerState<AppLayout> {
+  CallService? _callService;
+  Map<String, dynamic>? _incomingCall; // {call_id, caller}
+  int? _myDbId; // Client or Business ID
+
+  @override
+  void initState() {
+    super.initState();
+    _initCallService();
+  }
+
+  Future<void> _initCallService() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    // 1. Fetch My ID (Try Client first, then Business)
+    // Minimal optimization: check path? No, app layout is global.
+    // We check both.
+    final supabase = Supabase.instance.client;
+
+    try {
+      // Try Client
+      final clientRes = await supabase
+          .from('client')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      if (clientRes != null) {
+        _myDbId = clientRes['id'];
+      } else {
+        // Try Business
+        final businessRes = await supabase
+            .from('business')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        if (businessRes != null) {
+          _myDbId = businessRes['id'];
+        }
+      }
+
+      if (_myDbId != null) {
+        // 2. Initialize Service
+        // We create a standalone instance here.
+        // Ideally use a Provider, but manual management in shell is robust for listeners.
+        _callService = CallService(
+          supabase,
+          onOffer: (_) {},
+          onAnswer: (_) {},
+          onIceCandidate: (_) {},
+          onIncomingCall: (payload) {
+            if (mounted) {
+              setState(() {
+                _incomingCall = payload;
+                // Payload: {call_id, caller: {name, image}}
+              });
+            }
+          },
+        );
+
+        _callService!.listenToIncomingCalls(_myDbId!);
+      }
+    } catch (e) {
+      print('Error init call service: $e');
+    }
+
+    // 3. Initialize Global Notifications
+    // This ensures notifications are fetched regardless of which page we are on
+    // Use the provider's notifier to fetch.
+    // We delay slightly to ensure context/provider is ready if needed, currently safe in async.
+  }
+
+  @override
+  void dispose() {
+    _callService?.dispose();
+    super.dispose();
+  }
+
+  void _acceptCall() {
+    if (_incomingCall == null) return;
+    final callId = _incomingCall!['call_id'];
+    context.push('/call/$callId?isCaller=false');
+    setState(() {
+      _incomingCall = null;
+    });
+  }
+
+  void _declineCall() {
+    setState(() {
+      _incomingCall = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     final initialSession = Supabase.instance.client.auth.currentSession;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Pre-calculate config to check for tabs
-    // Note: We need isLoggedIn here if we want to be perfectly accurate with getHeaderConfig
-    // but strict tabs logic usually depends on route.
-    // Let's rely on route logic primarily or handle isLoggedIn inside builder.
-    // For TABS, let's assume they exist if the route says so.
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       initialData: initialSession != null
           ? AuthState(AuthChangeEvent.signedIn, initialSession)
           : null,
       builder: (context, snapshot) {
+        // Show loading while initializing logic if session restoration is pending
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            initialSession == null) {
+          return const MaterialApp(
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+          );
+        }
+
         final session = snapshot.data?.session;
         final bool isLoggedIn = session != null;
 
-        // Re-get config with correct auth state
-        final activeConfig = getHeaderConfig(location, isDark, isLoggedIn);
+        // Get Translations
+        final tAsync = ref.watch(translationProvider);
+        final t = tAsync.value ?? {};
+
+        // Re-get config with correct auth state and translation
+        final activeConfig = getHeaderConfig(location, isDark, isLoggedIn, t);
         final hasTabs = activeConfig.tabs.isNotEmpty;
 
         Widget scaffold = Scaffold(
-          // Use theme background (handles both Dark #131619 and Light #F5F7FA)
+          // Use theme background
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: Stack(
-            children: [
-              // Contenido principal
-              child,
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 900;
+              final showSidebar = isLoggedIn && isDesktop;
+              // Hide BottomBar if on desktop OR if in Chat views (to avoid overlay)
+              final bool isChatView =
+                  location.startsWith('/chats') ||
+                  location.startsWith('/chat/');
+              final showBottomBar = isLoggedIn && !isDesktop && !isChatView;
 
-              // AppBar moderno
-              _ModernGlassAppBar(location: location),
+              return Row(
+                children: [
+                  // Desktop Sidebar
+                  if (showSidebar) _ModernSidebar(activeRoute: location),
 
-              // NavBar solo si está logueado
-              if (isLoggedIn)
-                const Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _ModernGlassNavBar(),
-                ),
-            ],
+                  // Main Content
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        // Content
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: (activeConfig.isCustom || activeConfig.bgTrans)
+                                ? 0
+                                : (activeConfig.height ?? 0),
+                          ),
+                          child: widget.child,
+                        ),
+
+                        // AppBar moderno (Top)
+                        _ModernGlassAppBar(location: location),
+
+                        // NavBar (Bottom) - Mobile Only
+                        if (showBottomBar)
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _ModernGlassNavBar(),
+                          ),
+
+                        // INCOMING CALL OVERLAY
+                        if (_incomingCall != null)
+                          IncomingCallOverlay(
+                            caller: _incomingCall!['caller'] ?? {},
+                            onAccept: _acceptCall,
+                            onDecline: _declineCall,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         );
 
-        // Always wrap in DefaultTabController to maintain widget tree stability.
-        // If no tabs, use length 1 (dummy).
+        // Always wrap in DefaultTabController
         return DefaultTabController(
+          key: ValueKey(hasTabs ? activeConfig.tabs.length : 1),
           length: hasTabs ? activeConfig.tabs.length : 1,
           child: scaffold,
         );
@@ -327,20 +579,213 @@ class AppLayout extends StatelessWidget {
 }
 
 // ==============================================================================
+// 4b. DESKTOP SIDEBAR
+// ==============================================================================
+
+class _ModernSidebar extends StatelessWidget {
+  final String activeRoute;
+
+  const _ModernSidebar({required this.activeRoute});
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch Translations for sidebar
+    // Since this is Stateless, we need to convert to ConsumerWidget OR Consumer
+    // Or just pass 't' but this widget is called from LayoutBuilder which is inside ConsumerState
+    // Actually, AppLayout is ConsumerStateful, BUT _ModernSidebar is stateless.
+    // Let's use Consumer here.
+    return Consumer(
+      builder: (context, ref, _) {
+        final tAsync = ref.watch(translationProvider);
+        final t = tAsync.value ?? {};
+
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        // Check active
+        bool isActive(String route) => activeRoute.startsWith(route);
+
+        return Container(
+          width: 250,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131619) : Colors.white,
+            border: Border(
+              right: BorderSide(
+                color: isDark
+                    ? Colors.white10
+                    : (Colors.grey[200] ?? Colors.grey),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 32),
+              // Logo Area in Sidebar?
+              Image.asset(
+                isDark
+                    ? 'assets/images/conneck_logo_white.png'
+                    : 'assets/images/conneck_logo_dark.png',
+                height: 40,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 40),
+
+              // Nav Items
+              _SidebarItem(
+                icon: Icons.shopping_bag_outlined,
+                label: t['header_buy'] ?? 'Buy (Client)',
+                isActive: isActive('/client'),
+                onTap: () => context.go('/client'),
+              ),
+              _SidebarItem(
+                icon: Icons.receipt_long_outlined,
+                label: t['header_sell'] ?? 'Sell (Business)',
+                isActive: isActive('/business'),
+                onTap: () => context.go('/business'),
+              ),
+              _SidebarItem(
+                icon: Icons.cleaning_services_outlined,
+                label: t['header_office'] ?? 'Backoffice',
+                isActive: isActive('/office'),
+                onTap: () => context.go('/office'),
+              ),
+
+              const Spacer(),
+
+              // Bottom items (Messages, Settings) could go here too
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: _SidebarItem(
+                  icon: Icons.settings_outlined,
+                  label: t['header_settings'] ?? 'Settings',
+                  isActive: isActive('/settings'),
+                  onTap: () => context.push('/settings'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isActive
+        ? const Color(0xFF4285F4)
+        : (isDark ? Colors.white70 : Colors.black54);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: isActive
+            ? (isDark ? const Color(0xFF1E2530) : const Color(0xFFE8F0FE))
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Pooling(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    color: color,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class Pooling extends StatelessWidget {
+  final EdgeInsets padding;
+  final Widget child;
+  const Pooling({super.key, required this.padding, required this.child});
+  @override
+  Widget build(context) => Padding(padding: padding, child: child);
+}
+
+// ==============================================================================
 // 5. APPBAR MODERNO (SIMPLE & CLEAN)
 // ==============================================================================
 
-class _ModernGlassAppBar extends StatelessWidget {
+class _ModernGlassAppBar extends ConsumerWidget {
   final String location;
 
   const _ModernGlassAppBar({required this.location});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Check auth synchronously for header state (or we could pass it down)
     final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
-    final HeaderData config = getHeaderConfig(location, isDark, isLoggedIn);
+
+    // Watch Notifications
+    final notificationState = ref.watch(notificationProvider);
+    final notificationList = notificationState.value ?? [];
+    final unreadNotifications = notificationList.where((n) => !n.isRead).length;
+
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
+    HeaderData config = getHeaderConfig(location, isDark, isLoggedIn, t);
+
+    // Inject real data into config actions if they exist
+    if (config.actions.isNotEmpty) {
+      final newActions = config.actions.map((a) {
+        // Check for both rounded and normal notification icons
+        if (a.icon == Icons.notifications_none ||
+            a.icon == Icons.notifications_none_rounded) {
+          return HeaderAction(
+            icon: a.icon,
+            route: '/notifications',
+            badgeCount: unreadNotifications,
+            onTap: () => context.push('/notifications'),
+          );
+        }
+        if (a.icon == Icons.chat_bubble_outline && a.badgeCount > 0) {
+          // Keep chat mock or link to real chat provider later
+          return a;
+        }
+        return a;
+      }).toList();
+
+      config = HeaderData(
+        title: config.title,
+        titleWidget: config.titleWidget,
+        actions: newActions,
+        bgTrans: config.bgTrans,
+        showProfile: config.showProfile,
+        height: config.height,
+        isCustom: config.isCustom,
+        tabs: config.tabs,
+        bottomWidget: config.bottomWidget, // Include bottomWidget!
+      );
+    }
 
     if (config.isCustom) {
       return const SizedBox.shrink();
@@ -354,7 +799,7 @@ class _ModernGlassAppBar extends StatelessWidget {
         children: [
           // TOP ROW (Logo + Icons)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -370,12 +815,25 @@ class _ModernGlassAppBar extends StatelessWidget {
                       IconButton(
                         icon: Icon(
                           Icons.close,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF1A1D21),
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 28,
                         ),
                         onPressed: () => context.pop(),
+                      )
+                    else if (location == '/chats' && config.titleWidget != null)
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              size: 28,
+                            ),
+                            onPressed: () => context.go('/'),
+                          ),
+                          const SizedBox(width: 8),
+                          config.titleWidget!,
+                        ],
                       )
                     else
                     // Standard Title/Logo
@@ -385,9 +843,7 @@ class _ModernGlassAppBar extends StatelessWidget {
                       Text(
                         config.title!,
                         style: TextStyle(
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF1A1D21),
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'Roboto',
@@ -400,26 +856,56 @@ class _ModernGlassAppBar extends StatelessWidget {
                     ...config.actions.map(
                       (action) => Padding(
                         padding: const EdgeInsets.only(right: 12),
-                        child: IconButton(
-                          icon: Icon(
-                            action.icon,
-                            color:
-                                action.color ??
-                                (isDark
-                                    ? Colors.white70
-                                    : const Color(0xFF1A1D21)),
-                            size: 28,
-                          ),
-                          onPressed:
-                              action.onTap ??
-                              () {
-                                if (action.route != null) {
-                                  context.push(action.route!);
-                                }
-                              },
-                          style: IconButton.styleFrom(
-                            padding: const EdgeInsets.all(8),
-                          ),
+                        child: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                action.icon,
+                                color:
+                                    action.color ??
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.7),
+                                size: 28,
+                              ),
+                              onPressed:
+                                  action.onTap ??
+                                  () {
+                                    if (action.route != null) {
+                                      context.push(action.route!);
+                                    }
+                                  },
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(8),
+                              ),
+                            ),
+                            if (action.badgeCount > 0)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${action.badgeCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -442,17 +928,13 @@ class _ModernGlassAppBar extends StatelessWidget {
 
           // TABS ROW (If present)
           if (config.tabs.isNotEmpty) ...[
-            const Spacer(),
+            const SizedBox(height: 8),
             Container(
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.grey.withOpacity(
-                            0.2,
-                          ), // Gray border for Light Mode
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
                     width: 1,
                   ),
                 ),
@@ -465,11 +947,13 @@ class _ModernGlassAppBar extends StatelessWidget {
                   vertical: 8,
                 ),
                 indicator: BoxDecoration(
-                  color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                  color: Theme.of(context).colorScheme.onSurface,
                   borderRadius: BorderRadius.circular(50),
                 ),
-                labelColor: isDark ? const Color(0xFF1A1D21) : Colors.white,
-                unselectedLabelColor: isDark ? Colors.white70 : Colors.black54,
+                labelColor: Theme.of(context).colorScheme.surface,
+                unselectedLabelColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.6),
                 // We need google fonts imported here, assuming it is.
                 // If not, we use system font or standard TextStyles.
                 // Assuming imported as project uses it.
@@ -484,46 +968,51 @@ class _ModernGlassAppBar extends StatelessWidget {
               ),
             ),
           ],
+
+          // Display Custom Bottom Widget (e.g., Business Chips)
+          if (config.bottomWidget != null) config.bottomWidget!,
         ],
       ),
     );
 
     // ============================================
-    // ¡APPBAR REALMENTE TRANSPARENTE!
+    // ¡APPBAR SIN BLUR (SOLIDO O TRANSPARENTE)!
     // ============================================
 
-    // Para homepage y otras paginas con fondo transparente - GLASS SUTIL
-    // Para homepage y otras paginas con fondo transparente - GLASS SUTIL
+    // Si la config pide transparencia (Ej: Home), lo hacemos totalmente transparente sin blur.
     if (config.bgTrans) {
-      return Align(
-        alignment: Alignment.topCenter,
-        child: ModernGlass(
-          height: config.height ?? 100,
-          width: double.infinity,
-          borderRadius: 0,
-          opacity: isDark
-              ? 0.01
-              : 0.65, // More visible/comfortable glass in Light Mode
-          blur: isDark ? 10 : 20, // Stronger blur in light mode for comfort
-          border: false, // Sin borde para look limpio
-          tintColor: isDark ? Colors.black : Colors.white,
+      return Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        height: config.height ?? 120, // Default increased to 120 safe
+        child: Container(
+          // No color set -> Transparent and allows click-through to body
+          // This allows scrolling the list even if starting drag on header area (except on buttons)
           child: innerContent,
         ),
       );
     }
 
-    // Para otras páginas - MODERN GLASS
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ModernGlass(
-        height: config.height ?? 100,
-        width: double.infinity,
-        borderRadius: 0,
-        opacity: 0.02, // Ultra transparent as per user request
-        blur: 30, // High blur
-        border: true, // Show border to define "App Bar" area
-        tintColor: isDark ? Colors.black : Colors.white,
-        child: innerContent,
+    // Para el resto (Ej: Search, Business), usamos color sólido del tema.
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      height: config.height ?? 130,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Solid color for opacity
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
+        ),
+        child: innerContent, // Content (Buttons, etc.)
       ),
     );
   }
@@ -533,41 +1022,92 @@ class _ModernGlassAppBar extends StatelessWidget {
 // 6. NAVIGATION BAR MODERNO
 // ==============================================================================
 
-class _ModernGlassNavBar extends StatelessWidget {
+class _ModernGlassNavBar extends ConsumerWidget {
   const _ModernGlassNavBar();
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isBusinessMode = ref.watch(userModeProvider);
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
     bool isActive(String route) =>
         GoRouterState.of(context).uri.toString().startsWith(route);
 
-    // Identify if we are in the office section to apply custom styles
-    // bool isOffice = isActive('/office'); // Unused for now as we want standard styling
+    if (!isBusinessMode) {
+      // --- CLIENT VIEW (Strictly 3 buttons) ---
+      return SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            child: ModernGlass(
+              height: 70,
+              borderRadius: 35,
+              opacity: 0.08,
+              blur: 30,
+              border: true,
+              tintColor: Theme.of(context).cardColor,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(
+                    context,
+                    Icons.shopping_bag_outlined,
+                    t['nav_requests'] ?? 'Compras',
+                    '/client/dashboard/requests',
+                    isActive('/client/dashboard/requests'),
+                  ),
+                  _buildNavItem(
+                    context,
+                    Icons.search_rounded,
+                    t['nav_market'] ?? 'Buscar',
+                    '/search',
+                    isActive('/search'),
+                  ),
+                  _buildNavItem(
+                    context,
+                    Icons.help_outline_rounded,
+                    t['nav_support'] ?? 'Soporte',
+                    '/client/dashboard/support', // Placeholder
+                    isActive('/client/dashboard/support'),
+                  ),
+                  _buildNavItem(
+                    context,
+                    Icons.person_outline_rounded,
+                    t['nav_profile'] ?? 'Perfil',
+                    '/profile',
+                    isActive('/profile'),
+                  ),
+                  // Note: FAB is hidden in Client Mode as per "son solo estos"
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
+    // --- BUSINESS / ADMIN VIEW (Legacy + Search FAB) ---
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Row(
           children: [
-            // Barra de navegación principal
             Expanded(
               child: ModernGlass(
                 height: 70,
                 borderRadius: 35,
-                opacity: 0.08, // More transparent
-                blur: 30, // Higher blur
+                opacity: 0.08,
+                blur: 30,
                 border: true,
-                tintColor: isDark ? Colors.black : Colors.white,
-                child: _buildNavItems(context, isActive),
+                tintColor: Theme.of(context).cardColor,
+                child: _buildNavItems(context, isActive, t),
               ),
             ),
-
             const SizedBox(width: 16),
-
-            // Botón de búsqueda (FAB)
             ModernGlass(
               height: 60,
               width: 60,
@@ -597,28 +1137,32 @@ class _ModernGlassNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItems(BuildContext context, bool Function(String) isActive) {
+  Widget _buildNavItems(
+    BuildContext context,
+    bool Function(String) isActive,
+    Map<String, String> t,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildNavItem(
           context,
           Icons.shopping_bag_outlined,
-          'Buy',
+          t['nav_buy'] ?? 'Buy',
           '/client',
           isActive('/client'),
         ),
         _buildNavItem(
           context,
           Icons.receipt_long_outlined,
-          'Sell',
+          t['nav_sell'] ?? 'Sell',
           '/business',
           isActive('/business'),
         ),
         _buildNavItem(
           context,
           Icons.cleaning_services_outlined,
-          'Office',
+          t['nav_office'] ?? 'Office',
           '/office',
           isActive('/office'),
         ),
@@ -633,7 +1177,10 @@ class _ModernGlassNavBar extends StatelessWidget {
     String route,
     bool active,
   ) {
-    final color = active ? const Color(0xFF4285F4) : Colors.white70;
+    // Only use blue accent if active
+    final color = active
+        ? Theme.of(context).colorScheme.secondary
+        : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
 
     return Expanded(
       child: Material(
@@ -650,11 +1197,11 @@ class _ModernGlassNavBar extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   label,
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
+                    // Use Layout's imported font
                     color: color,
                     fontSize: 10,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    fontFamily: 'Inter',
                   ),
                 ),
               ],
@@ -759,9 +1306,22 @@ class LoginDropdownButton extends ConsumerWidget {
             Supabase.instance.client.auth.currentSession;
         final bool isLoggedIn = session != null;
 
+        final isBusinessMode = ref.watch(userModeProvider);
         final profileState = ref.watch(profileProvider);
         final user = profileState.value;
         final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        // Resolve Image Source
+        String? displayImage;
+        if (isLoggedIn && user != null) {
+          if (isBusinessMode) {
+            // Use Business Profile Image
+            displayImage = user.businessProfileImage ?? user.photoId;
+          } else {
+            // Use Client Profile Image
+            displayImage = user.photoId;
+          }
+        }
 
         return InkWell(
           onTap: () {
@@ -774,11 +1334,13 @@ class LoginDropdownButton extends ConsumerWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: isLoggedIn
-                  ? const LinearGradient(
-                      colors: [
-                        Color(0xFF4285F4),
-                        Color(0xFF90CAF9),
-                      ], // Blue gradient for Auth
+                  ? LinearGradient(
+                      colors: isBusinessMode
+                          ? [
+                              Colors.purpleAccent,
+                              Colors.deepPurple,
+                            ] // Differentiate Business Border
+                          : [const Color(0xFF4285F4), const Color(0xFF90CAF9)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
@@ -798,24 +1360,28 @@ class LoginDropdownButton extends ConsumerWidget {
                 color: Colors.black.withOpacity(0.4), // Inner bg
                 image:
                     (isLoggedIn &&
-                        user?.photoId != null &&
-                        user!.photoId!.isNotEmpty)
+                        displayImage != null &&
+                        displayImage.isNotEmpty)
                     ? DecorationImage(
-                        image: CachedNetworkImageProvider(user.photoId!),
+                        image: CachedNetworkImageProvider(displayImage),
                         fit: BoxFit.cover,
                       )
                     : null,
               ),
               child:
                   (isLoggedIn &&
-                      user?.photoId != null &&
-                      user!.photoId!.isNotEmpty)
+                      displayImage != null &&
+                      displayImage.isNotEmpty)
                   ? null // Image is in decoration
                   : Center(
                       child: Icon(
-                        isLoggedIn ? Icons.person : Icons.person_outline,
+                        isLoggedIn
+                            ? (isBusinessMode
+                                  ? Icons.store_mall_directory_outlined
+                                  : Icons.person)
+                            : Icons.person_outline,
                         color: Colors.white,
-                        size: 28, // Increased from 24
+                        size: 20, // Adjusted size
                       ),
                     ),
             ),
@@ -948,6 +1514,7 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
                     fullName,
                     email,
                     profile?.photoId,
+                    ref,
                   )
                 else
                   _buildGuestView(context),
@@ -973,10 +1540,20 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     String name,
     String email,
     String? photoUrl,
+    WidgetRef ref, // Add ref to fetch providers
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
     final subTextColor = isDark ? Colors.grey[500] : Colors.grey[600];
+
+    // Access Providers
+    final isBusinessMode = ref.watch(userModeProvider);
+    final profile = ref.watch(profileProvider).value;
+    final hasBusiness = profile?.hasBusiness ?? false;
+
+    // Translations
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {}; // Default to empty map if loading
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -984,7 +1561,7 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'Accounts',
+            t['switch_account'] ?? 'Switch Account Mode',
             style: GoogleFonts.inter(
               color: subTextColor,
               fontSize: 12,
@@ -996,70 +1573,72 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
         Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1),
         const SizedBox(height: 12),
 
-        // Active Account Item
-        // Active Account Item (Tap to View Profile)
-        InkWell(
+        // 1. CLIENT ACCOUNT
+        _buildAccountOption(
+          context: context,
+          isSelected: !isBusinessMode,
+          name: name.isEmpty ? (t['client_account'] ?? 'Client User') : name,
+          subtitle: t['client_account'] ?? 'Personal Account',
+          photoUrl: photoUrl,
+          icon: Icons.person_rounded,
           onTap: () {
+            ref.read(userModeProvider.notifier).setMode(false);
             context.pop(); // Close sheet
-            context.push('/profile'); // Go to main profile
+            // Optionally navigate to home to refresh view
+            if (widget.currentRoute != '/client/dashboard/requests') {
+              // Context might be unstable for .go if not carefully handled, but usually safe.
+              // Better: use the GoRouter attached to the context safe way?
+              // Actually context.go is an extension.
+              // The issue was GoRouterState.of(context) which fails.
+              // context.go() does lookup too but finding the Delegate not the State.
+              context.go('/client/dashboard/requests');
+            }
           },
-          borderRadius: BorderRadius.circular(50),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4F87C9).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(50),
-              border: Border.all(color: const Color(0xFF4F87C9), width: 1),
-            ),
-            child: Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4F87C9),
-                    shape: BoxShape.circle,
-                    image: (photoUrl != null && photoUrl.isNotEmpty)
-                        ? DecorationImage(
-                            image: CachedNetworkImageProvider(photoUrl),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: (photoUrl != null && photoUrl.isNotEmpty)
-                      ? null
-                      : const Icon(Icons.person, color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    name.isEmpty ? 'Usuario' : name,
-                    style: GoogleFonts.inter(
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                // Changed check icon to Arrow Forward to indicate navigation
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Color(0xFF4F87C9),
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
         ),
 
         const SizedBox(height: 12),
 
-        // Add Account Button (Fast Switcher)
+        // 2. BUSINESS ACCOUNT (If exists)
+        if (hasBusiness)
+          _buildAccountOption(
+            context: context,
+            isSelected: isBusinessMode,
+            name:
+                profile?.businessName ??
+                (t['business_account'] ?? 'My Business'),
+            subtitle: t['business_account'] ?? 'Business Account',
+            photoUrl:
+                profile?.businessProfileImage, // Use the image from profile
+            icon: Icons.store_rounded,
+            onTap: () {
+              ref.read(userModeProvider.notifier).setMode(true);
+              context.pop();
+              context.go('/business');
+            },
+          )
+        else
+          // Upsell/Create Business Optional
+          _buildAccountOption(
+            context: context,
+            isSelected: false,
+            name: t['create_business_title'] ?? 'Create Business',
+            subtitle: t['create_business_subtitle'] ?? 'Start selling services',
+            icon: Icons.add_business_rounded,
+            onTap: () {
+              context.pop();
+              // Navigate to create business flow
+              // context.push('/business/create');
+            },
+            isAction: true,
+          ),
+
+        const SizedBox(height: 12),
+
+        // Add Account Button (Restore)
         InkWell(
           onTap: () {
-            // TODO: fast account switching logic (verify 'remember me')
-            context.push('/login'); // For now, allow logging in as another user
+            // TODO: fast account switching logic or login
+            context.push('/login');
           },
           borderRadius: BorderRadius.circular(50),
           child: Container(
@@ -1068,7 +1647,9 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(50),
               border: Border.all(
-                color: isDark ? Colors.white24 : Colors.grey[300]!,
+                color: isDark
+                    ? Colors.white24
+                    : (Colors.grey[300] ?? Colors.grey),
                 width: 1,
               ),
             ),
@@ -1081,13 +1662,17 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
                     color: isDark ? Colors.grey[800] : Colors.grey[200],
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.add, color: textColor, size: 20),
+                  child: Icon(
+                    Icons.add,
+                    color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Add another account',
+                  t['add_account'] ?? 'Add another account',
                   style: GoogleFonts.inter(
-                    color: textColor,
+                    color: isDark ? Colors.white : const Color(0xFF1A1D21),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1096,11 +1681,36 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
           ),
         ),
 
-        // Placeholder for other accounts (if any)
-        // ...
-        const SizedBox(height: 30),
+        const SizedBox(height: 20),
 
-        // Footer: Business Name/Email + Settings + Logout
+        // --- LANGUAGE SWITCHER ---
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            t['menu_language'] ?? 'Language / Idioma',
+            style: GoogleFonts.inter(
+              color: subTextColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildLangChip(context, ref, 'English', 'en', '🇺🇸'),
+              _buildLangChip(context, ref, 'Español', 'es', '🇪🇸'),
+              _buildLangChip(context, ref, 'Français', 'fr', '🇫🇷'),
+              _buildLangChip(context, ref, 'Русский', 'ru', '🇷🇺'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Footer: Signed in as + Settings + Logout
         Row(
           children: [
             Expanded(
@@ -1108,7 +1718,7 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Signed in as',
+                    t['signed_in_as'] ?? 'Signed in as',
                     style: GoogleFonts.inter(color: subTextColor, fontSize: 10),
                   ),
                   const SizedBox(height: 2),
@@ -1142,17 +1752,13 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
               ), // Using blue accent for logout actions in this design
               onTap: () async {
                 await Supabase.instance.client.auth.signOut();
-                // Close bottom sheet first
                 if (context.mounted) {
                   context.pop();
-
-                  // Show Custom Neon Overlay
                   await showAuthSuccessDialog(
                     context,
-                    message: 'Gracias por visitar Connect.\\nAdiosss.',
+                    message: 'Gracias por visitar Connek.\\nAdiosss.',
                     isLogin: false,
                   );
-
                   if (context.mounted) context.go('/');
                 }
               },
@@ -1160,6 +1766,153 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildLangChip(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+    String code,
+    String flag,
+  ) {
+    final currentLocale = ref.watch(localeProvider);
+    final isSelected = currentLocale == code;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: () => ref.read(localeProvider.notifier).setLocale(code),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF4F87C9)
+                : (isDark ? Colors.white10 : Colors.grey[200]),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? Colors.white70 : Colors.black87),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountOption({
+    required BuildContext context,
+    required bool isSelected,
+    required String name,
+    required String? subtitle,
+    String? photoUrl,
+    IconData? icon,
+    required VoidCallback onTap,
+    bool isAction = false,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
+    final borderColor = isSelected
+        ? const Color(0xFF4F87C9)
+        : (isDark ? Colors.white24 : (Colors.grey[300] ?? Colors.grey));
+    final bgColor = isSelected
+        ? const Color(0xFF4F87C9).withOpacity(0.15)
+        : Colors.transparent;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Row(
+          children: [
+            // Avatar / Icon
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF4F87C9)
+                    : (isDark ? Colors.grey[800] : Colors.grey[200]),
+                shape: BoxShape.circle,
+                image: (photoUrl != null && photoUrl.isNotEmpty)
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(photoUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: (photoUrl != null && photoUrl.isNotEmpty)
+                  ? null
+                  : Icon(
+                      icon ?? Icons.person,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? Colors.white70 : Colors.black54),
+                      size: 20,
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: GoogleFonts.inter(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Color(0xFF4F87C9), size: 20)
+            else if (!isAction)
+              const Icon(
+                Icons.radio_button_unchecked,
+                color: Colors.grey,
+                size: 20,
+              ),
+            if (isAction)
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+          ],
+        ),
+      ),
     );
   }
 
