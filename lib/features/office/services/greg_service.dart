@@ -240,4 +240,82 @@ class GregService {
       rethrow;
     }
   }
+
+  // Create Test Conversation
+  Future<Map<String, dynamic>?> createTestConversation({
+    required String client1Id,
+    required String business2Id,
+  }) async {
+    debugPrint('📡 GregService: Creating test conversation...');
+    try {
+      final body = {
+        "client1": int.tryParse(client1Id) ?? client1Id,
+        "client2": int.tryParse(client1Id) ?? client1Id,
+        "client1_business": false,
+        "client2_business": true,
+        "business2": int.tryParse(business2Id) ?? business2Id,
+        "bot_active": true,
+      };
+
+      final response = await _apiService.postUrlEncoded(
+        '/messages/conversation/',
+        body,
+      );
+
+      if (response != null &&
+          (response['success'] == true || response['conversation'] != null)) {
+        return response['conversation'] ?? response['data'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ GregService: Error creating conversation: $e');
+      rethrow;
+    }
+  }
+
+  // Get Messages
+  Future<List<dynamic>> getConversationMessages(String conversationId) async {
+    try {
+      final response = await _apiService.get(
+        '/messages/conversation/$conversationId/messages',
+      );
+      if (response != null) {
+        // Handle both simple list or {data: list}
+        final data = response['data'];
+        if (data is List) return data;
+        if (response is List) return response;
+      }
+      return [];
+    } catch (e) {
+      // debugPrint('❌ GregService: Error fetching messages: $e');
+      return [];
+    }
+  }
+
+  // Send Message
+  Future<bool> sendTestMessage({
+    required String conversationId,
+    required String content,
+    required String senderId,
+    required String receiverBusinessId,
+  }) async {
+    try {
+      final body = {
+        "conversation_id": int.tryParse(conversationId) ?? conversationId,
+        "content": content,
+        "content_type": "text",
+        "sender": int.tryParse(senderId) ?? senderId,
+        "receiver":
+            int.tryParse(senderId) ??
+            senderId, // Reverting to User ID (Hack) to avoid FK error on BusinessID
+      };
+
+      final response = await _apiService.post('/messages/send/', body: body);
+
+      return response != null && response['success'] == true;
+    } catch (e) {
+      debugPrint('❌ GregService: Error sending message: $e');
+      rethrow;
+    }
+  }
 }

@@ -51,7 +51,9 @@ import '../../features/business/wizard/create_business_step_7.dart';
 import '../../features/business/wizard/create_business_step_8.dart';
 import '../../features/office/office_page.dart';
 import '../../features/office/widgets/office_train_greg_page.dart';
+
 import '../../features/office/widgets/office_settings_greg_page.dart';
+import '../../features/office/widgets/greg_test_chat_page.dart';
 
 // Providers for Redirection Logic
 import '../providers/user_mode_provider.dart';
@@ -146,6 +148,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/chats/new',
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const NewChatPage(),
+      ),
+
+      GoRoute(
+        path: '/test-greg/:businessId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final businessId =
+              int.tryParse(state.pathParameters['businessId'] ?? '') ?? 0;
+          return GregTestChatPage(businessId: businessId);
+        },
       ),
 
       // --- AUTHORIZED & GUEST (Unified Shell) ---

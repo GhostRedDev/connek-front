@@ -2,7 +2,8 @@ import 'dart:convert';
 
 class GregModel {
   final int id;
-  final String cancellations; // Renamed from cancellationPolicy
+  final int businessId; // Added back
+  final String cancellations;
   final bool allowRescheduling;
   final bool cancellationMotive;
   final List<String> procedures;
@@ -16,6 +17,7 @@ class GregModel {
   final String? refundPolicyDetails;
   final int escalationTimeMinutes;
   final List<String> cancellationDocuments;
+  final List<String> blacklist; // Added back
   final List<Map<String, String>> excludedPhones;
   final List<Map<String, String>> library;
   final String conversationTone;
@@ -30,6 +32,7 @@ class GregModel {
 
   GregModel({
     required this.id,
+    this.businessId = 0,
     this.cancellations = '',
     this.allowRescheduling = false,
     this.cancellationMotive = false,
@@ -44,6 +47,7 @@ class GregModel {
     this.refundPolicyDetails,
     this.escalationTimeMinutes = 0,
     this.cancellationDocuments = const [],
+    this.blacklist = const [],
     this.excludedPhones = const [],
     this.library = const [],
     this.conversationTone = 'friendly',
@@ -149,6 +153,7 @@ class GregModel {
   Map<String, dynamic> toJson() {
     return {
       'cancellations': cancellations,
+      'business_id': businessId,
       'allow_rescheduling': allowRescheduling,
       'cancellation_motive': cancellationMotive,
       'procedures': procedures,
@@ -162,7 +167,8 @@ class GregModel {
       'refund_policy_details': refundPolicyDetails,
       'escalation_time_minutes': escalationTimeMinutes,
       'cancellation_documents': cancellationDocuments,
-      'blacklist': excludedPhones,
+      'blacklist': blacklist,
+      'excluded_phones': excludedPhones,
       'library': library,
       'conversation_tone': conversationTone,
       'notifications': notifications,
@@ -175,6 +181,7 @@ class GregModel {
   }
 
   GregModel copyWith({
+    int? businessId,
     String? cancellations,
     bool? allowRescheduling,
     bool? cancellationMotive,
@@ -189,6 +196,7 @@ class GregModel {
     String? refundPolicyDetails,
     int? escalationTimeMinutes,
     List<String>? cancellationDocuments,
+    List<String>? blacklist,
     List<Map<String, String>>? excludedPhones,
     List<Map<String, String>>? library,
     String? conversationTone,
@@ -201,6 +209,7 @@ class GregModel {
   }) {
     return GregModel(
       id: id,
+      businessId: businessId ?? this.businessId,
       cancellations: cancellations ?? this.cancellations,
       allowRescheduling: allowRescheduling ?? this.allowRescheduling,
       cancellationMotive: cancellationMotive ?? this.cancellationMotive,
@@ -219,6 +228,7 @@ class GregModel {
           escalationTimeMinutes ?? this.escalationTimeMinutes,
       cancellationDocuments:
           cancellationDocuments ?? this.cancellationDocuments,
+      blacklist: blacklist ?? this.blacklist,
       excludedPhones: excludedPhones ?? this.excludedPhones,
       library: library ?? this.library,
       conversationTone: conversationTone ?? this.conversationTone,

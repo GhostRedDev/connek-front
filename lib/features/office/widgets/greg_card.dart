@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../providers/greg_provider.dart';
 
-class GregCard extends StatelessWidget {
+class GregCard extends ConsumerWidget {
   const GregCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       width: 170, // Approximate width from screenshot
       height: 220, // Approximate height
@@ -82,6 +84,27 @@ class GregCard extends StatelessWidget {
                           ),
                         ),
                         child: const Text('Entrenar'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Test Icon
+                    InkWell(
+                      onTap: () {
+                        final state = ref.read(gregProvider);
+                        if (state is GregLoaded) {
+                          context.push('/test-greg/${state.greg.businessId}');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Greg no está listo aún.'),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Icon(
+                        Icons.chat_bubble_outline,
+                        color: Colors.white,
+                        size: 22,
                       ),
                     ),
                     const SizedBox(width: 8),

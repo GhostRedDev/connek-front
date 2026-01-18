@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../providers/office_provider.dart';
 import '../../../core/models/greg_model.dart';
 import '../../settings/providers/profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:video_player/video_player.dart';
 import 'office_menu_widget.dart';
 
 class OfficeSettingsGregPage extends ConsumerStatefulWidget {
@@ -228,6 +230,14 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
     } finally {
       if (mounted) setState(() => _isSwitchLoading = false);
     }
+  }
+
+  void _showVideoPlayer(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          const _VideoPlayerDialog(assetPath: 'assets/videos/greg-bot.mp4'),
+    );
   }
 
   @override
@@ -454,17 +464,20 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                             ),
                             Align(
                               alignment: Alignment.bottomLeft,
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: Colors.white10,
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                child: const Icon(
-                                  Icons.play_circle_outline,
-                                  color: Colors.white,
-                                  size: 28,
+                              child: GestureDetector(
+                                onTap: () => _showVideoPlayer(context),
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white10,
+                                    borderRadius: BorderRadius.circular(100),
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_circle_outline,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1032,6 +1045,136 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _VideoPlayerDialog extends StatefulWidget {
+  final String assetPath;
+  const _VideoPlayerDialog({required this.assetPath});
+
+  @override
+  _VideoPlayerDialogState createState() => _VideoPlayerDialogState();
+}
+
+class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      // On web we often need to treat assets as network resources
+      // The path on web for project assets is typically 'assets/path/to/asset'
+      // Standard Flutter Web path for assets
+      String webPath = 'assets/${widget.assetPath}';
+      _controller = VideoPlayerController.networkUrl(Uri.parse(webPath));
+    } else {
+      _controller = VideoPlayerController.asset(widget.assetPath);
+    }
+
+    _controller
+        .initialize()
+        .then((_) {
+          if (mounted) {
+            setState(() => _initialized = true);
+            _controller.play();
+            _controller.setLooping(true);
+          }
+        })
+        .catchError((e) {
+          if (mounted) {
+            setState(() => _error = e.toString());
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.black,
+      insetPadding: const EdgeInsets.all(10),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Error al cargar video: $_error',
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else if (_initialized)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: VideoPlayer(_controller),
+                  ),
+                ),
+                VideoProgressIndicator(
+                  _controller,
+                  allowScrubbing: true,
+                  colors: const VideoProgressColors(
+                    playedColor: Color(0xFF4B39EF),
+                    bufferedColor: Colors.white24,
+                    backgroundColor: Colors.white10,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        _controller.value.isPlaying
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _controller.value.isPlaying
+                              ? _controller.pause()
+                              : _controller.play();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4B39EF)),
+            ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
