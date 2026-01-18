@@ -43,10 +43,13 @@ class ApiService {
       print('🚀 API POST: $url');
       if (body != null) print('📦 Body: $body');
 
+      final encodedBody = body != null ? json.encode(body) : null;
+      if (encodedBody != null) print('📦 Encoded JSON Body: $encodedBody');
+
       final response = await http.post(
         url,
         headers: headers,
-        body: body != null ? json.encode(body) : null,
+        body: encodedBody,
       );
       return _processResponse(response);
     } catch (e) {
@@ -71,6 +74,49 @@ class ApiService {
     } catch (e) {
       print('❌ API PUT Error: $e');
       throw Exception('API PUT Error: $e');
+    }
+  }
+
+  Future<dynamic> postUrlEncoded(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+
+      debugPrint('🚀 API POST URL-Encoded: $url');
+      debugPrint('📦 Headers: $headers');
+
+      // Build body string supporting repeated keys for lists
+      final List<String> parts = [];
+      body.forEach((key, value) {
+        if (value is List) {
+          for (var item in value) {
+            parts.add(
+              '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(item.toString())}',
+            );
+          }
+        } else if (value != null) {
+          parts.add(
+            '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(value.toString())}',
+          );
+        }
+      });
+      final bodyString = parts.join('&');
+      debugPrint('📦 FINAL BODY SENT TO SERVER (POST): $bodyString');
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: bodyString,
+        encoding: Encoding.getByName('utf-8'),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API POST URL-Encoded Error: $e');
+      throw Exception('API POST URL-Encoded Error: $e');
     }
   }
 

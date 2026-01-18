@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/office_provider.dart';
 import 'office_menu_widget.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/models/greg_model.dart';
@@ -473,6 +474,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(width: 8),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () => context.push('/office/settings-greg'),
