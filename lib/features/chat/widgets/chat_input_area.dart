@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+// import 'dart:io';
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,7 +71,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
       if (await _audioRecorder.hasPermission()) {
         String path = '';
         if (!kIsWeb) {
-          final dir = await getTemporaryDirectory();
+          final dynamic dir = await getTemporaryDirectory();
           path =
               '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
         }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../leads/models/lead_model.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/business_provider.dart';
 import '../lead_details_page.dart';
@@ -13,6 +12,7 @@ class LeadNewxWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print('DEBUG: LeadNewxWidget build. Lead: ${lead.id}');
     // Find service
     final businessData = ref.watch(businessProvider).asData?.value;
     Map<String, dynamic>? service;
@@ -58,16 +58,8 @@ class LeadNewxWidget extends ConsumerWidget {
                         fit: BoxFit.cover,
                         color: Colors.black.withOpacity(0.3),
                         colorBlendMode: BlendMode.darken,
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[900],
-                          child: const Center(
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white24,
-                              size: 48,
-                            ),
-                          ),
-                        ),
+                        errorWidget: (context, url, error) =>
+                            _buildFallback(name),
                         placeholder: (context, url) => Container(
                           color: Colors.black,
                           child: const Center(
@@ -75,16 +67,7 @@ class LeadNewxWidget extends ConsumerWidget {
                           ),
                         ),
                       )
-                    : Container(
-                        color: Colors.grey[900],
-                        child: const Center(
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.white24,
-                            size: 48,
-                          ),
-                        ),
-                      ),
+                    : _buildFallback(name),
               ),
             ),
             // Tag
@@ -146,6 +129,32 @@ class LeadNewxWidget extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallback(String name) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF0F2027), // Deep Blue/Black
+            Color(0xFF203A43),
+            Color(0xFF2C5364), // Blue-ish
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: GoogleFonts.outfit(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            color: Colors.white24,
+          ),
         ),
       ),
     );

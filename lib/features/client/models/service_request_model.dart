@@ -15,6 +15,7 @@ class ServiceRequest {
   final String serviceTitle;
   final String servicePriceRange;
   final List<TimelineItem> timeline;
+  final List<Quote> proposals;
 
   ServiceRequest({
     required this.id,
@@ -31,6 +32,7 @@ class ServiceRequest {
     required this.serviceTitle,
     required this.servicePriceRange,
     required this.timeline,
+    required this.proposals,
   });
 
   factory ServiceRequest.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,53 @@ class ServiceRequest {
               ?.map((e) => TimelineItem.fromJson(e))
               .toList() ??
           [],
+      proposals: _parseProposals(json['leads']),
+    );
+  }
+
+  static List<Quote> _parseProposals(dynamic leadsJson) {
+    if (leadsJson == null || leadsJson is! List) return [];
+    List<Quote> quotes = [];
+    for (var lead in leadsJson) {
+      if (lead['quotes'] != null && lead['quotes'] is List) {
+        for (var quote in lead['quotes']) {
+          quotes.add(Quote.fromJson(quote, lead));
+        }
+      }
+    }
+    return quotes;
+  }
+}
+
+class Quote {
+  final int id;
+  final int leadId;
+  final double amount;
+  final String description;
+  final String status;
+  final String businessName;
+  final DateTime? expiring;
+
+  Quote({
+    required this.id,
+    required this.leadId,
+    required this.amount,
+    required this.description,
+    required this.status,
+    required this.businessName,
+    this.expiring,
+  });
+
+  factory Quote.fromJson(Map<String, dynamic> json, Map<String, dynamic> lead) {
+    final business = lead['business'] ?? {};
+    return Quote(
+      id: json['id'] ?? 0,
+      leadId: lead['id'] ?? 0,
+      amount: (json['amount_cents'] ?? 0) / 100.0,
+      description: json['description'] ?? '',
+      status: json['status'] ?? 'pending',
+      businessName: business['name'] ?? 'Unknown Business',
+      expiring: DateTime.tryParse(json['expiring'] ?? ''),
     );
   }
 }

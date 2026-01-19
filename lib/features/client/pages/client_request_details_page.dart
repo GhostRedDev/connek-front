@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/service_request_model.dart';
-import '../widgets/client_lead_card_widget.dart';
+import '../services/client_requests_service.dart';
+import '../providers/client_requests_provider.dart';
 import 'package:go_router/go_router.dart';
 
-class ClientRequestDetailsPage extends StatelessWidget {
+class ClientRequestDetailsPage extends ConsumerWidget {
   final ServiceRequest request;
 
   const ClientRequestDetailsPage({super.key, required this.request});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -73,8 +75,6 @@ class ClientRequestDetailsPage extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          // Use a placeholder if image is not a person, but ideally we have a client image field.
-                          // Using request.imageUrl for now or a standard avatar if not available.
                           backgroundImage: NetworkImage(
                             'https://i.pravatar.cc/150?u=${request.id}',
                           ),
@@ -140,7 +140,6 @@ class ClientRequestDetailsPage extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          // Simple date formatting
                           "${request.createdAt.day}/${request.createdAt.month}/${request.createdAt.year} ${request.createdAt.hour}:${request.createdAt.minute}",
                           style: const TextStyle(
                             color: Colors.grey,
@@ -154,8 +153,7 @@ class ClientRequestDetailsPage extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors
-                                .green, // Assuming 'Budget' bubble color from image
+                            color: Colors.green,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -176,13 +174,13 @@ class ClientRequestDetailsPage extends StatelessWidget {
                             color: Colors.amber.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text(
-                            "Pendiente",
-                            style: TextStyle(
+                          child: Text(
+                            request.status, // Use status from request
+                            style: const TextStyle(
                               color: Colors.amber,
                               fontWeight: FontWeight.bold,
                             ),
-                          ), // Hardcoded status mapping
+                          ),
                         ),
                       ],
                     ),
@@ -199,9 +197,7 @@ class ClientRequestDetailsPage extends StatelessWidget {
                             ),
                             label: const Text("Enviar mensaje"),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(
-                                0xFF0D1C2E,
-                              ), // Dark button
+                              backgroundColor: const Color(0xFF0D1C2E),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -231,9 +227,24 @@ class ClientRequestDetailsPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
+              // Proposals Section
+              if (request.proposals.isNotEmpty) ...[
+                Text(
+                  "Propuestas recibidas",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...request.proposals.map(
+                  (quote) => _buildQuoteCard(context, ref, quote, theme),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               // About Request
               Text(
-                "About request",
+                "Sobre la solicitud",
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -291,7 +302,7 @@ class ClientRequestDetailsPage extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  "Service",
+                                  "Servicio",
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.grey[800],
@@ -318,62 +329,12 @@ class ClientRequestDetailsPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    // "Ver servicio" button container
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Ver servicio",
-                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                      ),
-                    ),
                     const SizedBox(height: 12),
                     const Text(
                       "Mensaje:",
                       style: TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     Text(request.message, style: theme.textTheme.bodyMedium),
-                    const SizedBox(height: 12),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: "Presupuesto: ",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          TextSpan(
-                            text: "\$${request.amount.toStringAsFixed(0)}",
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D1C2E),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text("Enviar propuesta"),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -396,31 +357,6 @@ class ClientRequestDetailsPage extends StatelessWidget {
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[100],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_circle, size: 14, color: Colors.blue),
-                        SizedBox(width: 4),
-                        Text(
-                          "En progreso",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -440,12 +376,14 @@ class ClientRequestDetailsPage extends StatelessWidget {
                         Column(
                           children: [
                             Container(
-                              width: 24, // Ring size
+                              width: 24,
                               height: 24,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.blue,
+                                  color: item.isCompleted
+                                      ? Colors.blue
+                                      : Colors.grey,
                                   width: 4,
                                 ),
                                 color: Colors.white,
@@ -462,9 +400,7 @@ class ClientRequestDetailsPage extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Container(
-                            margin: const EdgeInsets.only(
-                              bottom: 24,
-                            ), // Gap for next item line
+                            margin: const EdgeInsets.only(bottom: 24),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -475,14 +411,15 @@ class ClientRequestDetailsPage extends StatelessWidget {
                               children: [
                                 Text(
                                   item.title,
-                                  style: const TextStyle(
-                                    color: Colors.blue,
+                                  style: TextStyle(
+                                    color: item.isCompleted
+                                        ? Colors.blue
+                                        : Colors.grey,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 Text(
-                                  // Formatting time
-                                  "${item.time.day}/${item.time.month}/${item.time.year} ${item.time.hour}:${item.time.minute}",
+                                  "${item.time.day}/${item.time.month} ${item.time.hour}:${item.time.minute}",
                                   style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 10,
@@ -497,30 +434,135 @@ class ClientRequestDetailsPage extends StatelessWidget {
                   }),
                 ),
               ),
-
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text(
-                    "Eliminar Lead",
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                ),
-              ),
               const SizedBox(height: 40),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuoteCard(
+    BuildContext context,
+    WidgetRef ref,
+    Quote quote,
+    ThemeData theme,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                quote.businessName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                "\$${quote.amount.toStringAsFixed(0)}",
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(quote.description, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 12),
+          if (quote.status == 'sent')
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final success = await ref
+                          .read(clientRequestsServiceProvider)
+                          .acceptProposal(quote.id, quote.leadId);
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Propuesta aceptada')),
+                        );
+                        ref.invalidate(clientRequestsProvider);
+                        context.pop();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text("Aceptar"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final success = await ref
+                          .read(clientRequestsServiceProvider)
+                          .declineProposal(quote.id, quote.leadId);
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Propuesta rechazada')),
+                        );
+                        ref.invalidate(clientRequestsProvider);
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text("Rechazar"),
+                  ),
+                ),
+              ],
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: quote.status == 'accepted'
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                quote.status.toUpperCase(),
+                style: TextStyle(
+                  color: quote.status == 'accepted'
+                      ? Colors.green
+                      : Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

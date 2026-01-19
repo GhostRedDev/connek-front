@@ -214,7 +214,8 @@ HeaderData getHeaderConfig(
     );
   }
 
-  if (route.startsWith('/business')) {
+  final cleanRoute = route.trim();
+  if (cleanRoute.startsWith('/business') || cleanRoute.startsWith('business')) {
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: false,
@@ -239,11 +240,6 @@ HeaderData getHeaderConfig(
               : Icons.receipt,
           'type': 'dropdown',
           'items': [
-            {
-              'label': 'Resumen',
-              'value': 'ventas',
-              'icon': Icons.dashboard_customize_outlined,
-            },
             {'label': 'Facturas', 'value': 'invoices', 'icon': Icons.receipt},
             {
               'label': 'Propuestas',
@@ -311,12 +307,29 @@ HeaderData getHeaderConfig(
     );
   }
 
-  if (route == '/client') {
+  if (cleanRoute == '/client' || cleanRoute.startsWith('/client')) {
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: false,
-      isCustom: true,
-      height: 0,
+      height: 200,
+      tabs: [
+        {
+          'label': t['client_tab_summary'] ?? 'Resumen',
+          'icon': Icons.dashboard_outlined,
+        },
+        {
+          'label': t['client_tab_market'] ?? 'Mercado',
+          'icon': Icons.storefront_outlined,
+        },
+        {
+          'label': t['client_tab_orders'] ?? 'Ordenes',
+          'icon': Icons.receipt_long_outlined,
+        },
+      ],
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
     );
   }
 
@@ -466,8 +479,13 @@ IconData _getSalesIcon(String view) {
 
 class AppLayout extends ConsumerStatefulWidget {
   final Widget child;
+  final String currentPath; // Added
 
-  const AppLayout({required this.child, super.key});
+  const AppLayout({
+    required this.child,
+    required this.currentPath, // Added
+    super.key,
+  });
 
   @override
   ConsumerState<AppLayout> createState() => _AppLayoutState();
@@ -571,7 +589,8 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    // Use passed location
+    final location = widget.currentPath;
     final initialSession = Supabase.instance.client.auth.currentSession;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -597,7 +616,6 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         final t = tAsync.value ?? {};
 
         // Re-get config with correct auth state and translation
-        // Re-get config with correct auth state and translation
         final activeConfig = getHeaderConfig(
           location,
           isDark,
@@ -606,6 +624,9 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
           ref,
         );
         final hasTabs = activeConfig.tabs.isNotEmpty;
+        print(
+          'DEBUG: AppLayout build. Route: $location. Tabs: ${activeConfig.tabs.length}. HasTabs: $hasTabs',
+        );
 
         Widget scaffold = Scaffold(
           // Use theme background

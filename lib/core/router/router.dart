@@ -162,7 +162,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       // --- AUTHORIZED & GUEST (Unified Shell) ---
       ShellRoute(
         builder: (context, state, child) {
-          return BiometricAuthGuard(child: AppLayout(child: child));
+          return BiometricAuthGuard(
+            child: AppLayout(currentPath: state.uri.toString(), child: child),
+          );
         },
         routes: [
           // Unified Home Page (Handles both Guest and Auth views)

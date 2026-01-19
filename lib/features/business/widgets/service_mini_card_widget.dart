@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ServiceMiniCardWidget extends StatelessWidget {
   final Map<String, dynamic> service;
@@ -22,38 +23,66 @@ class ServiceMiniCardWidget extends StatelessWidget {
         children: [
           Container(
             height: 120,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
-              image: (service['image'] != null)
-                  ? DecorationImage(
-                      image: NetworkImage(service['image']),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (service['image'] != null && service['image'].isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: service['image'],
                       fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        child: Icon(
+                          Icons.design_services_outlined,
+                          color: isDark ? Colors.white54 : Colors.grey[600],
+                          size: 40,
+                        ),
+                      ),
+                      placeholder: (context, url) => Container(
+                        color: isDark ? Colors.grey[900] : Colors.grey[200],
+                      ),
                     )
-                  : null,
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 4,
+                  else
+                    Container(
+                      color: isDark ? Colors.grey[800] : Colors.grey[300],
+                      child: Icon(
+                        Icons.design_services_outlined,
+                        color: isDark ? Colors.white54 : Colors.grey[600],
+                        size: 40,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      service['date'] ?? 'Now',
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
+
+                  // Date Tag Overlay
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        service['date'] ?? 'Now',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Padding(

@@ -332,12 +332,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         onIceCandidate: (_) {},
       );
 
-      await callService.startCallNotification(receiverId, {
-        'name': myName,
-        'image': myImage,
-        'id': myId,
-        'isVideo': isVideo,
-      }, callId);
+      await callService.startCallNotification(
+        receiverId,
+        {'name': myName, 'image': myImage, 'id': myId},
+        callId,
+        isVideo: isVideo,
+      );
     } catch (e) {
       print('Error notifying call: $e');
     }

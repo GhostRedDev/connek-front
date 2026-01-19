@@ -73,8 +73,8 @@ class LeadDetailsPage extends ConsumerWidget {
         leading: Padding(
           padding: const EdgeInsets.only(
             left: 16,
-            top: 260,
-            bottom: 60,
+            top: 8,
+            bottom: 8,
             right: 16,
           ),
           child: Center(
@@ -691,8 +691,8 @@ class LeadDetailsPage extends ConsumerWidget {
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 159,
-            ), // Keeping user preference
+              vertical: 20,
+            ), // Standard padding
             child: Column(
               children: [
                 // --- Client Card ---
@@ -1206,61 +1206,64 @@ class LeadDetailsPage extends ConsumerWidget {
     bool isLast,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Icon(
-              Icons.circle_outlined,
-              color: isActive ? Colors.blue : Colors.grey[300],
-              size: 20,
-            ),
-            if (!isLast)
-              Container(
-                width: 2,
-                height: 40,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Icon(
+                Icons.circle_outlined,
                 color: isActive ? Colors.blue : Colors.grey[300],
+                size: 20,
               ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? (isDark ? Colors.blue.withOpacity(0.1) : Colors.blue[50])
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    color: isActive ? Colors.blue : Colors.grey,
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isActive ? Colors.blue : Colors.grey[300],
                   ),
                 ),
-                if (time != null)
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        "${time.hour}:${time.minute.toString().padLeft(2, '0')} AM",
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                    ],
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? (isDark ? Colors.blue.withOpacity(0.1) : Colors.blue[50])
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? Colors.blue : Colors.grey,
+                    ),
                   ),
-              ],
+                  if (time != null)
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 12, color: Colors.grey),
+                        SizedBox(width: 4),
+                        Text(
+                          "${time.hour}:${time.minute.toString().padLeft(2, '0')} ${time.hour >= 12 ? 'PM' : 'AM'}",
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

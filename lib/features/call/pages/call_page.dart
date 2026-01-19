@@ -50,9 +50,15 @@ class _CallPageState extends ConsumerState<CallPage> {
       onHangUp: _handleRemoteHangUp, // Handle remote hangup
     );
 
-    _callService.connect(widget.callId);
-
     await _setupPeerConnection();
+
+    // Connect to signaling channel AFTER PeerConnection is ready
+    await _callService.connect(widget.callId);
+
+    if (widget.isCaller) {
+      // Create Offer ONLY after signaling is connected
+      await _createOffer();
+    }
   }
 
   Future<void> _setupPeerConnection() async {
@@ -94,15 +100,12 @@ class _CallPageState extends ConsumerState<CallPage> {
     _localStream!.getTracks().forEach((track) {
       _peerConnection!.addTrack(track, _localStream!);
     });
-
-    if (widget.isCaller) {
-      await _createOffer();
-    }
   }
 
   Timer? _offerRetryTimer;
 
   Future<void> _createOffer() async {
+    if (_peerConnection == null) return;
     RTCSessionDescription offer = await _peerConnection!.createOffer();
     await _peerConnection!.setLocalDescription(offer);
 
@@ -130,6 +133,7 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   Future<void> _handleOffer(dynamic offerData) async {
+    if (_peerConnection == null) return;
     if (widget.isCaller)
       return; // Caller ignores offers? Or race condition handling needed.
 
@@ -147,12 +151,14 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   Future<void> _handleAnswer(dynamic answerData) async {
+    if (_peerConnection == null) return;
     await _peerConnection!.setRemoteDescription(
       RTCSessionDescription(answerData['sdp'], answerData['type']),
     );
   }
 
   Future<void> _handleIceCandidate(dynamic candidateData) async {
+    if (_peerConnection == null) return;
     await _peerConnection!.addCandidate(
       RTCIceCandidate(
         candidateData['candidate'],

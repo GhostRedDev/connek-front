@@ -54,6 +54,53 @@ class ApiService {
     }
   }
 
+  Future<dynamic> postForm(
+    String endpoint, {
+    Map<String, dynamic>? fields,
+    List<http.MultipartFile>? files,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final request = http.MultipartRequest('POST', url);
+      print('🚀 API POST Form: $url');
+      if (fields != null) print('📝 Fields: $fields');
+
+      final headers = await _getHeaders(isMultipart: true);
+      request.headers.addAll(headers);
+
+      if (fields != null) {
+        fields.forEach((key, value) {
+          if (value is List) {
+            for (var item in value) {
+              request.fields[key] = item
+                  .toString(); // MultipartRequest doesn't support list directly, duplicates key? No, http package fields is Map<String, String>.
+              // Wait, http.MultipartRequest fields is Map<String, String>. It does NOT support multiple values for same key easily unless we manage the body manually or use package that supports it.
+              // However, the backend expects getlist for images, but for simple fields?
+              // Standard MultipartRequest overwrites keys.
+              // If we strictly need lists for fields, we might need a workaround or ensure backend parses stringified lists.
+              // Backend `resources_list` is `Form("[]")`, so it expects a JSON string.
+              // Backend for images uses `File`.
+              // For now, let's assume fields are simple strings or JSON strings.
+            }
+          } else {
+            request.fields[key] = value.toString();
+          }
+        });
+      }
+
+      if (files != null) {
+        request.files.addAll(files);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API POST Form Error: $e');
+      throw Exception('API POST Form Error: $e');
+    }
+  }
+
   Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');

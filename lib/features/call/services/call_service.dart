@@ -46,8 +46,9 @@ class CallService {
   Future<void> startCallNotification(
     int receiverId,
     Map<String, dynamic> callerProfile,
-    String callId,
-  ) async {
+    String callId, {
+    bool isVideo = true,
+  }) async {
     // We broadcast to the RECEIVER'S channel
     final receiverChannel = _supabase.channel('user:$receiverId');
     await receiverChannel.subscribe();
@@ -60,7 +61,10 @@ class CallService {
       event: 'incoming_call',
       payload: {
         'call_id': callId,
-        'caller': callerProfile, // {name, image, id}
+        'caller': {
+          ...callerProfile,
+          'isVideo': isVideo, // Pass the video state
+        },
       },
     );
 
@@ -84,7 +88,7 @@ class CallService {
   }
 
   // 3. Connect to Call Room (Signaling)
-  void connect(String callId) {
+  Future<void> connect(String callId) async {
     _signalingChannel = _supabase.channel('call:$callId');
     _signalingChannel!
         .onBroadcast(
@@ -110,8 +114,9 @@ class CallService {
           callback: (_) {
             if (onHangUp != null) onHangUp!();
           },
-        )
-        .subscribe();
+        );
+
+    await _signalingChannel!.subscribe();
   }
 
   void sendOffer(String callId, Map<String, dynamic> offer) {

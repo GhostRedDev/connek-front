@@ -7,7 +7,10 @@ import 'widgets/business_clients_widget.dart'; // Added
 import 'providers/business_provider.dart'; // Added
 import 'widgets/business_services_widget.dart';
 import 'widgets/business_employees_widget.dart';
-import 'widgets/business_profile_widget.dart'; // Added // Added // Added
+import 'widgets/business_profile_widget.dart'; // Added
+import 'widgets/business_proposals_widget.dart'; // Added
+import 'widgets/business_invoices_widget.dart'; // Added
+import 'widgets/business_settings_widget.dart'; // Added
 
 class BusinessPage extends ConsumerStatefulWidget {
   const BusinessPage({super.key});
@@ -25,7 +28,12 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
     // We don't need a Scaffold or Stack for header anymore.
     // Just the TabBarView content.
 
-    return TabBarView(
+    // Check inherited controller to prevent crash if AppLayout thinks we are in a different mode
+    final inheritedController = DefaultTabController.of(context);
+    final inheritedLength = inheritedController.length;
+    const requiredLength = 8;
+
+    Widget content = TabBarView(
       children: [
         // TAB 1: OVERVIEW
         BusinessOverviewWidget(),
@@ -36,7 +44,6 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
         // TAB 3: CLIENTS
         const BusinessClientsWidget(),
 
-        // TAB 4: SALES
         // TAB 4: SALES
         const BusinessSalesTab(),
 
@@ -50,9 +57,15 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
         const BusinessProfileWidget(),
 
         // TAB 8: SETTINGS
-        const _BusinessPlaceholder(title: 'Ajustes'),
+        const BusinessSettingsWidget(),
       ],
     );
+
+    if (inheritedLength != requiredLength) {
+      return DefaultTabController(length: requiredLength, child: content);
+    }
+
+    return content;
   }
 }
 
@@ -65,9 +78,9 @@ class BusinessSalesTab extends ConsumerWidget {
 
     switch (view) {
       case 'invoices':
-        return const _BusinessPlaceholder(title: 'Ventas - Facturas');
+        return const BusinessInvoicesWidget();
       case 'proposals':
-        return const _BusinessPlaceholder(title: 'Ventas - Propuestas');
+        return const BusinessProposalsWidget();
       case 'bookings':
         return const _BusinessPlaceholder(title: 'Ventas - Bookings');
       default:

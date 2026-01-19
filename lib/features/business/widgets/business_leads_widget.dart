@@ -236,7 +236,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
                         ],
                       ),
                     ),
-                    const EmptySpaceWidget(),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),

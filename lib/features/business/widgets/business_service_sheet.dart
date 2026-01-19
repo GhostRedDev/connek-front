@@ -294,32 +294,29 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                     const SizedBox(height: 32),
 
                     // Footer Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {}, // Save Draft Logic
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: inputFillColor,
-                              foregroundColor: textColor, // Text Color
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
+                    if (widget.serviceToEdit != null)
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: _deleteService,
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          label: const Text(
+                            'Eliminar este servicio',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: Colors.red.withOpacity(0.05),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
                             ),
-                            child: const Text('Guardar borrador'),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        _buildCircleButton(
-                          icon: Icons.remove_red_eye_outlined,
-                          onTap: () {},
-                          isDark: isDark,
-                          size: 50,
-                        ),
-                      ],
-                    ),
+                      ),
+                    const SizedBox(height: 20),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -453,11 +450,96 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     );
   }
 
-  void _saveService() {
-    // Implement Save Logic
-    Navigator.pop(context);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Service saved (Mock)')));
+  Future<void> _saveService() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Create payload
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final priceCents = (price * 100).toInt();
+
+    final payload = {
+      'name': _nameController.text.trim(),
+      'description': _descController.text.trim(),
+      'price_cents': priceCents,
+      'price_low_cents': priceCents,
+      'price_high_cents': priceCents,
+      'duration_minutes':
+          int.tryParse(
+            _durationController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          30, // Extract number
+      'service_category': _selectedCategory,
+      // 'employees': ... // Handle employee logic if needed
+    };
+
+    final repo = ref.read(businessRepositoryProvider);
+    final businessData = ref.read(businessProvider).value;
+
+    if (businessData?.businessProfile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Business not found')),
+      );
+      return;
+    }
+
+    final businessId = businessData!.businessProfile!['id'];
+    payload['business_id'] = businessId;
+
+    bool success = false;
+
+    if (widget.serviceToEdit != null) {
+      // Update
+      final id = widget.serviceToEdit!['id'];
+      final res = await repo.updateService(id, payload);
+      success = res != null;
+    } else {
+      // Create
+      final res = await repo.createService(payload);
+      success = res != null;
+    }
+
+    if (mounted) {
+      if (success) {
+        // Refresh provider
+        ref.invalidate(businessProvider);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.serviceToEdit != null
+                  ? 'Servicio actualizado'
+                  : 'Servicio creado',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error guardando el servicio')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteService() async {
+    if (widget.serviceToEdit == null) return;
+
+    final repo = ref.read(businessRepositoryProvider);
+    final id = widget.serviceToEdit!['id'];
+
+    final success = await repo.deleteService(id);
+
+    if (mounted) {
+      if (success) {
+        ref.invalidate(businessProvider);
+        Navigator.pop(context); // Close sheet
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Servicio eliminado')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error eliminando servicio')),
+        );
+      }
+    }
   }
 }

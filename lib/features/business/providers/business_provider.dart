@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io'
+    if (dart.library.html) 'dart:html'; // Conditional import or removal
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../settings/providers/profile_provider.dart';
@@ -17,7 +18,8 @@ class BusinessDashboardData {
   final List<Map<String, dynamic>> employees;
   final List<Map<String, dynamic>> services;
   final List<Map<String, dynamic>> clients;
-  final Map<String, dynamic>? businessProfile; // Added
+  final List<Map<String, dynamic>> quotes; // Added
+  final Map<String, dynamic>? businessProfile;
 
   BusinessDashboardData({
     required this.totalRequests,
@@ -27,7 +29,8 @@ class BusinessDashboardData {
     required this.employees,
     required this.services,
     required this.clients,
-    this.businessProfile, // Added
+    required this.quotes, // Added
+    this.businessProfile,
   });
 
   factory BusinessDashboardData.empty() {
@@ -39,7 +42,8 @@ class BusinessDashboardData {
       employees: [],
       services: [],
       clients: [],
-      businessProfile: null, // Added
+      quotes: [], // Added
+      businessProfile: null,
     );
   }
 }
@@ -134,6 +138,68 @@ class BusinessRepository {
       return [];
     }
   }
+  // --- Quotes ---
+
+  Future<List<Map<String, dynamic>>> getQuotes(int businessId) async {
+    try {
+      final response = await _apiService.get('/quotes/business/$businessId');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching quotes via API: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> createQuote(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiService.postForm(
+        '/quotes/create',
+        fields: data,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error creating quote: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateQuote(
+    int quoteId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _apiService.putForm(
+        '/quotes/$quoteId',
+        fields: data,
+      );
+      if (response != null && response['success'] == true) {
+        return response['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error updating quote: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteQuote(int quoteId) async {
+    try {
+      final response = await _apiService.delete('/quotes/$quoteId');
+      return response != null && response['success'] == true;
+    } catch (e) {
+      print('Error deleting quote: $e');
+      return false;
+    }
+  }
 
   // --- Business Mutations ---
 
@@ -188,9 +254,10 @@ class BusinessRepository {
 
   Future<List<String>> uploadBusinessFiles(
     int businessId,
-    List<File> files,
+    List<dynamic>
+    files, // Changed to dynamic or XFile to avoid dart:io dependency
   ) async {
-    // Note: This requires converting dart:io File to http.MultipartFile
+    // Note: This requires converting XFile/File to http.MultipartFile
     // Helper needed or assume files are handled in UI before repository?
     // Usually Repository takes simpler types. Let's assume File path or bytes.
     // For now, skipping generic upload until logic is confirmed or using ApiService.postMultipart
@@ -203,10 +270,9 @@ class BusinessRepository {
     Map<String, dynamic> serviceData,
   ) async {
     try {
-      // serviceData should mirror the Form fields expected by backend
-      final response = await _apiService.post(
+      final response = await _apiService.postForm(
         '/services/create',
-        body: serviceData,
+        fields: serviceData,
       );
       if (response != null && response['success'] == true) {
         return response['data'];
@@ -223,9 +289,9 @@ class BusinessRepository {
     Map<String, dynamic> serviceData,
   ) async {
     try {
-      final response = await _apiService.put(
+      final response = await _apiService.putForm(
         '/services/$serviceId',
-        body: serviceData,
+        fields: serviceData,
       );
       if (response != null && response['success'] == true) {
         return response['data'];
@@ -344,13 +410,15 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       leadsService.fetchBusinessLeads(businessId),
       repo.getEmployees(businessId),
       repo.getServices(businessId),
-      repo.getClients(businessId), // Added
+      repo.getClients(businessId),
+      repo.getQuotes(businessId), // Added
     ]);
 
     final leads = results[0] as List<Lead>;
     final employeesRaw = results[1] as List<Map<String, dynamic>>;
     final servicesRaw = results[2] as List<Map<String, dynamic>>;
-    final clientsRaw = results[3] as List<Map<String, dynamic>>; // Added
+    final clientsRaw = results[3] as List<Map<String, dynamic>>;
+    final quotesRaw = results[4] as List<Map<String, dynamic>>; // Added
 
     // Map Clients (Optional: Enrich with image logic if needed)
     final clients = clientsRaw.map((c) {
@@ -403,7 +471,13 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
 
         image = repo._resolveUrl(filename, 'business');
       }
-      return {...s, 'image': image};
+      return {
+        ...s,
+        'image': image,
+        'title': s['name'] ?? 'Servicio sin nombre',
+        'priceRange': '\$${s['price'] ?? '0'}',
+        'date': 'Now', // Or parse created_at if available
+      };
     }).toList();
 
     return BusinessDashboardData(
@@ -414,7 +488,8 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       employees: employees,
       services: services,
       clients: clients,
-      businessProfile: business, // Added
+      quotes: quotesRaw, // Added
+      businessProfile: business,
     );
   }
 
@@ -521,7 +596,7 @@ final selectedSalesViewProvider =
 
 class SelectedSalesViewNotifier extends Notifier<String> {
   @override
-  String build() => 'ventas';
+  String build() => 'proposals';
 
   void setView(String view) {
     state = view;

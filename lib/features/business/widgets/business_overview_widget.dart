@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 import 'business_shared_widgets.dart';
 import 'lead_newx_widget.dart';
@@ -104,15 +105,25 @@ class BusinessOverviewWidget extends ConsumerWidget {
                         child: _buildSectionContainer(
                           context,
                           title: t['recent_leads'] ?? 'Leads recientes',
-                          content: Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: data.recentLeads
-                                .map((e) => LeadNewxWidget(lead: e))
-                                .toList(),
-                          ),
+                          content: data.recentLeads.isEmpty
+                              ? const _NoLeadsCard()
+                              : Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: [
+                                    ...data.recentLeads
+                                        .take(4)
+                                        .map((e) => LeadNewxWidget(lead: e)),
+                                    if (data.recentLeads.length > 4)
+                                      _SeeAllLeadsCard(
+                                        excessCount:
+                                            data.recentLeads.length - 4,
+                                      ),
+                                  ],
+                                ),
                         ),
                       ),
+
                       const SizedBox(width: 20),
                       // Column 2: Events (40%)
                       Expanded(
@@ -120,7 +131,13 @@ class BusinessOverviewWidget extends ConsumerWidget {
                         child: _buildSectionContainer(
                           context,
                           title: t['upcoming_events'] ?? 'Próximos Eventos',
-                          action: _buildSeeAllButtons(context, t),
+                          action: _buildSeeAllButtons(
+                            context,
+                            t,
+                            onAdd: () {
+                              context.push('/business/create-portfolio');
+                            },
+                          ),
                           content: const Padding(
                             padding: EdgeInsets.only(bottom: 20),
                             child: EventCardWidget(),
@@ -155,12 +172,30 @@ class BusinessOverviewWidget extends ConsumerWidget {
                         child: _buildSectionContainer(
                           context,
                           title: t['services'] ?? 'Servicios',
-                          action: _buildSeeAllButtons(context, t),
+                          action: _buildSeeAllButtons(
+                            context,
+                            t,
+                            onAdd: () {
+                              context.push('/business/create-service');
+                            },
+                          ),
                           content: Wrap(
                             spacing: 10,
                             runSpacing: 10,
                             children: data.services
-                                .map((e) => ServiceMiniCardWidget(service: e))
+                                .map(
+                                  (e) => InkWell(
+                                    onTap: () {
+                                      // Navigate to edit service
+                                      context.push(
+                                        '/business/create-service',
+                                        extra: e,
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: ServiceMiniCardWidget(service: e),
+                                  ),
+                                )
                                 .toList(),
                           ),
                         ),
@@ -172,19 +207,32 @@ class BusinessOverviewWidget extends ConsumerWidget {
                   _buildSectionContainer(
                     context,
                     title: t['recent_leads'] ?? 'Leads recientes',
-                    content: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: data.recentLeads
-                            .map(
-                              (e) => Padding(
-                                padding: const EdgeInsets.only(right: 10),
-                                child: LeadNewxWidget(lead: e),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
+                    content: data.recentLeads.isEmpty
+                        ? const _NoLeadsCard()
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                ...data.recentLeads
+                                    .take(4)
+                                    .map(
+                                      (e) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 10,
+                                        ),
+                                        child: LeadNewxWidget(lead: e),
+                                      ),
+                                    ),
+                                if (data.recentLeads.length > 4)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 10),
+                                    child: _SeeAllLeadsCard(
+                                      excessCount: data.recentLeads.length - 4,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 20),
 
@@ -210,7 +258,13 @@ class BusinessOverviewWidget extends ConsumerWidget {
                   _buildSectionContainer(
                     context,
                     title: t['services'] ?? 'Servicios',
-                    action: _buildSeeAllButtons(context, t),
+                    action: _buildSeeAllButtons(
+                      context,
+                      t,
+                      onAdd: () {
+                        context.push('/business/create-service');
+                      },
+                    ),
                     content: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -230,7 +284,13 @@ class BusinessOverviewWidget extends ConsumerWidget {
                   _buildSectionContainer(
                     context,
                     title: t['events'] ?? 'Eventos',
-                    action: _buildSeeAllButtons(context, t),
+                    action: _buildSeeAllButtons(
+                      context,
+                      t,
+                      onAdd: () {
+                        context.push('/business/create-portfolio');
+                      },
+                    ),
                     content: const Padding(
                       padding: EdgeInsets.only(bottom: 20),
                       child: EventCardWidget(),
@@ -375,18 +435,26 @@ class BusinessOverviewWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildSeeAllButtons(BuildContext context, Map<String, String> t) {
+  Widget _buildSeeAllButtons(
+    BuildContext context,
+    Map<String, String> t, {
+    VoidCallback? onAdd,
+  }) {
     return Row(
       children: [
-        Container(
-          width: 34,
-          height: 28,
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(50),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        InkWell(
+          onTap: onAdd,
+          borderRadius: BorderRadius.circular(50),
+          child: Container(
+            width: 34,
+            height: 28,
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            ),
+            child: const Icon(Icons.add, size: 20),
           ),
-          child: const Icon(Icons.add, size: 20),
         ),
         const SizedBox(width: 5),
         Container(
@@ -401,6 +469,141 @@ class BusinessOverviewWidget extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SeeAllLeadsCard extends StatelessWidget {
+  final int excessCount;
+  const _SeeAllLeadsCard({this.excessCount = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to full leads list
+        context.push('/business/leads');
+      },
+      child: Container(
+        width: 160,
+        height: 200,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F2027),
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF0F2027), // Deep Blue/Black
+              Color(0xFF203A43),
+              Color(0xFF2C5364), // Blue-ish
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Ver todos\nlos leads',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white30),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Fake avatars for visual effect (static colors or maybe dynamic if we wanted)
+            SizedBox(
+              width: 80,
+              height: 30,
+              child: Stack(
+                children: [
+                  _buildMiniAvatar(0, Colors.red),
+                  _buildMiniAvatar(20, Colors.green),
+                  _buildMiniAvatar(40, Colors.orange),
+                ],
+              ),
+            ),
+            if (excessCount > 0)
+              Text(
+                '+$excessCount',
+                style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniAvatar(double left, Color color) {
+    return Positioned(
+      left: left,
+      child: CircleAvatar(
+        radius: 12,
+        backgroundColor: Colors.white,
+        child: CircleAvatar(
+          radius: 10,
+          backgroundColor: color,
+          child: const Icon(Icons.person, size: 12, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoLeadsCard extends StatelessWidget {
+  const _NoLeadsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 150,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 48,
+            color: Colors.grey.withOpacity(0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Sin leads por ahora',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
