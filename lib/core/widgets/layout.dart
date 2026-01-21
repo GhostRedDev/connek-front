@@ -254,7 +254,7 @@ HeaderData getHeaderConfig(
           ],
           'onSelected': (value) {
             if (ref != null) {
-              ref.read(selectedSalesViewProvider.notifier).setView(value);
+              ref.read(selectedSalesViewProvider.notifier).state = value;
             }
           },
         },
@@ -285,20 +285,9 @@ HeaderData getHeaderConfig(
   // Specific exception for Support
   if (route.contains('/client/dashboard/support')) {
     return HeaderData(
-      title: t['header_support'] ?? 'Support',
+      // title: t['header_support'] ?? 'Support', // Removed to avoid overlap with page header
+      titleWidget: null,
       bgTrans: true, // Transparent
-      showProfile: true,
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
-    );
-  }
-
-  if (route.contains('/client/dashboard/requests')) {
-    return HeaderData(
-      titleWidget: logoWidget,
-      bgTrans: false,
       showProfile: true,
       actions: [
         HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
@@ -314,16 +303,25 @@ HeaderData getHeaderConfig(
       height: 200,
       tabs: [
         {
-          'label': t['client_tab_summary'] ?? 'Resumen',
-          'icon': Icons.dashboard_outlined,
+          'label': t['client_tab_requests'] ?? 'Solicitudes',
+          'icon': Icons.person_outline_rounded,
+          'route': '/client/dashboard/requests',
         },
         {
-          'label': t['client_tab_market'] ?? 'Mercado',
-          'icon': Icons.storefront_outlined,
+          'label': t['client_tab_bookings'] ?? 'Bookings',
+          'icon': Icons.calendar_month_outlined,
+          'route': '/client/dashboard/booking',
         },
         {
-          'label': t['client_tab_orders'] ?? 'Ordenes',
-          'icon': Icons.receipt_long_outlined,
+          'label': t['client_tab_wallet'] ?? 'Wallet',
+          'icon': Icons.monetization_on_outlined,
+          'route': '/client/dashboard/wallet',
+        },
+        {
+          'label': t['client_tab_bookmarks'] ?? 'Bookmarks',
+          'icon': Icons.bookmark_border_rounded,
+          'route':
+              '/client/dashboard/bookmarks', // Ensure this route matches router
         },
       ],
       actions: [
@@ -1088,6 +1086,15 @@ class _ModernGlassAppBar extends ConsumerWidget {
                   ),
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
+                  onTap: (index) {
+                    if (index >= 0 && index < config.tabs.length) {
+                      final tab = config.tabs[index];
+                      if (tab is Map && tab.containsKey('route')) {
+                        final route = tab['route'] as String;
+                        context.go(route);
+                      }
+                    }
+                  },
                   tabs: config.tabs.map((t) {
                     if (t is String) {
                       return Tab(text: t); // Fallback for pure strings
@@ -1227,10 +1234,19 @@ class _ModernGlassAppBar extends ConsumerWidget {
           ).scaffoldBackgroundColor, // Solid color for opacity
           border: Border(
             bottom: BorderSide(
-              color: Theme.of(context).dividerColor.withOpacity(0.1),
+              color: Theme.of(
+                context,
+              ).dividerColor.withOpacity(0.2), // Increased opacity from 0.1
               width: 1,
             ),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: innerContent, // Content (Buttons, etc.)
       ),
@@ -1261,7 +1277,11 @@ class _ModernGlassNavBar extends ConsumerWidget {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            padding: const EdgeInsets.only(
+              left: 40,
+              right: 40,
+              bottom: 5,
+            ), // Reduced vertical padding
             child: ModernGlass(
               height: 70,
               borderRadius: 35,
@@ -1274,13 +1294,15 @@ class _ModernGlassNavBar extends ConsumerWidget {
                 children: [
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.shopping_bag_outlined,
                     t['nav_requests'] ?? 'Compras',
                     '/client/dashboard/requests',
-                    isActive('/client/dashboard/requests'),
+                    isActive('/client/dashboard'),
                   ),
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.search_rounded,
                     t['nav_market'] ?? 'Buscar',
                     '/search',
@@ -1288,6 +1310,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                   ),
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.help_outline_rounded,
                     t['nav_support'] ?? 'Soporte',
                     '/client/dashboard/support', // Placeholder
@@ -1295,6 +1318,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                   ),
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.person_outline_rounded,
                     t['nav_profile'] ?? 'Perfil',
                     '/profile',
@@ -1313,7 +1337,11 @@ class _ModernGlassNavBar extends ConsumerWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: 5,
+        ), // Reduced vertical padding
         child: Row(
           children: [
             Expanded(
@@ -1324,7 +1352,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                 blur: 30,
                 border: true,
                 tintColor: Theme.of(context).cardColor,
-                child: _buildNavItems(context, isActive, t),
+                child: _buildNavItems(context, ref, isActive, t),
               ),
             ),
             const SizedBox(width: 16),
@@ -1359,6 +1387,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
 
   Widget _buildNavItems(
     BuildContext context,
+    WidgetRef ref, // Add ref here
     bool Function(String) isActive,
     Map<String, String> t,
   ) {
@@ -1367,6 +1396,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
       children: [
         _buildNavItem(
           context,
+          ref,
           Icons.shopping_bag_outlined,
           t['nav_buy'] ?? 'Buy',
           '/client',
@@ -1374,6 +1404,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
         ),
         _buildNavItem(
           context,
+          ref,
           Icons.receipt_long_outlined,
           t['nav_sell'] ?? 'Sell',
           '/business',
@@ -1381,6 +1412,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
         ),
         _buildNavItem(
           context,
+          ref,
           Icons.cleaning_services_outlined,
           t['nav_office'] ?? 'Office',
           '/office',
@@ -1392,39 +1424,69 @@ class _ModernGlassNavBar extends ConsumerWidget {
 
   Widget _buildNavItem(
     BuildContext context,
+    WidgetRef ref, // Added ref
     IconData icon,
     String label,
     String route,
     bool active,
   ) {
-    // Only use blue accent if active
-    final color = active
-        ? Theme.of(context).colorScheme.secondary
+    // User requested: Active Background Black, Text White
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Active Color matches contrast of background
+    // Light Mode: Bg=Black, Text=White
+    // Dark Mode: Bg=White, Text=Black
+    final fgColor = active
+        ? (isDark ? Colors.black : Colors.white)
         : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
 
     return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => context.go(route),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: color, size: 22),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    // Use Layout's imported font
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 4,
+        ), // Add spacing between pills
+        child: Material(
+          color: active
+              ? (isDark
+                    ? Colors.white
+                    : Colors
+                          .black) // Black in Light Mode, White in Dark Mode for contrast? Or just Black?
+              // User said "background de color negro". Let's assume strict black for now, or adapt for dark mode.
+              // In dark mode, black background is invisible on dark app background.
+              // Let's stick to user request: "background de color negro".
+              // BUT if the app is dark mode, maybe "white" background is better?
+              // The user screenshot is Light Mode.
+              // I will use Colors.black for light mode, and Colors.white for dark mode (inverted) for visibility, OR strict black if requested.
+              // "background de color negro" implies they want that specific look.
+              // However, typically "Selected = Inverse of Surface".
+              // Let's try explicit Black. If Dark Mode, Black on Black might be bad.
+              // I will use: isDark ? Colors.white : Colors.black (High Contrast Pill)
+              // And text: isDark ? Colors.black : Colors.white.
+              // Wait, user said "background negro text blanco". I'll conform to that for Light Mode.
+              // For Dark Mode, I'll default to Theme Primary or White to ensure visibility.
+              // Let's assume Light Mode context from screenshot.
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(30), // Pill shape
+          child: GestureDetector(
+            onTap: () => context.go(route),
+            child: Container(
+              color: Colors.transparent, // Hit test behavior
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: fgColor, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      color: fgColor,
+                      fontSize: 10,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1491,19 +1553,14 @@ class ModernGlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: ModernGlass(
-          borderRadius: borderRadius,
-          opacity: 0.1,
-          tintColor: tintColor,
-          padding: padding,
-          child: Center(child: child),
-        ),
+    return GestureDetector(
+      onTap: onPressed,
+      child: ModernGlass(
+        borderRadius: borderRadius,
+        opacity: 0.1,
+        tintColor: tintColor,
+        padding: padding,
+        child: Center(child: child),
       ),
     );
   }
@@ -1543,67 +1600,77 @@ class LoginDropdownButton extends ConsumerWidget {
           }
         }
 
-        return InkWell(
-          onTap: () {
-            final currentRoute = GoRouterState.of(context).uri.toString();
-            showProfileBottomSheet(context, currentRoute);
-          },
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            padding: const EdgeInsets.all(2), // Border width
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: isLoggedIn
-                  ? LinearGradient(
-                      colors: isBusinessMode
-                          ? [
-                              Colors.purpleAccent,
-                              Colors.deepPurple,
-                            ] // Differentiate Business Border
-                          : [const Color(0xFF4285F4), const Color(0xFF90CAF9)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xFF2C3138), const Color(0xFF1A1D21)]
-                          : [const Color(0xFFE0E0E0), const Color(0xFFF5F5F5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-            ),
+        return Material(
+          // Added Material widget to allow InkWell to work properly
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              final currentRoute = GoRouterState.of(context).uri.toString();
+              showProfileBottomSheet(context, currentRoute);
+            },
+            borderRadius: BorderRadius.circular(50),
             child: Container(
-              // width: 40, // Removed to fill parent
-              // height: 40, // Removed to fill parent
+              padding: const EdgeInsets.all(2), // Border width
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.4), // Inner bg
-                image:
+                gradient: isLoggedIn
+                    ? LinearGradient(
+                        colors: isBusinessMode
+                            ? [
+                                Colors.purpleAccent,
+                                Colors.deepPurple,
+                              ] // Differentiate Business Border
+                            : [
+                                const Color(0xFF4285F4),
+                                const Color(0xFF90CAF9),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : LinearGradient(
+                        colors: isDark
+                            ? [const Color(0xFF2C3138), const Color(0xFF1A1D21)]
+                            : [
+                                const Color(0xFFE0E0E0),
+                                const Color(0xFFF5F5F5),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+              ),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withOpacity(0.4), // Inner bg
+                  image:
+                      (isLoggedIn &&
+                          displayImage != null &&
+                          displayImage.isNotEmpty)
+                      ? DecorationImage(
+                          image: CachedNetworkImageProvider(displayImage),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child:
                     (isLoggedIn &&
                         displayImage != null &&
                         displayImage.isNotEmpty)
-                    ? DecorationImage(
-                        image: CachedNetworkImageProvider(displayImage),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child:
-                  (isLoggedIn &&
-                      displayImage != null &&
-                      displayImage.isNotEmpty)
-                  ? null // Image is in decoration
-                  : Center(
-                      child: Icon(
-                        isLoggedIn
-                            ? (isBusinessMode
-                                  ? Icons.store_mall_directory_outlined
-                                  : Icons.person)
-                            : Icons.person_outline,
-                        color: Colors.white,
-                        size: 20, // Adjusted size
+                    ? null // Image is in decoration
+                    : Center(
+                        child: Icon(
+                          isLoggedIn
+                              ? (isBusinessMode
+                                    ? Icons.store_mall_directory_outlined
+                                    : Icons.person)
+                              : Icons.person_outline,
+                          color: Colors.white,
+                          size: 20, // Adjusted size
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         );
@@ -1635,6 +1702,8 @@ class ProfileBottomSheet extends ConsumerStatefulWidget {
 
 class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
   // No local state needed for theme anymore
+  // No change needed here if provider is restored globally. I'll skip this or use view_file.
+  // Wait, I cannot skip. I'll just view layout.dart to ensure import. theme anymore
 
   @override
   Widget build(BuildContext context) {
@@ -2053,9 +2122,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
         ? const Color(0xFF4F87C9).withOpacity(0.15)
         : Colors.transparent;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(50),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -2141,9 +2209,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -2191,9 +2258,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(

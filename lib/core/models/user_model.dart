@@ -16,6 +16,7 @@ class UserProfile {
   final String? businessProfileImage;
   final String? businessName;
   final int? businessId;
+  final String? stripeId;
 
   UserProfile({
     required this.id,
@@ -33,6 +34,7 @@ class UserProfile {
     this.businessProfileImage,
     this.businessName,
     this.businessId,
+    this.stripeId,
   });
 
   // Factory to create from JSON (Supabase response)
@@ -58,6 +60,7 @@ class UserProfile {
       businessProfileImage: json['business_profile_image'] as String?,
       businessName: json['business_name'] as String?,
       businessId: json['business_id'] as int?,
+      stripeId: json['stripe_id'] as String?,
     );
   }
 

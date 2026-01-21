@@ -10,6 +10,7 @@ import 'widgets/business_employees_widget.dart';
 import 'widgets/business_profile_widget.dart'; // Added
 import 'widgets/business_proposals_widget.dart'; // Added
 import 'widgets/business_invoices_widget.dart'; // Added
+import 'widgets/business_bookings_widget.dart';
 import 'widgets/business_settings_widget.dart'; // Added
 
 class BusinessPage extends ConsumerStatefulWidget {
@@ -82,7 +83,7 @@ class BusinessSalesTab extends ConsumerWidget {
       case 'proposals':
         return const BusinessProposalsWidget();
       case 'bookings':
-        return const _BusinessPlaceholder(title: 'Ventas - Bookings');
+        return const BusinessBookingsWidget();
       default:
         return const _BusinessPlaceholder(title: 'Ventas - General');
     }

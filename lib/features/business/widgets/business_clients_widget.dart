@@ -9,6 +9,7 @@ import '../../social/user_profile_page.dart';
 import '../../social/models/contact_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/providers/locale_provider.dart';
+import 'business_client_sheet.dart'; // Added Import
 
 class BusinessClientsWidget extends ConsumerStatefulWidget {
   const BusinessClientsWidget({super.key});
@@ -309,13 +310,11 @@ class _AddClientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton.icon(
       onPressed: () {
-        // TODO: Open Add Client Modal
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              t['add_client_coming_soon'] ?? 'Add Client Coming Soon',
-            ),
-          ),
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const BusinessClientSheet(),
         );
       },
       icon: const Icon(Icons.add),

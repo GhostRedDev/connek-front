@@ -15,7 +15,7 @@ class OfficePage extends ConsumerStatefulWidget {
 class _OfficePageState extends ConsumerState<OfficePage> {
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = const Color(0xFF131619);
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
     final selectedIndex = ref.watch(officeSelectedIndexProvider);
 
     return Scaffold(

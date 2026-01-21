@@ -197,7 +197,9 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
               if (widget.initialData == null) ...[
                 DropdownButtonFormField<int>(
                   decoration: _inputDecoration('Cliente / Lead'),
-                  value: _selectedLeadId,
+                  value: leads.any((l) => l.id == _selectedLeadId)
+                      ? _selectedLeadId
+                      : null,
                   items: leads.map((lead) {
                     // Lead object to Map if needed, or if recentLeads is List<Lead>
                     // businessProvider: recentLeads is List<Lead>.

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/business_provider.dart';
+import 'business_employee_sheet.dart'; // Added Import
 
 class BusinessEmployeesWidget extends ConsumerStatefulWidget {
   const BusinessEmployeesWidget({super.key});
@@ -97,7 +98,18 @@ class _BusinessEmployeesWidgetState
             const SizedBox(height: 24),
 
             // 3. Staff Section
-            _buildSectionHeader(context, 'Staff', onAdd: () {}),
+            _buildSectionHeader(
+              context,
+              'Staff',
+              onAdd: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const BusinessEmployeeSheet(),
+                );
+              },
+            ),
             const SizedBox(height: 12),
             if (staff.isEmpty)
               Padding(

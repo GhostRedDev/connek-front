@@ -1,0 +1,24 @@
+flutter_native_splash:
+  color: "#ffffff" # Light mode background (White)
+  image: "assets/images/bgBusinessWebDark.png" # Light Mode Image (User said: "logo de connek dark si tiene el tema light") - Using bgBusinessWebDark.png as it seems robust or conneck_logo_dark.png if preferred. Let's start with conneck_logo_dark.png but it was small. Let's use 'conneck_logo_dark.png' 
+  # Wait, user said "logo de connek dark". 
+  # Let's try to verify if 'conneck_logo_dark.png' is good quality. 
+  # assets/images/conneck_logo_dark.png size is 2.5KB. That sounds like a small icon. 
+  # assets/images/logo_connek_definitivo.jpg is 700KB.
+  
+  # Let's use reliable paths. 
+  # Light Theme -> Dark Logo
+  image: "assets/images/conneck_logo_dark.png" 
+  branding: "assets/images/conneck_logo_dark.png"
+
+  color_dark: "#000000" # Dark mode background (Black)
+  image_dark: "assets/images/conneck_logo_white.png" # Dark Mode Image (User said: "logo de connek light si tiene el tema dark")
+  branding_dark: "assets/images/conneck_logo_white.png"
+
+  android_12:
+    image: "assets/images/conneck_logo_dark.png"
+    icon_background_color: "#ffffff"
+    image_dark: "assets/images/conneck_logo_white.png"
+    icon_background_color_dark: "#000000"
+
+  web: true

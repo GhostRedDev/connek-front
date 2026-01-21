@@ -8,7 +8,9 @@ final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
 class ApiService {
   // Base URL from previous findings
+  // Base URL from previous findings
   final String baseUrl = "https://connek-dev-aa5f5db19836.herokuapp.com";
+  // final String baseUrl = "http://127.0.0.1:8000"; // Localhost for verification
 
   ApiService();
 

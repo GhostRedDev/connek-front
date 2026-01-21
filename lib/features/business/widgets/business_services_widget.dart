@@ -43,8 +43,7 @@ class _BusinessServicesWidgetState
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Navigate to add service
-          // context.push('/business/create-service');
+          _showServiceSheet(context);
         },
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,

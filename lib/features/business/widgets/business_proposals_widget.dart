@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../providers/business_provider.dart';
+import 'business_proposal_sheet.dart';
+import 'business_proposal_details_sheet.dart';
 
 class BusinessProposalsWidget extends ConsumerStatefulWidget {
   const BusinessProposalsWidget({super.key});
@@ -77,14 +79,31 @@ class _BusinessProposalsWidgetState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
-              Text(
-                'Propuestas',
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
+              // Title Row
+              Row(
+                children: [
+                  Text(
+                    'Propuestas',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCreateProposalSheet(context),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Nueva'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4285F4),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -232,16 +251,14 @@ class _BusinessProposalsWidgetState
         : null;
 
     // Fallback if image is generic or null
-    if (clientImage == null || clientImage.isEmpty) {
-      clientImage =
-          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(clientName)}&background=random';
-    }
+    // if (clientImage == null || clientImage.isEmpty) {
+    //   Use a local asset or simply let CircleAvatar show a background color/icon
+    // }
 
     // Agent Info (Defaults for now as we don't have agent specific field in quote)
     final agentName = 'Sistema';
     final agentRole = 'Automático';
-    final agentImage =
-        'https://ui-avatars.com/api/?name=AI&background=0D8ABC&color=fff';
+    // final agentImage = 'https://ui-avatars.com/api/?name=AI&background=0D8ABC&color=fff'; // Removed stable
 
     Color statusColor;
     Color statusBgColor;
@@ -271,207 +288,351 @@ class _BusinessProposalsWidgetState
         statusLabel = status;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1A1A1A)
-            : Colors.grey[50], // Slightly darker bg for card
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF4285F4), width: 1),
-                ),
-                child: const Icon(
-                  Icons.attach_money,
-                  color: Color(0xFF4285F4),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusBgColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            statusLabel,
-                            style: GoogleFonts.inter(
-                              color: statusColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
+    return GestureDetector(
+      onTap: () => _showDetailsSheet(context, prop),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF1A1A1A)
+              : Colors.grey[50], // Slightly darker bg for card
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF4285F4),
+                      width: 1,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      id,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF4285F4),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                  ),
+                  child: const Icon(
+                    Icons.attach_money,
+                    color: Color(0xFF4285F4),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusBgColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: GoogleFonts.inter(
+                                color: statusColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        id,
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF4285F4),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _showEditProposalSheet(context, prop);
+                    } else if (value == 'delete') {
+                      _deleteProposal(context, prop['id'], ref);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18, color: Colors.grey),
+                          SizedBox(width: 8),
+                          Text('Editar'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Eliminar', style: TextStyle(color: Colors.red)),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              const Icon(Icons.more_vert, color: Colors.grey),
-            ],
-          ),
-          const SizedBox(height: 16),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-          // Date & Price Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(
-                    formattedDate,
-                    style: GoogleFonts.inter(
-                      color: Colors.grey[600],
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(
-                    formattedTime,
-                    style: GoogleFonts.inter(
-                      color: Colors.grey[600],
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                amount,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: const Color(0xFF4285F4),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
-
-          // Participants Row
-          Row(
-            children: [
-              // Client
-              Expanded(
-                child: Row(
+            // Date & Price Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundImage: CachedNetworkImageProvider(clientImage),
-                      onBackgroundImageError:
-                          (_, __) {}, // Handle errors silently
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.grey[600],
                     ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 6),
+                    Text(
+                      formattedDate,
+                      style: GoogleFonts.inter(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(
+                      formattedTime,
+                      style: GoogleFonts.inter(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  amount,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: const Color(0xFF4285F4),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+
+            // Participants Row
+            Row(
+              children: [
+                // Client
+                Expanded(
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.grey.shade200,
+                        backgroundImage:
+                            (clientImage != null && clientImage.isNotEmpty)
+                            ? CachedNetworkImageProvider(clientImage)
+                            : null,
+                        child: (clientImage == null || clientImage.isEmpty)
+                            ? const Icon(
+                                Icons.person,
+                                size: 18,
+                                color: Colors.grey,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              clientName,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              clientRole,
+                              style: GoogleFonts.inter(
+                                color: Colors.grey[600],
+                                fontSize: 11,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Agent
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Row(
                       children: [
-                        Text(
-                          clientName,
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: isDark ? Colors.white : Colors.black,
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.blue.shade100,
+                          child: const Icon(
+                            Icons.person,
+                            size: 18,
+                            color: Colors.blue,
                           ),
                         ),
-                        Text(
-                          clientRole,
-                          style: GoogleFonts.inter(
-                            color: Colors.grey[600],
-                            fontSize: 11,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                agentName,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                agentRole,
+                                style: GoogleFonts.inter(
+                                  color: Colors.grey[600],
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              // Agent
-              Expanded(
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundImage: CachedNetworkImageProvider(agentImage),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          agentName,
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        Text(
-                          agentRole,
-                          style: GoogleFonts.inter(
-                            color: Colors.grey[600],
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCreateProposalSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const BusinessProposalSheet(),
+    );
+  }
+
+  void _showEditProposalSheet(
+    BuildContext context,
+    Map<String, dynamic> quote,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BusinessProposalSheet(quoteToEdit: quote),
+    );
+  }
+
+  void _showDetailsSheet(BuildContext context, Map<String, dynamic> quote) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BusinessProposalDetailsSheet(quote: quote),
+    );
+  }
+
+  Future<void> _deleteProposal(
+    BuildContext context,
+    int id,
+    WidgetRef ref,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Propuesta'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar esta propuesta?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      final success = await ref.read(businessProvider.notifier).deleteQuote(id);
+      if (!context.mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Propuesta eliminada')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al eliminar propuesta')),
+        );
+      }
+    }
   }
 }
