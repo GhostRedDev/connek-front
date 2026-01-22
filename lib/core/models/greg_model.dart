@@ -29,6 +29,12 @@ class GregModel {
   final bool askForConsent;
   final String? informationNotToShare;
   final List<Map<String, String>>? customPolicies;
+  final String? nextBillingDate; // New field from backend
+  final bool subscriptionActive;
+  final String? subscriptionPlan;
+  final double subscriptionPrice;
+  final String subscriptionCurrency;
+  final bool cancelAtPeriodEnd;
 
   GregModel({
     required this.id,
@@ -57,6 +63,12 @@ class GregModel {
     this.askForConsent = false,
     this.informationNotToShare,
     this.customPolicies,
+    this.nextBillingDate,
+    this.subscriptionActive = false,
+    this.subscriptionPlan,
+    this.subscriptionPrice = 0.0,
+    this.subscriptionCurrency = 'USD',
+    this.cancelAtPeriodEnd = false,
   });
 
   static List<T> _parseList<T>(
@@ -89,6 +101,12 @@ class GregModel {
   }
 
   factory GregModel.fromJson(Map<String, dynamic> map) {
+    // Debug print to verify backend response
+    print('🔍 GregModel JSON RAW: $map');
+    print(
+      '🔍 GregModel SubActiveRaw: ${map['subscription_active']} (Type: ${map['subscription_active'].runtimeType})',
+    );
+
     return GregModel(
       id: map['id'] as int? ?? 0,
       businessId: map['business_id'] as int? ?? 0,
@@ -147,6 +165,12 @@ class GregModel {
         }
         return {};
       }),
+      nextBillingDate: map['next_billing_date'] as String?,
+      subscriptionActive: map['subscription_active'] as bool? ?? false,
+      subscriptionPlan: map['subscription_plan'] as String?,
+      subscriptionPrice: (map['subscription_price'] as num? ?? 0.0).toDouble(),
+      subscriptionCurrency: map['subscription_currency'] as String? ?? 'USD',
+      cancelAtPeriodEnd: map['cancel_at_period_end'] as bool? ?? false,
     );
   }
 
@@ -177,6 +201,12 @@ class GregModel {
       'ask_for_consent': askForConsent,
       'information_not_to_share': informationNotToShare,
       'custom_policies': customPolicies,
+      'next_billing_date': nextBillingDate,
+      'subscription_active': subscriptionActive,
+      'subscription_plan': subscriptionPlan,
+      'subscription_price': subscriptionPrice,
+      'subscription_currency': subscriptionCurrency,
+      'cancel_at_period_end': cancelAtPeriodEnd,
     };
   }
 
@@ -197,8 +227,8 @@ class GregModel {
     int? escalationTimeMinutes,
     List<String>? cancellationDocuments,
     List<String>? blacklist,
-    List<Map<String, String>>? excludedPhones,
-    List<Map<String, String>>? library,
+    List<Map<String, String>?>? excludedPhones,
+    List<Map<String, String>?>? library,
     String? conversationTone,
     bool? notifications,
     bool? active,
@@ -206,6 +236,12 @@ class GregModel {
     bool? askForConsent,
     String? informationNotToShare,
     List<Map<String, String>>? customPolicies,
+    String? nextBillingDate,
+    bool? subscriptionActive,
+    String? subscriptionPlan,
+    double? subscriptionPrice,
+    String? subscriptionCurrency,
+    bool? cancelAtPeriodEnd,
   }) {
     return GregModel(
       id: id,
@@ -229,8 +265,9 @@ class GregModel {
       cancellationDocuments:
           cancellationDocuments ?? this.cancellationDocuments,
       blacklist: blacklist ?? this.blacklist,
-      excludedPhones: excludedPhones ?? this.excludedPhones,
-      library: library ?? this.library,
+      excludedPhones:
+          excludedPhones?.map((e) => e ?? {}).toList() ?? this.excludedPhones,
+      library: library?.map((e) => e ?? {}).toList() ?? this.library,
       conversationTone: conversationTone ?? this.conversationTone,
       notifications: notifications ?? this.notifications,
       active: active ?? this.active,
@@ -239,6 +276,12 @@ class GregModel {
       informationNotToShare:
           informationNotToShare ?? this.informationNotToShare,
       customPolicies: customPolicies ?? this.customPolicies,
+      nextBillingDate: nextBillingDate ?? this.nextBillingDate,
+      subscriptionActive: subscriptionActive ?? this.subscriptionActive,
+      subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
+      subscriptionPrice: subscriptionPrice ?? this.subscriptionPrice,
+      subscriptionCurrency: subscriptionCurrency ?? this.subscriptionCurrency,
+      cancelAtPeriodEnd: cancelAtPeriodEnd ?? this.cancelAtPeriodEnd,
     );
   }
 }

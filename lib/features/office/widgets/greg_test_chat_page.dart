@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji;
 import '../../settings/providers/profile_provider.dart';
 import '../providers/greg_provider.dart';
 
@@ -17,16 +19,25 @@ class GregTestChatPage extends ConsumerStatefulWidget {
 class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
 
   String? _conversationId;
   String? _currentUserId;
   List<dynamic> _messages = [];
   bool _isLoading = true;
   Timer? _pollingTimer;
+  bool _emojiShowing = false;
 
   @override
   void initState() {
     super.initState();
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        setState(() {
+          _emojiShowing = false;
+        });
+      }
+    });
     _initializeChat();
   }
 
@@ -35,6 +46,7 @@ class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
     _pollingTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -87,7 +99,6 @@ class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
         setState(() {
           _messages = msgs;
         });
-        // Auto-scroll on first load if at bottom could be good, but standard behavior is fine for now
       }
     } catch (e) {
       // debugPrint('Error polling messages: $e');
@@ -183,57 +194,131 @@ class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF4B39EF)),
-                  )
-                : _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E2429),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white10),
+      body: PopScope(
+        canPop: !_emojiShowing,
+        onPopInvoked: (didPop) {
+          if (didPop) return;
+          setState(() {
+            _emojiShowing = false;
+          });
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF4B39EF),
+                      ),
+                    )
+                  : _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E2429),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: const Icon(
+                              Icons.chat_bubble_outline,
+                              color: Colors.white54,
+                              size: 32,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.chat_bubble_outline,
-                            color: Colors.white54,
-                            size: 32,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Envía un mensaje para comenzar',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white60,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Envía un mensaje para comenzar',
-                          style: GoogleFonts.outfit(
-                            color: Colors.white60,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 24,
+                      ),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        return _buildMessageBubble(msg);
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 24,
+            ),
+            _buildInputArea(bottomPadding),
+            Offstage(
+              offstage: !_emojiShowing,
+              child: SizedBox(
+                height: 250,
+                child: emoji.EmojiPicker(
+                  onEmojiSelected: (category, em) {
+                    _messageController
+                      ..text += em.emoji
+                      ..selection = TextSelection.fromPosition(
+                        TextPosition(offset: _messageController.text.length),
+                      );
+                  },
+                  onBackspacePressed: () {
+                    _messageController
+                      ..text = _messageController.text.characters
+                          .skipLast(1)
+                          .toString()
+                      ..selection = TextSelection.fromPosition(
+                        TextPosition(offset: _messageController.text.length),
+                      );
+                  },
+                  config: emoji.Config(
+                    checkPlatformCompatibility: true,
+                    emojiViewConfig: emoji.EmojiViewConfig(
+                      columns: 7,
+                      emojiSizeMax:
+                          32 *
+                          (defaultTargetPlatform == TargetPlatform.iOS
+                              ? 1.30
+                              : 1.0),
+                      verticalSpacing: 0,
+                      horizontalSpacing: 0,
+                      gridPadding: EdgeInsets.zero,
+                      recentsLimit: 28,
+                      replaceEmojiOnLimitExceed: false,
+                      noRecents: const Text(
+                        'No Recents',
+                        style: TextStyle(fontSize: 20, color: Colors.white54),
+                        textAlign: TextAlign.center,
+                      ),
+                      loadingIndicator: const SizedBox.shrink(),
+                      buttonMode: emoji.ButtonMode.MATERIAL,
+                      backgroundColor: const Color(0xFF1E2429),
                     ),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = _messages[index];
-                      return _buildMessageBubble(msg);
-                    },
+                    skinToneConfig: const emoji.SkinToneConfig(
+                      dialogBackgroundColor: Color(0xFF1E2429),
+                      indicatorColor: Colors.grey,
+                      enabled: true,
+                    ),
+                    categoryViewConfig: const emoji.CategoryViewConfig(
+                      initCategory: emoji.Category.RECENT,
+                      backgroundColor: Color(0xFF1E2429),
+                      indicatorColor: Color(0xFF4B39EF),
+                      iconColor: Colors.grey,
+                      iconColorSelected: Color(0xFF4B39EF),
+                      backspaceColor: Color(0xFF4B39EF),
+                      tabIndicatorAnimDuration: kTabScrollDuration,
+                      categoryIcons: emoji.CategoryIcons(),
+                    ),
                   ),
-          ),
-          _buildInputArea(bottomPadding),
-        ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -297,6 +382,22 @@ class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
       ),
       child: Row(
         children: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _emojiShowing = !_emojiShowing;
+                if (_emojiShowing) {
+                  _focusNode.unfocus();
+                } else {
+                  _focusNode.requestFocus();
+                }
+              });
+            },
+            icon: Icon(
+              _emojiShowing ? Icons.keyboard : Icons.emoji_emotions_outlined,
+              color: Colors.white54,
+            ),
+          ),
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -307,6 +408,7 @@ class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
               ),
               child: TextField(
                 controller: _messageController,
+                focusNode: _focusNode,
                 style: GoogleFonts.outfit(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Escribe un mensaje...',
