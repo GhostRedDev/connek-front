@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/greg_provider.dart';
 import 'marketplace_bot_card.dart';
 import '../../../../core/providers/locale_provider.dart';
 
@@ -125,14 +127,30 @@ class _OfficeMarketplaceWidgetState
           const SizedBox(height: 16),
 
           // Bot Card (Greg)
-          MarketplaceBotCard(
-            name: 'Greg',
-            description:
-                t['bot_greg_description'] ??
-                'Bot especializado en atención al cliente 24/7 con IA avanzada. Gestiona citas, responde dudas y más.',
-            imageUrl:
-                'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=256&q=80', // Placeholder or real URL
-            price: '\$0',
+          Consumer(
+            builder: (context, ref, child) {
+              final gregState = ref.watch(gregProvider);
+              final bool isActive =
+                  gregState is GregLoaded && gregState.greg.active;
+
+              return MarketplaceBotCard(
+                name: 'Greg',
+                description:
+                    t['bot_greg_description'] ??
+                    'Bot especializado en atención al cliente 24/7 con IA avanzada. Gestiona citas, responde dudas y más.',
+                imageUrl:
+                    'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=256&q=80', // Placeholder or real URL
+                price: '\$0',
+                actionLabel: isActive ? 'Entrenar' : 'Contratar',
+                onAction: () {
+                  if (isActive) {
+                    context.push('/office/train-greg');
+                  } else {
+                    context.push('/office/settings-greg');
+                  }
+                },
+              );
+            },
           ),
 
           const SizedBox(height: 24),

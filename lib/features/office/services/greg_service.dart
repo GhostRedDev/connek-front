@@ -318,4 +318,57 @@ class GregService {
       rethrow;
     }
   }
+
+  // Activate Subscription (Stripe Checkout)
+  Future<String?> activateSubscription({required int businessId}) async {
+    debugPrint(
+      '📡 GregService: ACTIVATE SUBSCRIPTION for business $businessId',
+    );
+    try {
+      final body = {'business_id': businessId, 'type': 'greg'};
+
+      debugPrint('🚀 GregService: Sending Stripe Checkout Request: $body');
+
+      final response = await _apiService.post(
+        '/api/stripe/checkout',
+        body: body,
+      );
+
+      debugPrint('📥 GregService: Stripe Response: $response');
+
+      if (response != null &&
+          response['success'] == true &&
+          response['data'] != null) {
+        final url = response['data']['redirect_url'];
+        debugPrint('🔗 GregService: Redirect URL found: $url');
+        return url;
+      }
+      debugPrint('❌ GregService: No redirect URL in response');
+      return null;
+    } catch (e) {
+      debugPrint('❌ GregService: Error activating subscription: $e');
+      rethrow;
+    }
+  }
+
+  // Cancel Subscription
+  Future<bool> cancelSubscription({required int businessId}) async {
+    debugPrint('📡 GregService: CANCEL SUBSCRIPTION for business $businessId');
+    try {
+      final response = await _apiService.post(
+        '/employees/greg/business/$businessId/cancel-subscription',
+        body: {},
+      );
+
+      debugPrint('📥 GregService: Cancel Response: $response');
+
+      if (response != null && response['success'] == true) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('❌ GregService: Error cancelling subscription: $e');
+      rethrow;
+    }
+  }
 }
