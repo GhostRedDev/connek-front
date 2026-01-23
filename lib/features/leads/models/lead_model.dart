@@ -18,6 +18,7 @@ class Lead {
   final int? requestBudgetMax;
   final int? requestBudgetMin;
   final String? clientImageUrl;
+  final String? clientPhone;
 
   Lead({
     required this.id,
@@ -39,6 +40,7 @@ class Lead {
     this.requestBudgetMax,
     this.requestBudgetMin,
     this.clientImageUrl,
+    this.clientPhone,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -69,6 +71,7 @@ class Lead {
       requestBudgetMax: json['requestBudgetMax'],
       requestBudgetMin: json['requestBudgetMin'],
       clientImageUrl: json['clientImageUrl'],
+      clientPhone: json['clientPhone'],
     );
   }
 
@@ -100,6 +103,7 @@ class Lead {
       requestBudgetMax: request['budget_max_cents'],
       requestBudgetMin: request['budget_min_cents'],
       clientImageUrl: imageUrl,
+      clientPhone: client['phone']?.toString(),
     );
   }
 }

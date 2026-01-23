@@ -377,6 +377,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'bookings/:id',
+                parentNavigatorKey: rootNavigatorKey,
                 builder: (context, state) => BookingDetailsPage(
                   bookingId: state.pathParameters['id'] ?? '',
                   isClientView: false,

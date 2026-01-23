@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../providers/business_provider.dart';
 
@@ -15,54 +17,80 @@ class BusinessInvoiceSheet extends ConsumerStatefulWidget {
 }
 
 class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _descriptionController = TextEditingController();
-  final _amountController = TextEditingController();
-
+  // State
   int? _selectedLeadId;
+  final List<BusinessInvoiceItem> _items = [];
   bool _isLoading = false;
+
+  // Controllers (we might need a list of controllers, but for simplicity we rely on state updates)
+  // Actually, using controllers for list items is best for performance, but requires management.
+  // We'll use a simple state-bound approach for now.
 
   @override
   void initState() {
     super.initState();
     if (widget.initialData != null) {
       _initFormData();
+    } else {
+      // Add one empty item by default
+      _items.add(BusinessInvoiceItem());
     }
   }
 
   void _initFormData() {
     final data = widget.initialData!;
-    _descriptionController.text = data['title'] ?? data['description'] ?? '';
-
-    // Parse amount from string like "$1,200.00" or raw cents
-    // The widget passed "amount" as formatted string "$1,200.00"
-    String amountStr = data['amount']?.toString() ?? '';
-    amountStr = amountStr.replaceAll(RegExp(r'[^0-9.]'), '');
-    _amountController.text = amountStr;
-
-    // Pre-select lead if editing and leadId provided
     if (data.containsKey('lead_id')) {
       _selectedLeadId = data['lead_id'];
     }
-    // Client handling is tricky if we don't pass the full client object in specific way
-    // For editing, we might need to find the client in the provider list
-    // This is simplified. Editing might require more robust client matching.
+    // Parse items from data if available, otherwise mock or parse text
+    // Since backend stores flat description/amount, we might just try to reconstruct or reset.
+    // For now we assume new structure or reset to single item with full amount if complex.
+    final amountCents = data['amountCents'] ?? 0;
+    final amount = amountCents / 100.0;
+
+    // Attempt to parse description? No, just set one item with the total.
+    _items.add(
+      BusinessInvoiceItem(
+        title: data['description'] ?? 'Servicio',
+        price: amount,
+        qty: 1,
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    _amountController.dispose();
-    super.dispose();
+  // --- Logic ---
+
+  void _addItem() {
+    setState(() {
+      _items.add(BusinessInvoiceItem());
+    });
   }
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+    });
+  }
+
+  double get _subTotal => _items.fold(0, (sum, item) => sum + item.total);
+  // Using Quebec taxes as per image: TPS 5%, TVQ 9.975%
+  double get _taxTPS => _subTotal * 0.05;
+  double get _taxTVQ => _subTotal * 0.09975;
+  double get _total => _subTotal + _taxTPS + _taxTVQ;
 
   Future<void> _saveInvoice() async {
-    if (!_formKey.currentState!.validate()) return;
-    // Only check client selection if creating new invoice
-    if (_selectedLeadId == null && widget.initialData == null) {
+    if (_selectedLeadId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor selecciona un cliente')),
       );
+      return;
+    }
+
+    // Validate items
+    if (_items.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Agrega al menos un ítem')));
       return;
     }
 
@@ -72,45 +100,26 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
       final businessData = ref.read(businessProvider).value;
       if (businessData?.businessProfile == null) return;
 
-      // Calculate cents
-      final amountDouble = double.tryParse(_amountController.text) ?? 0.0;
-      final amountCents = (amountDouble * 100).toInt();
+      final amountCents = (_total * 100).toInt();
+
+      // Construct Description from Items
+      final description = _items
+          .map((e) => '${e.title} (x${e.qty})')
+          .join(', ');
 
       final repo = ref.read(businessRepositoryProvider);
 
-      // Handle Edit or Create
       if (widget.initialData != null) {
-        // Update
-        // Need quote ID. 'id' in UI is #INV-XXXXXX. Better to pass raw ID or parse it.
-        // Let's assume we can get the real ID. If initialData lacks real ID, we have check business_invoices_widget.
-        // However, business_invoices_widget maps 'id' to display string.
-        // We should update business_invoices_widget to pass raw 'quote_id'.
-
-        // For now, assuming raw_id is passed
         final rawId = widget.initialData!['raw_id'];
         if (rawId != null) {
           await repo.updateQuote(int.parse(rawId.toString()), {
             'amountCents': amountCents,
-            'description': _descriptionController.text,
+            'description': description,
+            // 'items': _items.map((e) => e.toMap()).toList(), // If backend supported better
           });
         }
       } else {
-        // Create
-        // Endpoint requires: lead_id, amountCents, description
-        // Client selection must provide a lead_id or client_id.
-        // Quotes usually linked to a Lead. If selecting a Client, we might need a Lead ID representing that relationship or create one?
-        // Quotes API: lead_id is required.
-        // If we select a generic "Client", does every client have a "lead_id"?
-        // In this system, Clients are UserAccounts. Business-Client relationship might be via "Leads" table?
-        // Or we select from "Leads".
-
-        final leadId = _selectedLeadId!; // Assuming we pick from Leads list
-
-        // We also need a dummy service_id if required by backend, OR modify backend.
-        // Backend `create_quote` takes: lead_id, service_id, amountCents, description.
-        // So we MUST pick a service or have a default "Custom Service".
-        // Let's pick the first service as data fallback or ask user.
-        // For simplicity, let's just pick array[0] service if available, or 0.
+        final leadId = _selectedLeadId!;
         int serviceId = 0;
         if (businessData!.services.isNotEmpty) {
           serviceId = businessData.services.first['id'];
@@ -120,7 +129,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
           'lead_id': leadId,
           'service_id': serviceId,
           'amountCents': amountCents,
-          'description': _descriptionController.text,
+          'description': description,
         });
       }
 
@@ -131,9 +140,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.initialData != null
-                  ? 'Factura actualizada'
-                  : 'Factura creada',
+              widget.initialData != null ? 'Guardado' : 'Factura creada',
             ),
           ),
         );
@@ -145,146 +152,627 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final businessData = ref.watch(businessProvider).value;
-
-    // Actually we need Leads for `lead_id`.
-    // `recentLeads` in dashboard might be limited.
-    // Ideally we fetch all leads/clients.
-    // For now, we use `recentLeads` or `clients` if they have lead_id mapped.
-    // Let's use `recentLeads` which DEFINITELY have `id` as `lead_id`.
     final leads = businessData?.recentLeads ?? [];
 
-    // Merge logic: Clients list vs Leads list. Backend needs `lead_id`.
-    // If we select a "Client" from `clients` list, we might not have a `lead_id` unless we create one.
-    // Safest bet for "Invoices" is often sending to existing Leads.
-    // Let's show LEADS in the dropdown for now to ensure `lead_id` validity.
+    // Find selected lead
+    final selectedLead = _selectedLeadId != null
+        ? leads.firstWhere(
+            (l) => l.id == _selectedLeadId,
+            orElse: () => leads.first,
+          )
+        : null; // Safe fallback logic needed or just handling null
 
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 20,
-        right: 20,
-        top: 20,
+    // Invoice ID Mock
+    final invoiceId = widget.initialData != null
+        ? '#INV-${widget.initialData!['raw_id']}'
+        : 'NUEVA';
+
+    final dateStr = DateFormat('dd MMM yyyy', 'es').format(DateTime.now());
+
+    // Safe Access for Business Profile Map
+    final businessProfile = businessData?.businessProfile;
+    final String? businessLogo = businessProfile?['profile_image'];
+    final String businessName = businessProfile?['name'] ?? 'Mi Negocio';
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(''), // Custom header below
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          // Save Draft placeholder
+          TextButton(
+            onPressed: _saveInvoice,
+            child: Text(
+              'Guardar',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.initialData != null ? 'Editar Factura' : 'Nueva Factura',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Header Card (Business Info)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          // Logo Placeholder
+                          CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 20,
+                            backgroundImage:
+                                (businessLogo != null &&
+                                    businessLogo.isNotEmpty)
+                                ? CachedNetworkImageProvider(businessLogo)
+                                : null,
+                            child:
+                                (businessLogo == null || businessLogo.isEmpty)
+                                ? const Icon(Icons.store, color: Colors.black)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  businessName,
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  'Venezuela', // Location mock
+                                  style: GoogleFonts.inter(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                invoiceId,
+                                style: GoogleFonts.inter(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today,
+                                    size: 12,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    dateStr,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-              // Client Selection (Only if Creating)
-              if (widget.initialData == null) ...[
-                DropdownButtonFormField<int>(
-                  decoration: _inputDecoration('Cliente / Lead'),
-                  value: leads.any((l) => l.id == _selectedLeadId)
-                      ? _selectedLeadId
-                      : null,
-                  items: leads.map((lead) {
-                    // Lead object to Map if needed, or if recentLeads is List<Lead>
-                    // businessProvider: recentLeads is List<Lead>.
-                    // We need to access props.
-                    final name =
-                        '${lead.clientFirstName} ${lead.clientLastName}'.trim();
-                    return DropdownMenuItem<int>(
-                      value: lead.id,
-                      child: Text(name.isEmpty ? 'Lead #${lead.id}' : name),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedLeadId = val;
-                    });
-                  },
-                  validator: (val) =>
-                      val == null ? 'Selecciona un cliente' : null,
-                ),
-                const SizedBox(height: 16),
-              ],
+                    // 2. Cliente Section
+                    Text(
+                      'Cliente',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
-              // Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: _inputDecoration('Concepto / Título'),
-                validator: (val) => val!.isEmpty ? 'Ingresa un concepto' : null,
-              ),
-              const SizedBox(height: 16),
+                    if (_selectedLeadId == null)
+                      // Search Bar / Dropdown
+                      DropdownButtonFormField<int>(
+                        decoration: InputDecoration(
+                          hintText: 'Buscar clientes',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                          ),
+                        ),
+                        items: leads.map((l) {
+                          return DropdownMenuItem(
+                            value: l.id,
+                            child: Text(
+                              '${l.clientFirstName} ${l.clientLastName}',
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) =>
+                            setState(() => _selectedLeadId = val),
+                      )
+                    else
+                      // Selected Client Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB), // Grey bg
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundImage:
+                                  (selectedLead?.clientImageUrl != null &&
+                                      selectedLead!.clientImageUrl!.isNotEmpty)
+                                  ? CachedNetworkImageProvider(
+                                      selectedLead.clientImageUrl!,
+                                    )
+                                  : null,
+                              radius: 20,
+                              child:
+                                  (selectedLead?.clientImageUrl == null ||
+                                      selectedLead!.clientImageUrl!.isEmpty)
+                                  ? Text(
+                                      selectedLead?.clientFirstName.substring(
+                                            0,
+                                            1,
+                                          ) ??
+                                          'C',
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${selectedLead?.clientFirstName} ${selectedLead?.clientLastName}',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    'cliente@email.com', // Mock email
+                                    style: GoogleFonts.inter(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.phone,
+                                        size: 12,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        selectedLead?.clientPhone ?? 'No phone',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Icon(
+                                        Icons.location_on,
+                                        size: 12,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Caracas, Vzla',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.red,
+                              ), // Red X
+                              onPressed: () =>
+                                  setState(() => _selectedLeadId = null),
+                            ),
+                          ],
+                        ),
+                      ),
 
-              // Amount
-              TextFormField(
-                controller: _amountController,
-                decoration: _inputDecoration('Monto', prefix: '\$ '),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: (val) => val!.isEmpty ? 'Ingresa un monto' : null,
-              ),
-              const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-              // Save Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveInvoice,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                    // 3. Agregar Items
+                    Text(
+                      'Agregar items',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: _addItem,
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        padding: const EdgeInsets.all(4), // Inner padding
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: Colors.grey.shade300),
                           color: Colors.white,
                         ),
-                      )
-                    : const Text('Guardar Factura'),
+                        child: Row(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(left: 16),
+                              child: Icon(Icons.search, color: Colors.grey),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Buscar o escribir un item...',
+                                style: GoogleFonts.inter(color: Colors.grey),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F172A), // Dark Button
+                                borderRadius: BorderRadius.circular(26),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.add,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Agregar item',
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 4. Items List
+                    ..._items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      return _buildItemCard(index, item);
+                    }),
+
+                    const SizedBox(height: 32),
+
+                    // 5. Totals
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.shade100),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTotalRow(
+                            'Sub-Total:',
+                            NumberFormat.currency(
+                              symbol: '\$',
+                            ).format(_subTotal),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildTotalRow(
+                            'TPS (5.00%):',
+                            NumberFormat.currency(symbol: '\$').format(_taxTPS),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildTotalRow(
+                            'TVQ (9.975%):',
+                            NumberFormat.currency(symbol: '\$').format(_taxTVQ),
+                          ),
+                          const Divider(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Total amount:',
+                                style: GoogleFonts.inter(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                NumberFormat.currency(
+                                  symbol: '\$',
+                                ).format(_total),
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF2563EB),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 100), // Space for footer
+                  ],
+                ),
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+
+            // Footer Layout
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveInvoice,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(
+                      0xFFE5E7EB,
+                    ), // Grey bg as per image "Guardar borrador"
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: Text(
+                    'Guardar borrador',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String label, {String? prefix}) {
-    return InputDecoration(
-      labelText: label,
-      prefixText: prefix,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+  Widget _buildItemCard(int index, BusinessInvoiceItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: item.title,
+                  decoration: const InputDecoration(
+                    hintText: 'Nombre del ítem',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                  onChanged: (val) => item.title = val,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.cancel,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+                onPressed: () => _removeItem(index),
+              ),
+            ],
+          ),
+          const Divider(),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cantidad',
+                      style: GoogleFonts.inter(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: TextFormField(
+                        initialValue: item.qty.toString(),
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            item.qty = int.tryParse(val) ?? 1;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Precio',
+                      style: GoogleFonts.inter(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: TextFormField(
+                        initialValue: item.price.toStringAsFixed(2),
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          prefixText: '\$',
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            item.price = double.tryParse(val) ?? 0.0;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total',
+                      style: GoogleFonts.inter(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 48,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        NumberFormat.currency(symbol: '\$').format(item.total),
+                        style: GoogleFonts.inter(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      filled: true,
-      fillColor: Colors.grey.shade50,
     );
   }
+
+  Widget _buildTotalRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.inter(color: Colors.grey[700])),
+        Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+}
+
+class BusinessInvoiceItem {
+  String title;
+  int qty;
+  double price;
+
+  BusinessInvoiceItem({this.title = '', this.qty = 1, this.price = 0.0});
+
+  double get total => qty * price;
 }

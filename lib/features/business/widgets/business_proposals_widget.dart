@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../providers/business_provider.dart';
 import 'business_proposal_sheet.dart';
 import 'business_proposal_details_sheet.dart';
+import '../../../core/widgets/glass_fab_button.dart';
 
 class BusinessProposalsWidget extends ConsumerStatefulWidget {
   const BusinessProposalsWidget({super.key});
@@ -34,21 +35,24 @@ class _BusinessProposalsWidgetState
 
         // Filter Logic
         final filteredQuotes = allQuotes.where((quote) {
+          final status = quote['status'] ?? 'pending';
+
+          // EXCLUDE INVOICES (Accepted quotes are considered invoices)
+          // User request: "load proposals, not invoices"
+          if (status == 'accepted') return false;
+
           // Status Filter
           bool statusMatch = true;
-          final status = quote['status'] ?? 'pending';
           switch (_selectedFilter) {
             case 'Enviadas':
               statusMatch = status == 'pending' || status == 'sent';
-              break;
-            case 'Aceptadas':
-              statusMatch = status == 'accepted';
               break;
             case 'Rechazadas':
               statusMatch = status == 'declined' || status == 'rejected';
               break;
             case 'Todos':
             default:
+              // statusMatch is already true, and 'accepted' is excluded above.
               statusMatch = true;
           }
 
@@ -74,112 +78,130 @@ class _BusinessProposalsWidgetState
           return statusMatch && searchMatch;
         }).toList();
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title Row
-              Row(
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Propuestas',
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
+                  // Title Row
+                  Row(
+                    children: [
+                      Text(
+                        'Propuestas',
+                        style: GoogleFonts.outfit(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: () => _showCreateProposalSheet(context),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Nueva'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4285F4),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () => _showCreateProposalSheet(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Nueva'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4285F4),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Verifica el estado de las propuesta enviadas.',
+                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar propuestas',
+                        hintStyle: GoogleFonts.inter(color: Colors.grey),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
+
+                  // Filters
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('Todos'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Enviadas'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Rechazadas'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Proposal List
+                  if (filteredQuotes.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
+                        child: Text(
+                          'No hay propuestas encontradas',
+                          style: GoogleFonts.inter(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ...filteredQuotes
+                        .map(
+                          (prop) => _buildProposalCard(prop, isDark, cardColor),
+                        )
+                        .toList(),
+
+                  // Extra space for bottom nav
+                  const SizedBox(height: 80),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Verifica el estado de las propuesta enviadas.',
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 20),
-
-              // Search Bar
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar propuestas',
-                    hintStyle: GoogleFonts.inter(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
+            ),
+            Positioned(
+              left: 20,
+              bottom: 20,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: GlassFabButton(
+                  icon: Icons.add,
+                  onPressed: () => _showCreateProposalSheet(context),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Filters
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFilterChip('Todos'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Enviadas'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Aceptadas'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Rechazadas'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Proposal List
-              if (filteredQuotes.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(40.0),
-                    child: Text(
-                      'No hay propuestas encontradas',
-                      style: GoogleFonts.inter(color: Colors.grey),
-                    ),
-                  ),
-                )
-              else
-                ...filteredQuotes
-                    .map((prop) => _buildProposalCard(prop, isDark, cardColor))
-                    .toList(),
-
-              // Extra space for bottom nav
-              const SizedBox(height: 80),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );

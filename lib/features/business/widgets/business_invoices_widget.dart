@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../providers/business_provider.dart';
 import 'business_invoice_sheet.dart';
+import 'business_invoice_details_sheet.dart';
+import '../../../core/widgets/glass_fab_button.dart';
 
 class BusinessInvoicesWidget extends ConsumerStatefulWidget {
   const BusinessInvoicesWidget({super.key});
@@ -23,6 +25,7 @@ class _BusinessInvoicesWidgetState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => BusinessInvoiceSheet(initialData: initialData),
     );
@@ -67,18 +70,52 @@ class _BusinessInvoicesWidgetState
 
         // Filter & Map Logic
         final invoices = quotes
+            .where((quote) {
+              // INVOICES should only be Accepted (or Paid) quotes.
+              // Pending quotes are Proposals.
+              final status =
+                  quote['status']?.toString().toLowerCase() ?? 'pending';
+              // Exclude pending/rejected (Proposals)
+              // Include everything else (Invoices)
+              return status != 'pending' &&
+                  status != 'rejected' &&
+                  status != 'rechazada';
+            })
             .map((quote) {
               final statusRaw = quote['status'] ?? 'pending';
-              String status = 'Pendiente';
-              if (statusRaw == 'accepted')
-                status = 'Pagada';
-              else if (statusRaw == 'declined' || statusRaw == 'rejected')
-                status = 'Rechazada';
-              else if (statusRaw == 'sent')
-                status = 'Pendiente';
-
-              // Fallback for mock/older data
-              if (statusRaw == 'Retrasada') status = 'Retrasada';
+              // Determine display status based on raw status
+              String status;
+              switch (statusRaw.toString().toLowerCase()) {
+                case 'paid':
+                case 'pagada':
+                  status = 'Pagada';
+                  break;
+                case 'accepted':
+                case 'aceptada':
+                  status = 'Por Cobrar'; // Accepted but not paid yet
+                  break;
+                case 'sent':
+                case 'enviada':
+                  status = 'Enviada';
+                  break;
+                case 'draft':
+                case 'borrador':
+                  status = 'Borrador';
+                  break;
+                case 'overdue':
+                case 'vencida':
+                case 'retrasada':
+                  status = 'Vencida';
+                  break;
+                default:
+                  // Capitalize first letter for others
+                  status = statusRaw.toString();
+                  if (status.isNotEmpty) {
+                    status =
+                        status[0].toUpperCase() +
+                        status.substring(1).toLowerCase();
+                  }
+              }
 
               final leads = quote['leads'];
               // Handle nested structure: leads -> requests -> client
@@ -125,14 +162,23 @@ class _BusinessInvoicesWidgetState
                 'raw_status': statusRaw, // For logic
                 'client': {
                   'name': clientName.isEmpty ? 'Cliente' : clientName,
+                  'email': client != null
+                      ? (client['email'] ?? '')
+                      : '', // Added
                   'image':
                       clientImage ??
                       'https://ui-avatars.com/api/?name=${Uri.encodeComponent(clientName)}&background=random',
                 },
                 'title': quote['description'] ?? 'Factura de Servicio',
+                'serviceName':
+                    'Servicio General', // Placeholder or fetch from service_id if available
                 'status': status,
                 'dateRange': '$startRange - $endRange',
+                'fullDate': dateStr, // Added
                 'amount': amount,
+                'subtotal': amount, // Added
+                'tax': '\$0.00', // Added placeholder
+                'paymentMethod': 'Tarjeta •••• 4242', // Added Mock
               };
             })
             .where((inv) {
@@ -215,17 +261,23 @@ class _BusinessInvoicesWidgetState
                   const SizedBox(height: 20),
 
                   // Filters
+                  // Since Invoices = Accepted, we don't have pending/rejected here anymore.
+                  // We might add "Paid" vs "Unpaid" later if 'accepted' has nuances.
+                  // For now, just 'Todos' or hide filters if only 1 type.
+                  // Let's keep filters minimal.
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
                         _buildFilterChip('Todos'),
                         const SizedBox(width: 8),
-                        _buildFilterChip('Pagada'), // Singular matches logic
+                        _buildFilterChip('Pagada'),
                         const SizedBox(width: 8),
-                        _buildFilterChip('Pendiente'),
+                        _buildFilterChip('Por Cobrar'),
                         const SizedBox(width: 8),
-                        _buildFilterChip('Rechazada'),
+                        _buildFilterChip('Vencida'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Borrador'),
                       ],
                     ),
                   ),
@@ -257,17 +309,13 @@ class _BusinessInvoicesWidgetState
             Positioned(
               left: 20,
               bottom: 20,
-              child: FloatingActionButton(
-                onPressed: () {
-                  _showInvoiceSheet();
-                },
-                backgroundColor: isDark
-                    ? Colors.white
-                    : const Color(0xFFF5F5F7),
-                foregroundColor: Colors.black,
-                elevation: 2,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.add, size: 28),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: GlassFabButton(
+                  onPressed: () {
+                    _showInvoiceSheet();
+                  },
+                ),
               ),
             ),
           ],
@@ -321,14 +369,18 @@ class _BusinessInvoicesWidgetState
         statusColor = const Color(0xFF0F9D58); // Green
         statusBgColor = const Color(0xFFE8F5E9);
         break;
+      case 'Por Cobrar':
+      case 'Enviada':
+        statusColor = const Color(0xFF1976D2); // Blue
+        statusBgColor = const Color(0xFFE3F2FD);
+        break;
       case 'Pendiente':
+      case 'Borrador':
         statusColor = const Color(0xFFF9A825); // Yellow/Orange
         statusBgColor = const Color(0xFFFFF8E1);
         break;
       case 'Rechazada':
-        statusColor = const Color(0xFFEF5350); // Red
-        statusBgColor = const Color(0xFFFFEBEE);
-        break;
+      case 'Vencida':
       case 'Retrasada':
         statusColor = const Color(0xFFEF5350); // Red
         statusBgColor = const Color(0xFFFFEBEE);
@@ -338,146 +390,165 @@ class _BusinessInvoicesWidgetState
         statusBgColor = Colors.grey[200]!;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1A1A1A)
-            : const Color(0xFFF5F5F7), // Light grey bg
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row: Icon + Avatar + Name + Badge
-          Row(
-            children: [
-              // Document Icon
-              const Icon(
-                Icons.receipt_long_outlined,
-                color: Color(0xFF4285F4),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-
-              // Avatar
-              CircleAvatar(
-                radius: 12,
-                backgroundImage: CachedNetworkImageProvider(
-                  inv['client']['image'],
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          useRootNavigator: true, // Fix: Hide Navbar
+          backgroundColor: Colors.transparent,
+          builder: (_) => BusinessInvoiceDetailsSheet(invoice: inv),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF1A1A1A)
+              : const Color(0xFFF5F5F7), // Light grey bg
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.withOpacity(0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row: Icon + Avatar + Name + Badge
+            Row(
+              children: [
+                // Document Icon
+                const Icon(
+                  Icons.receipt_long_outlined,
+                  color: Color(0xFF4285F4),
+                  size: 20,
                 ),
-                onBackgroundImageError: (_, __) {},
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
 
-              // Name
-              Expanded(
-                child: Text(
-                  inv['client']['name'],
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: isDark ? Colors.white : Colors.black,
+                // Avatar
+                CircleAvatar(
+                  radius: 12,
+                  backgroundImage: CachedNetworkImageProvider(
+                    inv['client']['image'],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  onBackgroundImageError: (_, __) {},
                 ),
-              ),
+                const SizedBox(width: 8),
 
-              // Status Badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: statusBgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  inv['status'],
-                  style: GoogleFonts.inter(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                // Name
+                Expanded(
+                  child: Text(
+                    inv['client']['name'],
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              // Context Menu
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.grey, size: 18),
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    _showInvoiceSheet(initialData: inv);
-                  } else if (value == 'delete') {
-                    final rawId = inv['raw_id'];
-                    if (rawId != null) _deleteInvoice(rawId);
-                  }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'edit',
-                    child: Text('Editar'),
+
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
                   ),
-                  const PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Text(
-                      'Eliminar',
-                      style: TextStyle(color: Colors.red),
+                  decoration: BoxDecoration(
+                    color: statusBgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    inv['status'],
+                    style: GoogleFonts.inter(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // ID
-          Text(
-            inv['id'],
-            style: GoogleFonts.inter(
-              color: Colors.grey[600],
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Project Title
-          Text(
-            inv['title'],
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: isDark
-                  ? Colors.white.withOpacity(0.9)
-                  : const Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Date & Price
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                inv['dateRange'],
-                style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13),
-              ),
-              Text(
-                inv['amount'],
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: const Color(0xFF4285F4),
                 ),
+                const SizedBox(width: 4),
+                // Context Menu
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: Colors.grey,
+                    size: 18,
+                  ),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _showInvoiceSheet(initialData: inv);
+                    } else if (value == 'delete') {
+                      final rawId = inv['raw_id'];
+                      if (rawId != null) _deleteInvoice(rawId);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) =>
+                      <PopupMenuEntry<String>>[
+                        const PopupMenuItem<String>(
+                          value: 'edit',
+                          child: Text('Editar'),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Text(
+                            'Eliminar',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ID
+            Text(
+              inv['id'],
+              style: GoogleFonts.inter(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 4),
+
+            // Project Title
+            Text(
+              inv['title'],
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: isDark
+                    ? Colors.white.withOpacity(0.9)
+                    : const Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Date & Price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  inv['dateRange'],
+                  style: GoogleFonts.inter(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  inv['amount'],
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: const Color(0xFF4285F4),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

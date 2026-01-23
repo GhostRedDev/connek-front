@@ -361,6 +361,10 @@ class BusinessRepository {
     }
   }
 
+  Future<String?> getQuotePdfUrl(int quoteId) async {
+    return '${_apiService.baseUrl}/quotes/$quoteId/pdf';
+  }
+
   // --- Business Mutations ---
 
   Future<Map<String, dynamic>?> createBusiness(
@@ -800,16 +804,15 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
         image = repo._resolveUrl(filename, 'business');
       }
 
-      return {
-        'name': s['name'],
-        'description': s['description'],
-        'price_cents': s['price_cents'],
-        'price_low_cents': s['price_low_cents'],
-        'price_high_cents': s['price_high_cents'],
-        'duration_minutes': s['duration_minutes'],
-        'image': image,
-        'id': s['id'],
-      };
+      final newS = Map<String, dynamic>.from(s);
+      newS['image'] = image;
+      // Calculate display price from cents
+      final cents = s['price_cents'] ?? 0;
+      newS['price'] = (cents / 100).toStringAsFixed(
+        0,
+      ); // Integer string if possible or 2 decimals? User had '$50' so int is fine for now or logic
+
+      return newS;
     }).toList();
 
     // Map Quotes and resolve Client Images

@@ -6,8 +6,13 @@ import '../providers/business_provider.dart';
 
 class BusinessServiceSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? serviceToEdit;
+  final String type; // 'service', 'event', 'item'
 
-  const BusinessServiceSheet({super.key, this.serviceToEdit});
+  const BusinessServiceSheet({
+    super.key,
+    this.serviceToEdit,
+    this.type = 'service',
+  });
 
   @override
   ConsumerState<BusinessServiceSheet> createState() =>
@@ -17,14 +22,16 @@ class BusinessServiceSheet extends ConsumerStatefulWidget {
 class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
   final _formKey = GlobalKey<FormState>();
 
-  // Form Fields
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _priceController = TextEditingController();
   final _durationController = TextEditingController();
-  String _selectedCategory = 'Barbershop'; // Default or from list
+  final _stockController = TextEditingController();
 
-  // Mock Data
+  DateTime? _eventDate;
+  TimeOfDay? _eventTime;
+  String _selectedCategory = 'Barbershop';
+
   final List<String> _categories = [
     'Barbershop',
     'Spa',
@@ -32,21 +39,55 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     'Salon',
     'Other',
   ];
+
   List<Map<String, dynamic>> _employees = [];
+  String? _previewImage;
+  bool _showPreview = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize if Editing
+
     if (widget.serviceToEdit != null) {
+      _showPreview = true;
       final s = widget.serviceToEdit!;
       _nameController.text = s['name'] ?? '';
       _descController.text = s['description'] ?? '';
-      _priceController.text = (s['price'] ?? '').toString();
-      _durationController.text = s['duration'] ?? '';
-      _selectedCategory = s['category'] ?? 'Barbershop';
-      // Initialize selected employees logic here if applicable
+      _priceController.text =
+          (s['price'] ?? s['price_cents'] != null
+                  ? (s['price_cents'] / 100).toString()
+                  : '')
+              .toString();
+      _durationController.text = (s['duration_minutes'] ?? s['duration'] ?? '')
+          .toString();
+      _stockController.text = (s['stock_quantity'] ?? s['stock'] ?? '')
+          .toString();
+
+      _previewImage = s['image'] ?? s['image_url'];
+      if (_previewImage == null &&
+          s['photos'] != null &&
+          (s['photos'] as List).isNotEmpty) {
+        _previewImage = s['photos'][0];
+      }
+
+      if (s['event_date'] != null) {
+        try {
+          final dt = DateTime.parse(s['event_date']);
+          _eventDate = dt;
+          _eventTime = TimeOfDay.fromDateTime(dt);
+        } catch (_) {}
+      }
+
+      _selectedCategory =
+          s['category'] ?? s['service_category'] ?? 'Barbershop';
+      if (!_categories.contains(_selectedCategory)) {
+        _categories.add(_selectedCategory);
+      }
     }
+
+    _nameController.addListener(() => setState(() {}));
+    _descController.addListener(() => setState(() {}));
+    _priceController.addListener(() => setState(() {}));
   }
 
   @override
@@ -55,19 +96,18 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     _descController.dispose();
     _priceController.dispose();
     _durationController.dispose();
+    _stockController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Fetch real employees to populate list
     final businessData = ref.watch(businessProvider);
     final allEmployees = businessData.maybeWhen(
       data: (data) => data.employees,
       orElse: () => <Map<String, dynamic>>[],
     );
 
-    // Merge selection state (logic to be implemented, for now just show all)
     if (_employees.isEmpty && allEmployees.isNotEmpty) {
       _employees = allEmployees.map((e) => {...e, 'selected': false}).toList();
     }
@@ -78,6 +118,10 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     final inputFillColor = isDark
         ? const Color(0xFF2C3036)
         : const Color(0xFFF5F5F5);
+
+    String actionLabel = 'servicio';
+    if (widget.type == 'event') actionLabel = 'evento';
+    if (widget.type == 'item') actionLabel = 'item';
 
     return Container(
       decoration: BoxDecoration(
@@ -120,24 +164,53 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                 ),
                 Text(
                   widget.serviceToEdit != null
-                      ? 'Editar servicio'
-                      : 'Añadir un servicio',
+                      ? 'Editar $actionLabel'
+                      : 'Añadir un $actionLabel',
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
                 ),
-                _buildCircleButton(
-                  icon: Icons.check,
-                  onTap: _saveService, // Implement Save Logic
-                  isDark: isDark,
-                  color: const Color(0xFF4285F4),
-                  iconColor: Colors.white,
+                Row(
+                  children: [
+                    _buildCircleButton(
+                      icon: _showPreview
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      onTap: () => setState(() => _showPreview = !_showPreview),
+                      isDark: isDark,
+                      color: _showPreview ? const Color(0xFF4285F4) : null,
+                      iconColor: _showPreview ? Colors.white : null,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildCircleButton(
+                      icon: Icons.check,
+                      onTap: _saveService,
+                      isDark: isDark,
+                      color: const Color(0xFF4285F4),
+                      iconColor: Colors.white,
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 24),
+
+            // Live Preview Section
+            if (_showPreview) ...[
+              Text(
+                'Vista Previa',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildLivePreviewCard(),
+              const SizedBox(height: 24),
+            ],
 
             // Flexible Content
             Flexible(
@@ -186,20 +259,100 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                           onTap: () {},
                           isDark: isDark,
                           size: 48,
-                        ), // Add variation placeholder
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Duration
-                    _buildLabel('Duración (est)'),
-                    _buildTextField(
-                      controller: _durationController,
-                      hint: 'Ej: 20 minutos',
-                      fillColor: inputFillColor,
-                      textColor: textColor,
-                    ),
-                    const SizedBox(height: 16),
+                    // Stock (Item Only)
+                    if (widget.type == 'item') ...[
+                      _buildLabel('Stock / Cantidad'),
+                      _buildTextField(
+                        controller: _stockController,
+                        hint: 'Ej: 50',
+                        fillColor: inputFillColor,
+                        textColor: textColor,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Event Date (Event Only)
+                    if (widget.type == 'event') ...[
+                      _buildLabel('Fecha y Hora'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime(2101),
+                                );
+                                if (date != null) {
+                                  setState(() => _eventDate = date);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: inputFillColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _eventDate == null
+                                      ? 'Fecha'
+                                      : '${_eventDate!.day}/${_eventDate!.month}/${_eventDate!.year}',
+                                  style: GoogleFonts.inter(color: textColor),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final time = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (time != null) {
+                                  setState(() => _eventTime = time);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: inputFillColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _eventTime == null
+                                      ? 'Hora'
+                                      : _eventTime!.format(context),
+                                  style: GoogleFonts.inter(color: textColor),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Duration (Hide for Item)
+                    if (widget.type != 'item') ...[
+                      _buildLabel('Duración (est)'),
+                      _buildTextField(
+                        controller: _durationController,
+                        hint: 'Ej: 20 minutos',
+                        fillColor: inputFillColor,
+                        textColor: textColor,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Category
                     _buildLabel('Categoria'),
@@ -243,7 +396,7 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                         border: Border.all(
                           color: Colors.grey[300]!,
                           style: BorderStyle.none,
-                        ), // Dotted border effect requires custom painter or package, keeping simple for now
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -293,7 +446,7 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Footer Buttons
+                    // Delete Button
                     if (widget.serviceToEdit != null)
                       SizedBox(
                         width: double.infinity,
@@ -316,8 +469,7 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                           ),
                         ),
                       ),
-                    const SizedBox(height: 20),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -401,8 +553,7 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
   Widget _buildEmployeeCard(Map<String, dynamic> employee, bool isDark) {
     final name = employee['name'] ?? 'Unknown';
     final role = employee['role'] ?? 'Staff';
-    // final isSelected = employee['selected'] == true;
-    final isSelected = true; // Mock selection for visual parity with design
+    final isSelected = true; // Mock
 
     return Container(
       width: 100,
@@ -439,11 +590,244 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
           const SizedBox(height: 8),
           Switch(
             value: isSelected,
-            onChanged: (val) {
-              // Update state logic
-            },
-            activeColor: Colors.grey[700], // Dark grey as in design
+            onChanged: (val) {},
+            activeColor: Colors.grey[700],
             activeTrackColor: Colors.grey[300],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLivePreviewCard() {
+    final title = _nameController.text.isEmpty
+        ? 'Nombre del servicio'
+        : _nameController.text;
+    final desc = _descController.text.isEmpty
+        ? 'Descripción corta del servicio o evento...'
+        : _descController.text;
+    final price = _priceController.text.isEmpty ? '0' : _priceController.text;
+
+    ImageProvider? imageProvider;
+    if (_previewImage != null) {
+      if (_previewImage!.startsWith('http')) {
+        imageProvider = CachedNetworkImageProvider(_previewImage!);
+      } else {
+        imageProvider = NetworkImage(_previewImage!); // Placeholder
+      }
+    } else if (widget.serviceToEdit != null) {
+      final img =
+          widget.serviceToEdit!['image'] ?? widget.serviceToEdit!['image_url'];
+      if (img != null) {
+        imageProvider = CachedNetworkImageProvider(img);
+      } else if (widget.serviceToEdit!['photos'] != null &&
+          (widget.serviceToEdit!['photos'] as List).isNotEmpty) {
+        imageProvider = CachedNetworkImageProvider(
+          widget.serviceToEdit!['photos'][0],
+        );
+      }
+    }
+
+    // --- EVENT STYLE ---
+    if (widget.type == 'event') {
+      final timeLeft = _eventDate != null
+          ? 'Finaliza en ${_eventDate!.difference(DateTime.now()).inDays} días'
+          : 'Finaliza en 5 días';
+
+      return Container(
+        height: 220,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          image: imageProvider != null
+              ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+              : null,
+          color: imageProvider == null ? Colors.grey[300] : null,
+        ),
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.8),
+                  ],
+                  stops: const [0.4, 0.7, 1.0],
+                ),
+              ),
+            ),
+            // Blue Pill
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4285F4),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.access_time,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeLeft,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Text
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PROMOCIÓN',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white70,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          title,
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.black87,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // --- SERVICE / DEFAULT STYLE ---
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(16),
+        image: imageProvider != null
+            ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+            : null,
+      ),
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.1),
+                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.8),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  desc,
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '\$$price',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF4285F4),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -453,9 +837,21 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
   Future<void> _saveService() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Create payload
     final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
     final priceCents = (price * 100).toInt();
+
+    String? eventDateIso;
+    if (_eventDate != null) {
+      final t = _eventTime ?? const TimeOfDay(hour: 0, minute: 0);
+      final dt = DateTime(
+        _eventDate!.year,
+        _eventDate!.month,
+        _eventDate!.day,
+        t.hour,
+        t.minute,
+      );
+      eventDateIso = dt.toIso8601String();
+    }
 
     final payload = {
       'name': _nameController.text.trim(),
@@ -467,12 +863,19 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
           int.tryParse(
             _durationController.text.replaceAll(RegExp(r'[^0-9]'), ''),
           ) ??
-          30, // Extract number
+          30,
       'service_category': _selectedCategory,
-      // 'employees': ... // Handle employee logic if needed
+      'type': widget.type,
     };
 
-    final repo = ref.read(businessRepositoryProvider);
+    if (widget.type == 'item') {
+      payload['stock_quantity'] =
+          int.tryParse(_stockController.text.trim()) ?? 0;
+    }
+    if (widget.type == 'event' && eventDateIso != null) {
+      payload['event_date'] = eventDateIso;
+    }
+
     final businessData = ref.read(businessProvider).value;
 
     if (businessData?.businessProfile == null) {
@@ -485,22 +888,20 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     final businessId = businessData!.businessProfile!['id'];
     payload['business_id'] = businessId;
 
+    final repo = ref.read(businessRepositoryProvider);
     bool success = false;
 
     if (widget.serviceToEdit != null) {
-      // Update
       final id = widget.serviceToEdit!['id'];
       final res = await repo.updateService(id, payload);
       success = res != null;
     } else {
-      // Create
       final res = await repo.createService(payload);
       success = res != null;
     }
 
     if (mounted) {
       if (success) {
-        // Refresh provider
         ref.invalidate(businessProvider);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -531,7 +932,7 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     if (mounted) {
       if (success) {
         ref.invalidate(businessProvider);
-        Navigator.pop(context); // Close sheet
+        Navigator.pop(context);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Servicio eliminado')));

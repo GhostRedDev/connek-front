@@ -17,8 +17,9 @@ import '../../features/business/providers/business_provider.dart'; // Added
 
 import '../../core/providers/locale_provider.dart'; // Added for Localization
 
-// Removed local import of login_dropdown_button.dart since we are migrating it here
-// import '../../features/home/widgets/login_dropdown_button.dart';
+final navbarVisibilityProvider = StateProvider<bool>(
+  (ref) => true,
+); // Added Provider
 
 // ==============================================================================
 // 1. MODERN GLASS IMPLEMENTATION
@@ -663,11 +664,15 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
 
                         // NavBar (Bottom) - Mobile Only
                         if (showBottomBar)
-                          const Positioned(
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
                             left: 0,
                             right: 0,
-                            bottom: 0,
-                            child: _ModernGlassNavBar(),
+                            bottom: ref.watch(navbarVisibilityProvider)
+                                ? 0
+                                : -120,
+                            child: _ModernGlassNavBar(currentPath: location),
                           ),
 
                         // INCOMING CALL OVERLAY
@@ -1259,7 +1264,9 @@ class _ModernGlassAppBar extends ConsumerWidget {
 // ==============================================================================
 
 class _ModernGlassNavBar extends ConsumerWidget {
-  const _ModernGlassNavBar();
+  final String currentPath; // Added prop
+
+  const _ModernGlassNavBar({required this.currentPath});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1267,8 +1274,8 @@ class _ModernGlassNavBar extends ConsumerWidget {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
-    bool isActive(String route) =>
-        GoRouterState.of(context).uri.toString().startsWith(route);
+    // Use passed currentPath instead of GoRouterState.of(context)
+    bool isActive(String route) => currentPath.startsWith(route);
 
     if (!isBusinessMode) {
       // --- CLIENT VIEW (Strictly 3 buttons) ---
