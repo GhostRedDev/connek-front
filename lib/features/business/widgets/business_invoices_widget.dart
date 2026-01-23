@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -129,11 +130,24 @@ class _BusinessInvoicesWidgetState
                         .trim()
                   : 'Cliente Desconocido';
 
-              final clientImage = client != null
+              var clientImage = client != null
                   ? (client['photo_id'] ??
                         client['profile_url'] ??
                         client['profile_image'])
                   : null;
+
+              // Resolve URL if needed
+              if (clientImage != null &&
+                  clientImage is String &&
+                  !clientImage.startsWith('http') &&
+                  client['id'] != null) {
+                if (!clientImage.contains('/')) {
+                  clientImage = '${client['id']}/$clientImage';
+                }
+                clientImage = Supabase.instance.client.storage
+                    .from('client')
+                    .getPublicUrl(clientImage);
+              }
 
               final amountCents = quote['amountCents'] ?? 0;
               final amount = NumberFormat.currency(

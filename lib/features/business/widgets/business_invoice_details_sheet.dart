@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import 'business_invoice_sheet.dart';
 import '../providers/business_provider.dart';
 
@@ -47,6 +48,35 @@ class _BusinessInvoiceDetailsSheetState
     } finally {
       if (mounted) setState(() => _isDownloading = false);
     }
+  }
+
+  String _resolveClientImage(dynamic clientData) {
+    if (clientData == null) return '';
+    // Handle the case where clientData is just the string (legacy or simple map)
+    if (clientData is String) {
+      if (clientData.startsWith('http')) return clientData;
+      // If we only have the string and no ID context, we try to fetch directly from 'client' bucket
+      // potentially assuming it's in root or we can't do much else without ID.
+      return Supabase.instance.client.storage
+          .from('client')
+          .getPublicUrl(clientData);
+    }
+
+    if (clientData is Map) {
+      String? path =
+          clientData['image'] ??
+          clientData['photo_id'] ??
+          clientData['profile_url'];
+      if (path == null || path.isEmpty) return '';
+      if (path.startsWith('http')) return path;
+
+      // Prepend clientId if missing
+      if (!path.contains('/') && clientData['id'] != null) {
+        path = '${clientData['id']}/$path';
+      }
+      return Supabase.instance.client.storage.from('client').getPublicUrl(path);
+    }
+    return '';
   }
 
   @override
@@ -222,29 +252,36 @@ class _BusinessInvoiceDetailsSheetState
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundImage: CachedNetworkImageProvider(clientImage),
+                    backgroundImage: CachedNetworkImageProvider(
+                      _resolveClientImage(widget.invoice['client']),
+                    ),
                     radius: 24,
+                    onBackgroundImageError:
+                        (_, __) {}, // Handle errors gracefully
                   ),
                   const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        clientName,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: textColor,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          clientName,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: textColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Text(
-                        'Cliente Verificado',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.blue,
+                        Text(
+                          'Cliente Verificado',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.blue,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
