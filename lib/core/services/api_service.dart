@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -200,6 +201,49 @@ class ApiService {
     } catch (e) {
       print('❌ API PUT URL-Encoded Error: $e');
       throw Exception('API PUT URL-Encoded Error: $e');
+    }
+  }
+
+  Future<Uint8List> getBytes(String endpoint) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      print('🚀 API GET BYTES: $url');
+
+      final response = await http.get(url, headers: headers);
+      print(
+        '📥 Response [${response.statusCode}] Content-Type: ${response.headers['content-type']} BodyBytes: ${response.bodyBytes.length}',
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final contentType = response.headers['content-type'];
+        if (contentType != null && contentType.contains('application/json')) {
+          // It's likely an error message wrapped in JSON 200 OK or similar
+          try {
+            final decoded = json.decode(response.body);
+            print('⚠️ API returned JSON instead of bytes for $url: $decoded');
+            if (decoded is Map && decoded['success'] == false) {
+              throw Exception(
+                'API logical error: ${decoded['error'] ?? decoded['message']}',
+              );
+            }
+          } catch (_) {}
+        }
+        return response.bodyBytes;
+      } else {
+        // Try to parse error message from body if possible
+        try {
+          final decoded = json.decode(response.body);
+          throw Exception(
+            'API Error (${response.statusCode}): ${decoded['error'] ?? decoded['message']}',
+          );
+        } catch (_) {
+          throw Exception('API Error (${response.statusCode})');
+        }
+      }
+    } catch (e) {
+      print('❌ API GET BYTES Error: $e');
+      throw e; // Rethrow to let caller handle
     }
   }
 

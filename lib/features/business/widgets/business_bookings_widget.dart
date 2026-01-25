@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart'; // Added
 import '../../shared/models/booking_model.dart';
 import '../../shared/providers/booking_provider.dart';
+import '../providers/business_provider.dart'; // Added for Client/Service list
 
 class BusinessBookingsWidget extends ConsumerStatefulWidget {
   const BusinessBookingsWidget({super.key});
@@ -31,16 +32,39 @@ class _BusinessBookingsWidgetState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
-          Text(
-            'Reservas',
-            style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black,
-            ),
+          // Title Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Reservas',
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _showCreateBookingSheet(context),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Registrar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark
+                      ? Colors.white
+                      : const Color(0xFF111315),
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 20),
           Text(
             'Encuentra a todos tus clientes activos.',
             style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
@@ -333,28 +357,32 @@ class _BusinessBookingsWidgetState
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bk.client.name,
-                            style: GoogleFonts.outfit(
-                              // Outfit
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF111315),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              bk.client.name,
+                              style: GoogleFonts.outfit(
+                                // Outfit
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF111315),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            bk.client.role, // "Cliente"
-                            style: GoogleFonts.inter(
-                              color: Colors.grey[600],
-                              fontSize: 11,
+                            Text(
+                              bk.client.role, // "Cliente"
+                              style: GoogleFonts.inter(
+                                color: Colors.grey[600],
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -370,27 +398,31 @@ class _BusinessBookingsWidgetState
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bk.agent.name,
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF111315),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              bk.agent.name,
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF111315),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            bk.agent.role, // "Agente asignado"
-                            style: GoogleFonts.inter(
-                              color: Colors.grey[600],
-                              fontSize: 11,
+                            Text(
+                              bk.agent.role, // "Agente asignado"
+                              style: GoogleFonts.inter(
+                                color: Colors.grey[600],
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -399,6 +431,279 @@ class _BusinessBookingsWidgetState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showCreateBookingSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CreateBookingSheet(),
+    );
+  }
+}
+
+class _CreateBookingSheet extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_CreateBookingSheet> createState() =>
+      _CreateBookingSheetState();
+}
+
+class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  int? _selectedClientId;
+  int? _selectedServiceId;
+
+  @override
+  Widget build(BuildContext context) {
+    final businessData = ref.watch(businessProvider).value;
+    final clients = businessData?.clients ?? [];
+    final services = businessData?.services ?? [];
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Nueva Reserva',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Client Dropdown
+                  Text(
+                    'Cliente',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                    ),
+                    items: clients.map((c) {
+                      return DropdownMenuItem<int>(
+                        value: c['client']['id'],
+                        child: Text(
+                          '${c['client']['first_name']} ${c['client']['last_name']}',
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => _selectedClientId = val),
+                    hint: const Text('Seleccionar Cliente'),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Service Dropdown
+                  Text(
+                    'Servicio',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                    ),
+                    items: services.map((s) {
+                      return DropdownMenuItem<int>(
+                        value: s['id'],
+                        child: Text(s['name']),
+                      );
+                    }).toList(),
+                    onChanged: (val) =>
+                        setState(() => _selectedServiceId = val),
+                    hint: const Text('Seleccionar Servicio'),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Date & Time
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Fecha',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365),
+                                  ),
+                                );
+                                if (date != null)
+                                  setState(() => _selectedDate = date);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 16),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _selectedDate == null
+                                          ? 'Seleccionar'
+                                          : DateFormat(
+                                              'dd/MM/yyyy',
+                                            ).format(_selectedDate!),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hora',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final time = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (time != null)
+                                  setState(() => _selectedTime = time);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.access_time, size: 16),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _selectedTime == null
+                                          ? 'Seleccionar'
+                                          : _selectedTime!.format(context),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed:
+                  (_selectedClientId != null &&
+                      _selectedServiceId != null &&
+                      _selectedDate != null &&
+                      _selectedTime != null)
+                  ? () async {
+                      final date = DateTime(
+                        _selectedDate!.year,
+                        _selectedDate!.month,
+                        _selectedDate!.day,
+                        _selectedTime!.hour,
+                        _selectedTime!.minute,
+                      );
+
+                      final success = await ref
+                          .read(bookingUpdateProvider)
+                          .createManualBooking(
+                            clientId: _selectedClientId!,
+                            serviceId: _selectedServiceId!,
+                            date: date,
+                          );
+
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Reserva creada con éxito'),
+                          ),
+                        );
+                      }
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF111315),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              child: const Text('Confirmar Reserva'),
+            ),
+          ),
+        ],
       ),
     );
   }

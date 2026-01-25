@@ -50,6 +50,9 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
               statusMatch =
                   lead.status == 'cancelled' || lead.status == 'declined';
               break;
+            case 'waitlist':
+              statusMatch = lead.status == 'waitlist';
+              break;
             case 'all':
             default:
               statusMatch = true;
@@ -324,6 +327,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
       {'id': 'all', 'label': t['filter_all'] ?? 'Todos'},
       {'id': 'pending', 'label': t['filter_pending'] ?? 'Pendientes'},
       {'id': 'converted', 'label': t['filter_converted'] ?? 'Convertidos'},
+      {'id': 'waitlist', 'label': 'Lista de espera'},
       {'id': 'rejected', 'label': t['filter_rejected'] ?? 'Rechazados'},
     ];
 

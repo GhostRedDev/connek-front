@@ -67,4 +67,21 @@ class BookingController {
     ref.invalidate(bookingListProvider(role));
     ref.invalidate(bookingDetailsProvider(id));
   }
+
+  Future<bool> createManualBooking({
+    required int clientId,
+    required int serviceId,
+    required DateTime date,
+  }) async {
+    final service = ref.read(bookingServiceProvider);
+    final success = await service.createManualBooking(
+      clientId: clientId,
+      serviceId: serviceId,
+      date: date,
+    );
+    if (success) {
+      ref.invalidate(bookingListProvider('business'));
+    }
+    return success;
+  }
 }

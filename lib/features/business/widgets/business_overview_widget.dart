@@ -138,9 +138,17 @@ class BusinessOverviewWidget extends ConsumerWidget {
                               context.push('/business/create-portfolio');
                             },
                           ),
-                          content: const Padding(
-                            padding: EdgeInsets.only(bottom: 20),
-                            child: EventCardWidget(),
+                          content: Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: EventCardWidget(
+                              event: data.events.isNotEmpty
+                                  ? data.events.first
+                                  : const {
+                                      'title': 'Promoción Especial',
+                                      'description': 'Ejemplo de evento',
+                                      'promo_text': 'PROXIMAMENTE',
+                                    },
+                            ),
                           ),
                         ),
                       ),
@@ -291,9 +299,17 @@ class BusinessOverviewWidget extends ConsumerWidget {
                         context.push('/business/create-portfolio');
                       },
                     ),
-                    content: const Padding(
-                      padding: EdgeInsets.only(bottom: 20),
-                      child: EventCardWidget(),
+                    content: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: EventCardWidget(
+                        event: data.events.isNotEmpty
+                            ? data.events.first
+                            : const {
+                                'title': 'Promoción Especial',
+                                'description': 'Ejemplo de evento',
+                                'promo_text': 'PROXIMAMENTE',
+                              },
+                      ),
                     ),
                   ),
                 ],

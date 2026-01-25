@@ -2,21 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EventCardWidget extends StatelessWidget {
-  const EventCardWidget({super.key});
+  final Map<String, dynamic> event;
+
+  const EventCardWidget({super.key, required this.event});
 
   @override
   Widget build(BuildContext context) {
+    final title = event['title'] ?? 'Evento';
+    final description = event['description'] ?? '';
+    final image =
+        event['image'] ??
+        'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3';
+    final promoText = event['promo_text'] ?? 'PROMOCIÓN';
+
+    // Parse date if needed, or use a duration string
+    // For now assuming promo_text covers the "Finaliza en..." or we show static
+
     return Container(
       width: double.infinity,
       height: 200,
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        image: const DecorationImage(
-          image: NetworkImage(
-            'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3',
-          ),
-          fit: BoxFit.cover,
-        ),
+        image: DecorationImage(image: NetworkImage(image), fit: BoxFit.cover),
       ),
       child: Stack(
         children: [
@@ -34,12 +42,11 @@ class EventCardWidget extends StatelessWidget {
                   Icon(Icons.timer, color: Colors.white, size: 12),
                   SizedBox(width: 4),
                   Text(
-                    'Finaliza en 3 días',
+                    'Ver detalles', // Generic for now
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      // fontFamily: 'Inter',
                     ),
                   ),
                 ],
@@ -66,20 +73,30 @@ class EventCardWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'PROMOCIÓN',
+                    promoText.toUpperCase(),
                     style: GoogleFonts.inter(
                       color: Colors.white70,
                       fontSize: 10,
                     ),
                   ),
                   Text(
-                    '2x1 en masajes para pareja',
+                    title,
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (description.isNotEmpty)
+                    Text(
+                      description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
                 ],
               ),
             ),

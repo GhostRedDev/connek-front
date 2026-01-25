@@ -54,7 +54,9 @@ class LeadNewxWidget extends ConsumerWidget {
                     (lead.clientImageUrl != null &&
                         lead.clientImageUrl!.isNotEmpty)
                     ? CachedNetworkImage(
-                        imageUrl: lead.clientImageUrl!,
+                        imageUrl: (lead.clientImageUrl!.startsWith('http')
+                            ? lead.clientImageUrl!
+                            : 'https://bzndcfewyihbytjpitil.supabase.co/storage/v1/object/public/client/${lead.clientImageUrl!}'),
                         fit: BoxFit.cover,
                         color: Colors.black.withOpacity(0.3),
                         colorBlendMode: BlendMode.darken,

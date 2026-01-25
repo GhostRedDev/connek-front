@@ -19,6 +19,7 @@ class Lead {
   final int? requestBudgetMin;
   final String? clientImageUrl;
   final String? clientPhone;
+  final DateTime? proposedBookingDate;
 
   Lead({
     required this.id,
@@ -41,6 +42,7 @@ class Lead {
     this.requestBudgetMin,
     this.clientImageUrl,
     this.clientPhone,
+    this.proposedBookingDate,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -72,6 +74,9 @@ class Lead {
       requestBudgetMin: json['requestBudgetMin'],
       clientImageUrl: json['clientImageUrl'],
       clientPhone: json['clientPhone'],
+      proposedBookingDate: json['proposedBookingDate'] != null
+          ? DateTime.tryParse(json['proposedBookingDate'])
+          : null,
     );
   }
 
@@ -104,6 +109,9 @@ class Lead {
       requestBudgetMin: request['budget_min_cents'],
       clientImageUrl: imageUrl,
       clientPhone: client['phone']?.toString(),
+      proposedBookingDate: json['proposed_booking_date'] != null
+          ? DateTime.tryParse(json['proposed_booking_date'])
+          : null,
     );
   }
 }

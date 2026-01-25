@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../settings/providers/profile_provider.dart';
@@ -18,6 +19,7 @@ class BusinessDashboardData {
   final List<Map<String, dynamic>> clients;
   final List<Map<String, dynamic>> quotes;
   final List<Map<String, dynamic>> reviews;
+  final List<Map<String, dynamic>> events; // Added events
   final Map<String, dynamic>? businessProfile;
 
   BusinessDashboardData({
@@ -30,6 +32,7 @@ class BusinessDashboardData {
     required this.clients,
     required this.quotes,
     required this.reviews,
+    required this.events, // Added
     this.businessProfile,
   });
 
@@ -44,6 +47,7 @@ class BusinessDashboardData {
       clients: [],
       quotes: [],
       reviews: [],
+      events: [], // Added
       businessProfile: null,
     );
   }
@@ -62,6 +66,115 @@ class BusinessRepository {
     if (path == null || path.isEmpty) return null;
     if (path.startsWith('http')) return path;
     return _supabase.storage.from(bucket).getPublicUrl(path);
+  }
+
+  // --- Likes ---
+  Future<Map<String, dynamic>> getBusinessLikeStatus(
+    int businessId,
+    String? userId,
+  ) async {
+    try {
+      // 1. Get Count
+      final countRes = await _supabase
+          .from('business_likes')
+          .count()
+          .eq('business_id', businessId);
+
+      final count = countRes;
+
+      // 2. Check if liked by user
+      bool isLiked = false;
+      if (userId != null) {
+        // We need client_id corresponding to user_id usually,
+        // or business_likes might use user_id directly?
+        // Let's assume business_likes uses client_id like review_likes.
+        // We need to fetch client_id from user_id first IF table relies on client_id.
+        // Or we can try to join.
+        // Simpler: Fetch client first (usually cached in ProfileRepository/Provider).
+        // But here in Repo we might just use user_id if table supports it.
+        // Only Reviews used client_id.
+        // Let's assume business_likes uses 'user_id' for simplicity or 'client_id'.
+        // I will try to fetch client_id if needed.
+
+        final clientRes = await _supabase
+            .from('clients')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (clientRes != null) {
+          final clientId = clientRes['id'];
+          final like = await _supabase
+              .from('business_likes')
+              .select()
+              .eq('business_id', businessId)
+              .eq('client_id', clientId)
+              .maybeSingle();
+          isLiked = like != null;
+        }
+      }
+
+      return {'count': count, 'isLiked': isLiked};
+    } catch (e) {
+      // Logic for fallback/error
+      return {'count': 0, 'isLiked': false};
+    }
+  }
+
+  Future<bool> toggleBusinessLike(int businessId, String userId) async {
+    try {
+      // Get client_id
+      final clientRes = await _supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+      final clientId = clientRes['id'];
+
+      final existing = await _supabase
+          .from('business_likes')
+          .select()
+          .eq('business_id', businessId)
+          .eq('client_id', clientId)
+          .maybeSingle();
+
+      if (existing != null) {
+        await _supabase
+            .from('business_likes')
+            .delete()
+            .eq('id', existing['id']);
+        return false; // unliked
+      } else {
+        await _supabase.from('business_likes').insert({
+          'business_id': businessId,
+          'client_id': clientId,
+        });
+        return true; // liked
+      }
+    } catch (e) {
+      print('Error toggling like: $e');
+      throw e;
+    }
+  }
+
+  // --- Events ---
+  Future<List<Map<String, dynamic>>> getEvents(int businessId) async {
+    try {
+      // Try API first if available (mock path)
+      // final response = await _apiService.get('/events/business/$businessId');
+      // ...
+
+      // Direct DB
+      final data = await _supabase
+          .from('events')
+          .select()
+          .eq('business_id', businessId)
+          .order('start_date', ascending: true);
+
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('⚠️ Error fetching events (might not exist): $e');
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>?> getBusinessById(int businessId) async {
@@ -258,6 +371,26 @@ class BusinessRepository {
     }
   }
 
+  Future<bool> updateLeadStatus(int leadId, String status) async {
+    try {
+      await _supabase.from('leads').update({'status': status}).eq('id', leadId);
+      return true;
+    } catch (e) {
+      print('Error updating lead status: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateLeadField(int leadId, Map<String, dynamic> fields) async {
+    try {
+      await _supabase.from('leads').update(fields).eq('id', leadId);
+      return true;
+    } catch (e) {
+      print('Error updating lead fields: $e');
+      return false;
+    }
+  }
+
   // --- Quotes ---
 
   Future<List<Map<String, dynamic>>> getQuotes(int businessId) async {
@@ -363,6 +496,15 @@ class BusinessRepository {
 
   Future<String?> getQuotePdfUrl(int quoteId) async {
     return '${_apiService.baseUrl}/quotes/$quoteId/pdf';
+  }
+
+  Future<Uint8List?> getQuotePdfBytes(int quoteId) async {
+    try {
+      return await _apiService.getBytes('/quotes/$quoteId/pdf');
+    } catch (e) {
+      print('Error getting PDF bytes: $e');
+      return null;
+    }
   }
 
   // --- Business Mutations ---
@@ -756,6 +898,10 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
         print('❌ BusinessProvider: Reviews fetch failed: $e');
         return <Map<String, dynamic>>[];
       }),
+      repo.getEvents(businessId).catchError((e) {
+        print('❌ BusinessProvider: Events fetch failed: $e');
+        return <Map<String, dynamic>>[];
+      }),
     ]);
 
     final leads = results[0] as List<Lead>;
@@ -764,6 +910,7 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     final clientsRaw = results[3] as List<Map<String, dynamic>>;
     final quotesRaw = results[4] as List<Map<String, dynamic>>;
     final reviewsRaw = results[5] as List<Map<String, dynamic>>;
+    final eventsRaw = results[6] as List<Map<String, dynamic>>;
 
     final clients = clientsRaw.map((c) {
       return c;
@@ -873,8 +1020,9 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
       employees: employees,
       services: services,
       clients: clients,
-      quotes: quotes,
+      quotes: quotesRaw,
       reviews: reviewsRaw,
+      events: eventsRaw,
       businessProfile: businessMap,
     );
   }
@@ -959,6 +1107,24 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     final success = await _repository?.updateBusiness(businessId, data);
 
     if (success != null) {
+      ref.invalidateSelf();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> updateLeadStatus(int leadId, String status) async {
+    final success = await _repository?.updateLeadStatus(leadId, status);
+    if (success == true) {
+      ref.invalidateSelf();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> updateLeadField(int leadId, Map<String, dynamic> fields) async {
+    final success = await _repository?.updateLeadField(leadId, fields);
+    if (success == true) {
       ref.invalidateSelf();
       return true;
     }

@@ -550,7 +550,9 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
           },
         );
 
-        _callService!.listenToIncomingCalls(_myDbId!);
+        if (mounted) {
+          _callService!.listenToIncomingCalls(_myDbId!);
+        }
       }
     } catch (e) {
       print('Error init call service: $e');
@@ -614,7 +616,6 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         final tAsync = ref.watch(translationProvider);
         final t = tAsync.value ?? {};
 
-        // Re-get config with correct auth state and translation
         final activeConfig = getHeaderConfig(
           location,
           isDark,
@@ -623,79 +624,99 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
           ref,
         );
         final hasTabs = activeConfig.tabs.isNotEmpty;
+
+        // Calculate initial index based on route
+        int initialIndex = 0;
+        if (hasTabs) {
+          for (int i = 0; i < activeConfig.tabs.length; i++) {
+            final tab = activeConfig.tabs[i];
+            if (tab is Map && tab['route'] != null) {
+              final tabRoute = tab['route'] as String;
+              if (location == tabRoute || location.startsWith(tabRoute)) {
+                initialIndex = i;
+                if (location == tabRoute) break;
+              }
+            }
+          }
+        }
+
         print(
-          'DEBUG: AppLayout build. Route: $location. Tabs: ${activeConfig.tabs.length}. HasTabs: $hasTabs',
+          'DEBUG: AppLayout build. Route: $location. Tabs: ${activeConfig.tabs.length}. HasTabs: $hasTabs. Index: $initialIndex',
         );
 
-        Widget scaffold = Scaffold(
-          // Use theme background
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 900;
-              final showSidebar = isLoggedIn && isDesktop;
-              // Hide BottomBar if on desktop OR if in Chat views (to avoid overlay)
-              final bool isChatView =
-                  location.startsWith('/chats') ||
-                  location.startsWith('/chat/');
-              final showBottomBar = isLoggedIn && !isDesktop && !isChatView;
+        print(
+          'DEBUG: AppLayout build. Route: $location. Tabs: ${activeConfig.tabs.length}. HasTabs: $hasTabs. Index: $initialIndex',
+        );
 
-              return Row(
-                children: [
-                  // Desktop Sidebar
-                  if (showSidebar) _ModernSidebar(activeRoute: location),
+        // Responsive Check using MediaQuery to avoid LayoutBuilder complications
+        // This is safe from "RenderLayoutBuilder mutated" errors and generally more stable for root layout
+        final double screenWidth = MediaQuery.of(context).size.width;
+        final bool isDesktop = screenWidth >= 900;
+        final bool showSidebar = isLoggedIn && isDesktop;
 
-                  // Main Content
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        // Content
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: (activeConfig.isCustom || activeConfig.bgTrans)
-                                ? 0
-                                : (activeConfig.height ?? 0),
-                          ),
-                          child: widget.child,
+        // Hide BottomBar if on desktop OR if in Chat views (to avoid overlay)
+        final bool isChatView =
+            location.startsWith('/chats') || location.startsWith('/chat/');
+        final bool showBottomBar = isLoggedIn && !isDesktop && !isChatView;
+
+        return DefaultTabController(
+          // Key ensures controller is recreated if tabs configuration changes (e.g. different route)
+          key: ValueKey(
+            '${hasTabs ? activeConfig.tabs.length : 1}_$initialIndex',
+          ),
+          length: hasTabs ? activeConfig.tabs.length : 1,
+          initialIndex: initialIndex,
+          child: Scaffold(
+            // Use theme background
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Row(
+              children: [
+                // Desktop Sidebar
+                if (showSidebar) _ModernSidebar(activeRoute: location),
+
+                // Main Content
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // Content
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: (activeConfig.isCustom || activeConfig.bgTrans)
+                              ? 0
+                              : (activeConfig.height ?? 0),
+                        ),
+                        child: widget.child,
+                      ),
+
+                      // AppBar moderno (Top)
+                      _ModernGlassAppBar(location: location),
+
+                      // NavBar (Bottom) - Mobile Only
+                      if (showBottomBar)
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          left: 0,
+                          right: 0,
+                          bottom: ref.watch(navbarVisibilityProvider)
+                              ? 0
+                              : -120,
+                          child: _ModernGlassNavBar(currentPath: location),
                         ),
 
-                        // AppBar moderno (Top)
-                        _ModernGlassAppBar(location: location),
-
-                        // NavBar (Bottom) - Mobile Only
-                        if (showBottomBar)
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                            left: 0,
-                            right: 0,
-                            bottom: ref.watch(navbarVisibilityProvider)
-                                ? 0
-                                : -120,
-                            child: _ModernGlassNavBar(currentPath: location),
-                          ),
-
-                        // INCOMING CALL OVERLAY
-                        if (_incomingCall != null)
-                          IncomingCallOverlay(
-                            caller: _incomingCall!['caller'] ?? {},
-                            onAccept: _acceptCall,
-                            onDecline: _declineCall,
-                          ),
-                      ],
-                    ),
+                      // INCOMING CALL OVERLAY
+                      if (_incomingCall != null)
+                        IncomingCallOverlay(
+                          caller: _incomingCall!['caller'] ?? {},
+                          onAccept: _acceptCall,
+                          onDecline: _declineCall,
+                        ),
+                    ],
                   ),
-                ],
-              );
-            },
+                ),
+              ],
+            ),
           ),
-        );
-
-        // Always wrap in DefaultTabController
-        return DefaultTabController(
-          key: ValueKey(hasTabs ? activeConfig.tabs.length : 1),
-          length: hasTabs ? activeConfig.tabs.length : 1,
-          child: scaffold,
         );
       },
     );
@@ -1067,6 +1088,9 @@ class _ModernGlassAppBar extends ConsumerWidget {
                   ),
                 ),
                 child: TabBar(
+                  key: ValueKey(
+                    'TabBar_${config.tabs.length}',
+                  ), // Force rebuild for safety
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   padding: const EdgeInsets.symmetric(

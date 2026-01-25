@@ -78,9 +78,9 @@ class _BusinessInvoicesWidgetState
                   quote['status']?.toString().toLowerCase() ?? 'pending';
               // Exclude pending/rejected (Proposals)
               // Include everything else (Invoices)
-              return status != 'pending' &&
-                  status != 'rejected' &&
-                  status != 'rechazada';
+              // Broaden filter to show Pending invoices too (user request)
+              // We only exclude explicitly rejected items if necessary
+              return status != 'rejected' && status != 'rechazada';
             })
             .map((quote) {
               final statusRaw = quote['status'] ?? 'pending';
@@ -184,8 +184,9 @@ class _BusinessInvoicesWidgetState
                       'https://ui-avatars.com/api/?name=${Uri.encodeComponent(clientName)}&background=random',
                 },
                 'title': quote['description'] ?? 'Factura de Servicio',
-                'serviceName':
-                    'Servicio General', // Placeholder or fetch from service_id if available
+                'serviceName': quote['services'] != null
+                    ? quote['services']['name']
+                    : (quote['title'] ?? 'Servicio General'),
                 'status': status,
                 'dateRange': '$startRange - $endRange',
                 'fullDate': dateStr, // Added
@@ -449,7 +450,7 @@ class _BusinessInvoicesWidgetState
                 const SizedBox(width: 8),
 
                 // Name
-                Expanded(
+                Flexible(
                   child: Text(
                     inv['client']['name'],
                     style: GoogleFonts.inter(

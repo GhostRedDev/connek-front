@@ -124,6 +124,11 @@ class BookingDetailsPage extends ConsumerWidget {
               height: 120,
               width: double.infinity,
               fit: BoxFit.cover,
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey[200],
+                alignment: Alignment.center,
+                child: const Icon(Icons.spa, size: 40, color: Colors.grey),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -318,11 +323,18 @@ class BookingDetailsPage extends ConsumerWidget {
     WidgetRef ref,
     BookingModel bk,
   ) async {
+    final now = DateTime.now();
+    // If booking date is before now, initialDate needs to be handled or firstDate adjusted.
+    // For rescheduling, usually we pick a new future date.
+    // If the user wants to keep the old date (which is past), they can't "reschedule" to it if it's already passed?
+    // Let's set initialDate to NOW if the booking is in the past, forcing them to pick a future slot.
+    final initialDate = bk.date.isBefore(now) ? now : bk.date;
+
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: bk.date,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: initialDate,
+      firstDate: now, // Must start from today
+      lastDate: now.add(const Duration(days: 365)),
     );
 
     if (pickedDate != null) {

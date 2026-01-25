@@ -35,6 +35,13 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
     super.dispose();
   }
 
+  Future<void> _toggleLike() async {
+    await ref
+        .read(businessProfileServiceProvider)
+        .toggleLike(widget.businessId);
+    ref.invalidate(businessProfileProvider(widget.businessId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(businessProfileProvider(widget.businessId));
@@ -128,9 +135,30 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  _buildCircleAction(
-                                    context,
-                                    Icons.favorite_border,
+                                  InkWell(
+                                    onTap: _toggleLike,
+                                    borderRadius: BorderRadius.circular(50),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.grey.withOpacity(0.3),
+                                        ),
+                                        color: profile.isLiked
+                                            ? Colors.red.withOpacity(0.1)
+                                            : null,
+                                      ),
+                                      child: Icon(
+                                        profile.isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        size: 20,
+                                        color: profile.isLiked
+                                            ? Colors.red
+                                            : Colors.grey[700],
+                                      ),
+                                    ),
                                   ),
                                   _buildCircleAction(
                                     context,
@@ -214,6 +242,11 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
                             _buildStat(
                               '${profile.rating}',
                               '${profile.reviewCount} reseñas',
+                              textColor,
+                            ),
+                            _buildStat(
+                              '${profile.likesCount}',
+                              'Likes',
                               textColor,
                             ),
                           ],
@@ -335,7 +368,7 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
               controller: _tabController,
               children: [
                 _buildServicesTab(widget.businessId, isDark),
-                _buildPhotosTab(),
+                _buildPhotosTab(profile.images),
                 const Center(child: Text("Eventos (Próximamente)")),
                 _buildReviewsTab(isDark),
               ],
@@ -485,12 +518,27 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
     );
   }
 
-  Widget _buildPhotosTab() {
-    final photos = List.generate(
-      12,
-      (index) =>
-          'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=200',
-    );
+  Widget _buildPhotosTab(List<String> images) {
+    if (images.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.photo_library_outlined,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No photos yet',
+              style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -498,11 +546,16 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: photos.length,
+      itemCount: images.length,
       itemBuilder: (context, index) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: CachedNetworkImage(imageUrl: photos[index], fit: BoxFit.cover),
+          child: CachedNetworkImage(
+            imageUrl: images[index],
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(color: Colors.grey[300]),
+            errorWidget: (context, url, error) => const Icon(Icons.error),
+          ),
         );
       },
     );

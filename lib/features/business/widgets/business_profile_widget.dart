@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
+import 'event_card_widget.dart';
 import '../providers/business_provider.dart';
 
 class BusinessProfileWidget extends ConsumerStatefulWidget {
@@ -384,19 +386,18 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
               // Tab Content
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Builder(
-                  builder: (_) {
-                    if (_tabController.index == 0)
+                child: AnimatedBuilder(
+                  animation: _tabController,
+                  builder: (context, _) {
+                    if (_tabController.index == 0) {
                       return _buildServicesList(services, isDark);
-                    if (_tabController.index == 1)
-                      return _buildPhotosGrid(services);
-                    if (_tabController.index == 2)
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text('Sin eventos próximos'),
-                        ),
-                      );
+                    }
+                    if (_tabController.index == 1) {
+                      return _buildPhotosGrid(services, profile);
+                    }
+                    if (_tabController.index == 2) {
+                      return _buildEventsList(data?.events ?? []);
+                    }
                     return _buildReviewsList(reviews, isDark);
                   },
                 ),
@@ -414,6 +415,21 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
 
     return Column(
       children: services.map((s) => _buildServiceCard(s, isDark)).toList(),
+    );
+  }
+
+  Widget _buildEventsList(List<Map<String, dynamic>> events) {
+    if (events.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('Sin eventos próximos'),
+        ),
+      );
+    }
+
+    return Column(
+      children: events.map((event) => EventCardWidget(event: event)).toList(),
     );
   }
 
@@ -476,49 +492,151 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
     );
   }
 
-  Widget _buildPhotosGrid(List<Map<String, dynamic>> services) {
-    // Collect images from services as a mock gallery
-    final images = services
-        .where((s) => s['image'] != null)
-        .map((s) => s['image'] as String)
-        .toList();
+  Widget _buildPhotosGrid(
+    List<Map<String, dynamic>> services,
+    Map<String, dynamic>? profile,
+  ) {
+    // 1. Get Portfolio Images from Profile
+    List<String> portfolioImages = [];
+    if (profile != null && profile['images'] != null) {
+      final imgs = profile['images'];
+      if (imgs is List) {
+        portfolioImages = imgs.map((e) => e.toString()).toList();
+      } else if (imgs is String) {
+        portfolioImages = [imgs];
+      }
+    }
 
-    if (images.isEmpty) return const Text('No hay fotos disponibles');
+    // 2. Get Service Images (Optional: Mix them or separate them. Let's show Portfolio first)
+    // final serviceImages = services.where((s) => s['image'] != null).map((s) => s['image'] as String).toList();
 
-    return GridView.builder(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: images.length,
-      itemBuilder: (context, index) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: CachedNetworkImage(imageUrl: images[index], fit: BoxFit.cover),
-        );
-      },
+    final allImages =
+        portfolioImages; // Just portfolio for this tab, or mix? Users usually want "Media" to be what they upload.
+
+    if (allImages.isEmpty) {
+      return Column(
+        children: [
+          const SizedBox(height: 20),
+          const Text('No hay fotos en el portafolio'),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => context.push('/business/create-portfolio'),
+            icon: const Icon(Icons.add_photo_alternate),
+            label: const Text('Agregar Fotos'),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => context.push('/business/create-portfolio'),
+              icon: const Icon(Icons.add_a_photo, size: 16),
+              label: const Text('Agregar'),
+            ),
+          ),
+        ),
+        GridView.builder(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: allImages.length,
+          itemBuilder: (context, index) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: allImages[index],
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    Container(color: Colors.grey[300]),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildReviewsList(List<Map<String, dynamic>> reviews, bool isDark) {
-    if (reviews.isEmpty) return const Text('No hay reseñas aún');
+    if (reviews.isEmpty)
+      return const Center(child: Text('No hay reseÃ±as aÃºn'));
+
     return Column(
-      children: reviews
-          .map(
-            (r) => ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(
-                r['client']?['first_name'] ?? 'Cliente',
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      children: reviews.map((r) {
+        final client = r['client'];
+        final clientName = client != null
+            ? '${client['first_name']} ${client['last_name']}'
+            : 'Cliente AnÃ³nimo';
+        final rating = r['rating'] ?? 5;
+        final content = r['content'] ?? '';
+        final clientImage = client != null
+            ? (client['profile_url'] ?? client['profile_image'])
+            : null;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundImage: clientImage != null
+                        ? NetworkImage(clientImage)
+                        : null,
+                    child: clientImage == null
+                        ? const Icon(Icons.person, size: 16)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      clientName,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        index < rating ? Icons.star : Icons.star_border,
+                        size: 14,
+                        color: Colors.amber,
+                      );
+                    }),
+                  ),
+                ],
               ),
-              subtitle: Text('⭐⭐⭐⭐⭐ Excelente servicio'),
-            ),
-          )
-          .toList(),
+              const SizedBox(height: 8),
+              Text(
+                content,
+                style: TextStyle(
+                  color: isDark ? Colors.grey[300] : Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 

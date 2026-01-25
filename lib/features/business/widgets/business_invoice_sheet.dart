@@ -160,6 +160,19 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
   Widget build(BuildContext context) {
     final businessData = ref.watch(businessProvider).value;
     final leads = businessData?.recentLeads ?? [];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Theme Colors
+    final bgColor = isDark ? const Color(0xFF111418) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1F2937) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    final subTextColor = isDark ? Colors.grey[400] : const Color(0xFF64748B);
+    final borderColor = isDark
+        ? Colors.grey[800]!
+        : Colors.grey.withOpacity(0.1);
+    final inputFillColor = isDark
+        ? const Color(0xFF374151)
+        : Colors.grey.shade50;
 
     // Find selected lead
     final selectedLead = _selectedLeadId != null
@@ -167,7 +180,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
             (l) => l.id == _selectedLeadId,
             orElse: () => leads.first,
           )
-        : null; // Safe fallback logic needed or just handling null
+        : null;
 
     // Invoice ID Mock
     final invoiceId = widget.initialData != null
@@ -182,14 +195,14 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
     final String businessName = businessProfile?['name'] ?? 'Mi Negocio';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text(''), // Custom header below
+        title: const Text(''),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
+          icon: Icon(Icons.close, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
         actions: [
           // Save Draft placeholder
@@ -197,421 +210,577 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
             onPressed: _saveInvoice,
             child: Text(
               'Guardar',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
             ),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 1. Header Card (Business Info)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // final isDesktop = constraints.maxWidth > 800; // Unused
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Logo Placeholder
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 20,
-                            backgroundImage:
-                                (businessLogo != null &&
-                                    businessLogo.isNotEmpty)
-                                ? CachedNetworkImageProvider(businessLogo)
-                                : null,
-                            child:
-                                (businessLogo == null || businessLogo.isEmpty)
-                                ? const Icon(Icons.store, color: Colors.black)
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
+                          // 1. Header Card (Business Info + Date)
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: borderColor),
+                              boxShadow: isDark
+                                  ? []
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                            ),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  businessName,
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                // Logo
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey.shade50,
+                                    shape: BoxShape.circle,
+                                    image:
+                                        (businessLogo != null &&
+                                            businessLogo.isNotEmpty)
+                                        ? DecorationImage(
+                                            image: CachedNetworkImageProvider(
+                                              businessLogo,
+                                            ),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child:
+                                      (businessLogo == null ||
+                                          businessLogo.isEmpty)
+                                      ? Icon(
+                                          Icons.store,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.blueGrey,
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        businessName,
+                                        style: GoogleFonts.outfit(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Factura $invoiceId',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.blueAccent,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  'Venezuela', // Location mock
-                                  style: GoogleFonts.inter(
-                                    color: Colors.grey,
-                                    fontSize: 12,
+                                // Date Picker
+                                InkWell(
+                                  onTap: () async {
+                                    await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2030),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: borderColor),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today_rounded,
+                                          size: 16,
+                                          color: subTextColor,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          dateStr,
+                                          style: GoogleFonts.inter(
+                                            fontWeight: FontWeight.w500,
+                                            color: subTextColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                invoiceId,
-                                style: GoogleFonts.inter(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          const SizedBox(height: 24),
+
+                          // 2. Cliente Section
+                          Text(
+                            'Cliente',
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: subTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (_selectedLeadId == null)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: isDark
+                                    ? []
+                                    : [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.02),
+                                          blurRadius: 8,
+                                        ),
+                                      ],
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today,
-                                    size: 12,
+                              child: DropdownButtonFormField<int>(
+                                icon: Icon(
+                                  Icons.arrow_drop_down_rounded,
+                                  color: subTextColor,
+                                ),
+                                dropdownColor: cardColor,
+                                decoration: InputDecoration(
+                                  hintText: 'Seleccionar cliente...',
+                                  hintStyle: GoogleFonts.inter(
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.search,
                                     color: Colors.grey,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    dateStr,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.grey,
-                                      fontSize: 12,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 16,
+                                  ),
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? const Color(0xFF282C34)
+                                      : Colors.grey.shade50,
+                                ),
+                                items: leads.map((l) {
+                                  return DropdownMenuItem(
+                                    value: l.id,
+                                    child: Text(
+                                      '${l.clientFirstName} ${l.clientLastName}',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  );
+                                }).toList(),
+                                onChanged: (val) =>
+                                    setState(() => _selectedLeadId = val),
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 2. Cliente Section
-                    Text(
-                      'Cliente',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    if (_selectedLeadId == null)
-                      // Search Bar / Dropdown
-                      DropdownButtonFormField<int>(
-                        decoration: InputDecoration(
-                          hintText: 'Buscar clientes',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                          ),
-                        ),
-                        items: leads.map((l) {
-                          return DropdownMenuItem(
-                            value: l.id,
-                            child: Text(
-                              '${l.clientFirstName} ${l.clientLastName}',
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedLeadId = val),
-                      )
-                    else
-                      // Selected Client Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9FAFB), // Grey bg
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundImage:
-                                  (selectedLead?.clientImageUrl != null &&
-                                      selectedLead!.clientImageUrl!.isNotEmpty)
-                                  ? CachedNetworkImageProvider(
-                                      selectedLead.clientImageUrl!,
-                                    )
-                                  : null,
-                              radius: 20,
-                              child:
-                                  (selectedLead?.clientImageUrl == null ||
-                                      selectedLead!.clientImageUrl!.isEmpty)
-                                  ? Text(
-                                      selectedLead?.clientFirstName.substring(
-                                            0,
-                                            1,
-                                          ) ??
-                                          'C',
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${selectedLead?.clientFirstName} ${selectedLead?.clientLastName}',
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    'cliente@email.com', // Mock email
-                                    style: GoogleFonts.inter(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.phone,
-                                        size: 12,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        selectedLead?.clientPhone ?? 'No phone',
-                                        style: GoogleFonts.inter(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      const Icon(
-                                        Icons.location_on,
-                                        size: 12,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Caracas, Vzla',
-                                        style: GoogleFonts.inter(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.red,
-                              ), // Red X
-                              onPressed: () =>
-                                  setState(() => _selectedLeadId = null),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    const SizedBox(height: 24),
-
-                    // 3. Agregar Items
-                    Text(
-                      'Agregar items',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    InkWell(
-                      onTap: _addItem,
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        padding: const EdgeInsets.all(4), // Inner padding
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: Colors.grey.shade300),
-                          color: Colors.white,
-                        ),
-                        child: Row(
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(left: 16),
-                              child: Icon(Icons.search, color: Colors.grey),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Buscar o escribir un item...',
-                                style: GoogleFonts.inter(color: Colors.grey),
-                              ),
-                            ),
+                            )
+                          else
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0F172A), // Dark Button
-                                borderRadius: BorderRadius.circular(26),
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: borderColor),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.add,
-                                    color: Colors.white,
-                                    size: 20,
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: isDark
+                                        ? Colors.grey[700]
+                                        : Colors.grey[200],
+                                    backgroundImage:
+                                        (selectedLead
+                                                ?.clientImageUrl
+                                                ?.isNotEmpty ==
+                                            true)
+                                        ? CachedNetworkImageProvider(
+                                            selectedLead!.clientImageUrl!,
+                                          )
+                                        : null,
+                                    child:
+                                        (selectedLead
+                                                ?.clientImageUrl
+                                                ?.isEmpty ??
+                                            true)
+                                        ? Text(
+                                            selectedLead?.clientFirstName
+                                                    .substring(0, 1) ??
+                                                'C',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: textColor,
+                                            ),
+                                          )
+                                        : null,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Agregar item',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${selectedLead?.clientFirstName} ${selectedLead?.clientLastName}',
+                                          style: GoogleFonts.inter(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        if (selectedLead?.clientPhone != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 4.0,
+                                            ),
+                                            child: Text(
+                                              selectedLead!.clientPhone!,
+                                              style: GoogleFonts.inter(
+                                                color: subTextColor,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        setState(() => _selectedLeadId = null),
+                                    icon: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.grey[800]
+                                            : Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: borderColor),
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.blueGrey,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                          const SizedBox(height: 32),
 
-                    // 4. Items List
-                    ..._items.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return _buildItemCard(index, item);
-                    }),
-
-                    const SizedBox(height: 32),
-
-                    // 5. Totals
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey.shade100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTotalRow(
-                            'Sub-Total:',
-                            NumberFormat.currency(
-                              symbol: '\$',
-                            ).format(_subTotal),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildTotalRow(
-                            'TPS (5.00%):',
-                            NumberFormat.currency(symbol: '\$').format(_taxTPS),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildTotalRow(
-                            'TVQ (9.975%):',
-                            NumberFormat.currency(symbol: '\$').format(_taxTVQ),
-                          ),
-                          const Divider(height: 24),
+                          // 3. Items Title + Add Button
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Total amount:',
-                                style: GoogleFonts.inter(
-                                  color: Colors.grey,
+                                'Conceptos',
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 16,
+                                  color: subTextColor,
                                 ),
                               ),
-                              Text(
-                                NumberFormat.currency(
-                                  symbol: '\$',
-                                ).format(_total),
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFF2563EB),
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                              TextButton.icon(
+                                onPressed: _addItem,
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  'Agregar ítem',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.blueAccent,
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          // New Item Input Button
+                          InkWell(
+                            onTap: _addItem,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    color: Colors.grey.shade400,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Buscar o crear nuevo concepto...',
+                                    style: GoogleFonts.inter(
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 4. Items List
+                          if (_items.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Center(
+                                child: Text(
+                                  "No hay ítems en la factura",
+                                  style: GoogleFonts.inter(
+                                    color: Colors.grey.shade400,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            ..._items.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final item = entry.value;
+                              return _buildItemCard(
+                                index,
+                                item,
+                                isDark,
+                                cardColor,
+                                textColor,
+                                borderColor,
+                                inputFillColor,
+                              );
+                            }),
+
+                          const SizedBox(height: 32),
+
+                          // 5. Totals Section
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFF0F172A),
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                _buildTotalRow(
+                                  'Subtotal',
+                                  _subTotal,
+                                  isDark: true,
+                                ),
+                                const SizedBox(height: 12),
+                                _buildTotalRow(
+                                  'TPS (5%)',
+                                  _taxTPS,
+                                  isDark: true,
+                                ),
+                                const SizedBox(height: 12),
+                                _buildTotalRow(
+                                  'TVQ (9.975%)',
+                                  _taxTVQ,
+                                  isDark: true,
+                                ),
+                                const Divider(
+                                  color: Colors.white24,
+                                  height: 32,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Total a Pagar',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white70,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      NumberFormat.currency(
+                                        symbol: '\$',
+                                      ).format(_total),
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 100), // Space for footer
-                  ],
-                ),
-              ),
-            ),
-
-            // Footer Layout
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveInvoice,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(
-                      0xFFE5E7EB,
-                    ), // Grey bg as per image "Guardar borrador"
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                  // Footer Actions
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      border: Border(
+                        top: BorderSide(
+                          color: isDark ? Colors.white10 : Colors.grey.shade100,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              side: BorderSide(
+                                color: isDark
+                                    ? Colors.white24
+                                    : Colors.grey.shade300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              'Cancelar',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _saveInvoice,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    widget.initialData != null
+                                        ? 'Guardar Cambios'
+                                        : 'Crear Factura',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Text(
-                    'Guardar borrador',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildItemCard(int index, BusinessInvoiceItem item) {
+  Widget _buildItemCard(
+    int index,
+    BusinessInvoiceItem item,
+    bool isDark,
+    Color cardColor,
+    Color textColor,
+    Color borderColor,
+    Color inputFillColor,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -629,6 +798,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
+                    color: textColor,
                   ),
                   onChanged: (val) => item.title = val,
                 ),
@@ -643,7 +813,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
               ),
             ],
           ),
-          const Divider(),
+          Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
           Row(
             children: [
               Expanded(
@@ -661,14 +831,19 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                     const SizedBox(height: 4),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: inputFillColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.transparent
+                              : Colors.grey.shade300,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: TextFormField(
                         initialValue: item.qty.toString(),
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: textColor),
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                         ),
@@ -698,14 +873,19 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                     const SizedBox(height: 4),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: inputFillColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.transparent
+                              : Colors.grey.shade300,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: TextFormField(
                         initialValue: item.price.toStringAsFixed(2),
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: textColor),
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                           prefixText: '\$',
@@ -756,12 +936,36 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
     );
   }
 
-  Widget _buildTotalRow(String label, String value) {
+  Widget _buildTotalRow(String label, dynamic value, {bool isDark = false}) {
+    // Value can be string or double, handle implicit formatting if needed, but here usage passes formatted string?
+    // Wait, in usage I passed `_subTotal` (double)! I need to format it or change usage.
+    // Actually in the previous code: `_buildTotalRow('Sub-Total:', NumberFormat...)`.
+    // In my NEW code: `_buildTotalRow('Subtotal', _subTotal, isDark: true)`
+    // So I need to handle formatting here or change usage.
+    // Let's accept double and format it inside to be safe with my previous edit.
+
+    final displayValue = value is String
+        ? value
+        : NumberFormat.currency(symbol: '\$').format(value);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.inter(color: Colors.grey[700])),
-        Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : Colors.grey[700],
+            fontSize: 14,
+          ),
+        ),
+        Text(
+          displayValue,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 14,
+          ),
+        ),
       ],
     );
   }

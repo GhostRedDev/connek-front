@@ -58,7 +58,7 @@ import '../../features/office/widgets/office_settings_greg_page.dart';
 import '../providers/user_mode_provider.dart';
 import '../../features/settings/providers/profile_provider.dart';
 import '../../features/shared/pages/booking_details_page.dart';
-import '../../features/client/pages/business_profile_view.dart';
+import '../../features/client/pages/business_public_profile_page.dart';
 
 // Global Key for Root Navigator (to cover shell)
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -330,7 +330,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'business/:id',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return BusinessProfileView(businessId: id);
+                  return BusinessPublicProfilePage(businessId: id);
                 },
               ),
             ],

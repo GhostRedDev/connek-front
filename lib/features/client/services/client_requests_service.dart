@@ -25,6 +25,10 @@ class ClientRequestsService {
       }
       return [];
     } catch (e) {
+      // 404 means no requests found for this client, which is a valid empty state.
+      if (e.toString().contains('404')) {
+        return [];
+      }
       print('Error fetching client requests: $e');
       return [];
     }
@@ -32,10 +36,10 @@ class ClientRequestsService {
 
   Future<bool> acceptProposal(int quoteId, int leadId) async {
     try {
-      final response = await _apiService.post('/quotes/accept', body: {
-        'quote_id': quoteId,
-        'lead_id': leadId,
-      });
+      final response = await _apiService.post(
+        '/quotes/accept',
+        body: {'quote_id': quoteId, 'lead_id': leadId},
+      );
       return response != null && response['success'] == true;
     } catch (e) {
       print('Error accepting proposal: $e');
@@ -45,10 +49,10 @@ class ClientRequestsService {
 
   Future<bool> declineProposal(int quoteId, int leadId) async {
     try {
-      final response = await _apiService.post('/quotes/decline', body: {
-        'quote_id': quoteId,
-        'lead_id': leadId,
-      });
+      final response = await _apiService.post(
+        '/quotes/decline',
+        body: {'quote_id': quoteId, 'lead_id': leadId},
+      );
       return response != null && response['success'] == true;
     } catch (e) {
       print('Error declining proposal: $e');
