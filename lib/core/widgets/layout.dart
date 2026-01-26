@@ -243,7 +243,7 @@ HeaderData getHeaderConfig(
           'items': [
             {'label': 'Facturas', 'value': 'invoices', 'icon': Icons.receipt},
             {
-              'label': 'Propuestas',
+              'label': 'Cotizaciones',
               'value': 'proposals',
               'icon': Icons.monetization_on_outlined,
             },
@@ -272,6 +272,11 @@ HeaderData getHeaderConfig(
         {
           'label': t['tab_settings'] ?? 'Ajustes',
           'icon': Icons.settings_outlined,
+        },
+        // NEW TAB: Accounting (Contabilidad)
+        {
+          'label': t['tab_accounting'] ?? 'Contabilidad',
+          'icon': Icons.account_balance_outlined,
         },
       ],
       // bottomWidget: _BusinessSubHeader(isDark: isDark), // Removed in favor of Tabs
@@ -447,7 +452,7 @@ String _getSalesLabel(String view, Map<String, String> t) {
     case 'invoices':
       return 'Facturas';
     case 'proposals':
-      return 'Propuestas';
+      return 'Cotizaciones';
     case 'bookings':
       return 'Bookings';
     default:

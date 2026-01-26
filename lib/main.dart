@@ -39,7 +39,7 @@ Future<void> _startApp() async {
 
   try {
     debugPrint("Initializing app...");
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: "assets/env");
 
     final supabaseUrl = dotenv.env['SUPABASE_URL'];
     final supabaseKey = dotenv.env['SUPABASE_KEY'];

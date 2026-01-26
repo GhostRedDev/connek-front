@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'providers/business_provider.dart';
+import 'widgets/business_proposal_sheet.dart';
 
 class LeadDetailsPage extends ConsumerWidget {
   final Lead lead;
@@ -656,7 +657,17 @@ class LeadDetailsPage extends ConsumerWidget {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) =>
+                                          BusinessProposalSheet(
+                                            prefilledLead: currentLead,
+                                          ),
+                                    );
+                                  },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF111418),
                                     foregroundColor: Colors.white,
@@ -667,7 +678,7 @@ class LeadDetailsPage extends ConsumerWidget {
                                       vertical: 14,
                                     ),
                                   ),
-                                  child: const Text("Enviar propuesta"),
+                                  child: const Text("Cotizar"),
                                 ),
                               ),
                             ],

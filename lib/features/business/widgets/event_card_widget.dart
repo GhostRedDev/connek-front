@@ -1,22 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../providers/business_provider.dart';
+import 'create_event_dialog.dart';
 
-class EventCardWidget extends StatelessWidget {
+class EventCardWidget extends ConsumerWidget {
   final Map<String, dynamic> event;
 
   const EventCardWidget({super.key, required this.event});
 
+  Future<void> _deleteEvent(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Evento'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar este evento?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final businessId = event['business_id'];
+      final eventId = event['id'];
+      final success = await ref
+          .read(businessRepositoryProvider)
+          .deleteEvent(eventId, businessId);
+      if (success) {
+        ref.invalidate(businessProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Evento eliminado')));
+        }
+      }
+    }
+  }
+
+  void _editEvent(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => CreateEventDialog(eventData: event),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final title = event['title'] ?? 'Evento';
     final description = event['description'] ?? '';
     final image =
         event['image'] ??
         'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3';
     final promoText = event['promo_text'] ?? 'PROMOCIÓN';
-
-    // Parse date if needed, or use a duration string
-    // For now assuming promo_text covers the "Finaliza en..." or we show static
 
     return Container(
       width: double.infinity,
@@ -28,6 +73,7 @@ class EventCardWidget extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          // Detail Badge
           Positioned(
             top: 12,
             left: 12,
@@ -42,7 +88,7 @@ class EventCardWidget extends StatelessWidget {
                   Icon(Icons.timer, color: Colors.white, size: 12),
                   SizedBox(width: 4),
                   Text(
-                    'Ver detalles', // Generic for now
+                    'Ver detalles',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -53,6 +99,38 @@ class EventCardWidget extends StatelessWidget {
               ),
             ),
           ),
+          // Actions Menu
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4),
+                shape: BoxShape.circle,
+              ),
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _editEvent(context);
+                  } else if (value == 'delete') {
+                    _deleteEvent(context, ref);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Eliminar',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           Positioned(
             bottom: 0,
             left: 0,

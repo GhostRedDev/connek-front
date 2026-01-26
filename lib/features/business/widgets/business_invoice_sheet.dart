@@ -60,9 +60,9 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
 
   // --- Logic ---
 
-  void _addItem() {
+  void _addItem([BusinessInvoiceItem? item]) {
     setState(() {
-      _items.add(BusinessInvoiceItem());
+      _items.add(item ?? BusinessInvoiceItem());
     });
   }
 
@@ -549,7 +549,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                           const SizedBox(height: 12),
                           // New Item Input Button
                           InkWell(
-                            onTap: _addItem,
+                            onTap: () => _showItemSearchSheet(context),
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -967,6 +967,308 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showItemSearchSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ItemSearchSheet(
+        onSelected: (item) {
+          _addItem(item);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+}
+
+class _ItemSearchSheet extends ConsumerStatefulWidget {
+  final Function(BusinessInvoiceItem) onSelected;
+
+  const _ItemSearchSheet({required this.onSelected});
+
+  @override
+  ConsumerState<_ItemSearchSheet> createState() => __ItemSearchSheetState();
+}
+
+class __ItemSearchSheetState extends ConsumerState<_ItemSearchSheet> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  int _selectedTab = 0; // 0: Services, 1: Events
+
+  @override
+  Widget build(BuildContext context) {
+    final businessData = ref.watch(businessProvider).value;
+    final services = businessData?.services ?? [];
+    final events = businessData?.events ?? [];
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    // Filter Logic
+    final filteredServices = services.where((s) {
+      final name = (s['name'] ?? '').toString().toLowerCase();
+      return name.contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    final filteredEvents = events.where((e) {
+      final name = (e['name'] ?? e['title'] ?? '').toString().toLowerCase();
+      return name.contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Drag Handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Agregar Concepto',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Add manual empty item
+                    widget.onSelected(BusinessInvoiceItem());
+                  },
+                  child: const Text('Crear Manual'),
+                ),
+              ],
+            ),
+          ),
+
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) => setState(() => _searchQuery = val),
+                style: TextStyle(color: textColor),
+                decoration: const InputDecoration(
+                  hintText: 'Buscar servicios o eventos...',
+                  border: InputBorder.none,
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Tabs
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                _buildTab('Servicios', 0, isDark),
+                const SizedBox(width: 12),
+                _buildTab('Eventos', 1, isDark),
+              ],
+            ),
+          ),
+          const Divider(),
+
+          // List
+          Expanded(
+            child: _selectedTab == 0
+                ? _buildServiceList(filteredServices, isDark, textColor)
+                : _buildEventList(filteredEvents, isDark, textColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(String label, int index, bool isDark) {
+    final isSelected = _selectedTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTab = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.blue
+              : (isDark ? Colors.white10 : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceList(
+    List<Map<String, dynamic>> items,
+    bool isDark,
+    Color textColor,
+  ) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay servicios encontrados',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final name = item['name'] ?? 'Servicio';
+        final priceCents = item['price_cents'] ?? 0;
+        final price = priceCents / 100.0;
+        final description = item['description'] ?? '';
+
+        return ListTile(
+          onTap: () {
+            widget.onSelected(
+              BusinessInvoiceItem(title: name, price: price, qty: 1),
+            );
+          },
+          contentPadding: const EdgeInsets.only(bottom: 16),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.blue[50],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.design_services_outlined,
+              color: Colors.blue,
+            ),
+          ),
+          title: Text(
+            name,
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          subtitle: Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.grey),
+          ),
+          trailing: Text(
+            NumberFormat.currency(symbol: '\$').format(price),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEventList(
+    List<Map<String, dynamic>> items,
+    bool isDark,
+    Color textColor,
+  ) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay eventos encontrados',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final name = item['name'] ?? item['title'] ?? 'Evento';
+        dynamic rawPrice =
+            item['ticket_price'] ?? item['price'] ?? item['price_cents'] ?? 0;
+        double price = 0.0;
+        if (rawPrice is int) price = rawPrice / 100.0;
+        if (rawPrice is double) price = rawPrice;
+
+        return ListTile(
+          onTap: () {
+            widget.onSelected(
+              BusinessInvoiceItem(title: name, price: price, qty: 1),
+            );
+          },
+          contentPadding: const EdgeInsets.only(bottom: 16),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.orange[50],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.event, color: Colors.orange),
+          ),
+          title: Text(
+            name,
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          subtitle: Text(
+            item['location'] ?? '',
+            maxLines: 1,
+            style: TextStyle(color: Colors.grey),
+          ),
+          trailing: Text(
+            NumberFormat.currency(symbol: '\$').format(price),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
+          ),
+        );
+      },
     );
   }
 }

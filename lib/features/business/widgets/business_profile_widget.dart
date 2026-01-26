@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'event_card_widget.dart';
+import 'create_event_dialog.dart';
 import '../providers/business_provider.dart';
 
 class BusinessProfileWidget extends ConsumerStatefulWidget {
@@ -419,17 +420,41 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
   }
 
   Widget _buildEventsList(List<Map<String, dynamic>> events) {
-    if (events.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Text('Sin eventos próximos'),
-        ),
-      );
-    }
-
     return Column(
-      children: events.map((event) => EventCardWidget(event: event)).toList(),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const CreateEventDialog(),
+                );
+              },
+              icon: const Icon(Icons.add_circle_outline, size: 16),
+              label: const Text('Crear Evento'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4285F4),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (events.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Sin eventos próximos'),
+            ),
+          )
+        else
+          ...events.map((event) => EventCardWidget(event: event)),
+      ],
     );
   }
 

@@ -747,6 +747,83 @@ class BusinessRepository {
       }
     }
   }
+
+  Future<List<Map<String, dynamic>>> getPaymentMethodsForBusiness(
+    int businessId,
+    int clientId,
+  ) async {
+    try {
+      final response = await _apiService.get(
+        '/payments/methods?client_id=$clientId&business_id=$businessId',
+      );
+      if (response != null && response['success'] == true) {
+        return List<Map<String, dynamic>>.from(response['data']);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching payment methods: $e');
+      return [];
+    }
+  }
+
+  Future<bool> createEvent(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiService.postForm(
+        '/events/create',
+        fields: data,
+        // files: ... add later if we support image upload in UI
+      );
+      if (response != null && response['success'] == true) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error creating event: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateEvent(int eventId, Map<String, dynamic> data) async {
+    try {
+      // Backend update is PUT /events/{id}
+      final response = await _apiService.putForm(
+        '/events/$eventId',
+        fields: data,
+      );
+      if (response != null && response['success'] == true) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error updating event: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteEvent(int eventId, int businessId) async {
+    try {
+      // Backend delete is DELETE /events/{id}?business_id=...
+      // Or pass business_id in body? My backend delete router expects query param?
+      // Let's check backend router:
+      // function delete_event(event_id: int, business_id: int, ...)
+      // Since it's a GET param usually for DELETE unless specified Body.
+      // FastAPI defaults top-level args to Query if not simple types?
+      // Let's assume Query param.
+      // ApiService delete supports body.
+      // I'll assume I can pass qparams in URL.
+
+      final response = await _apiService.delete(
+        '/events/$eventId?business_id=$businessId',
+      );
+      if (response != null && response['success'] == true) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting event: $e');
+      return false;
+    }
+  }
 }
 
 // --- Provider ---
@@ -767,12 +844,14 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
   LeadsService? _leadsService;
   RealtimeChannel? _leadsSubscription;
   RealtimeChannel? _employeesSubscription;
+  RealtimeChannel? _eventsSubscription;
 
   @override
   Future<BusinessDashboardData> build() async {
     ref.onDispose(() {
       _leadsSubscription?.unsubscribe();
       _employeesSubscription?.unsubscribe();
+      _eventsSubscription?.unsubscribe();
     });
     _repository = ref.read(businessRepositoryProvider);
     _leadsService = ref.read(leadsServiceProvider);
@@ -871,6 +950,9 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
     }
     if (_employeesSubscription == null) {
       _subscribeToEmployees(businessId);
+    }
+    if (_eventsSubscription == null) {
+      _subscribeToEvents(businessId);
     }
 
     final results = await Future.wait([
@@ -1063,6 +1145,26 @@ class BusinessNotifier extends AsyncNotifier<BusinessDashboardData> {
             print(
               'Realtime: Business Employees update -> Refreshing dashboard',
             );
+            ref.invalidateSelf();
+          },
+        )
+        .subscribe();
+  }
+
+  void _subscribeToEvents(int businessId) {
+    _eventsSubscription = _supabase
+        .channel('public:events:business:$businessId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'business_id',
+            value: businessId,
+          ),
+          callback: (payload) {
+            print('Realtime: Business Events update -> Refreshing dashboard');
             ref.invalidateSelf();
           },
         )

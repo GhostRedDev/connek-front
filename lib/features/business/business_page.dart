@@ -12,6 +12,7 @@ import 'widgets/business_proposals_widget.dart'; // Added
 import 'widgets/business_invoices_widget.dart'; // Added
 import 'widgets/business_bookings_widget.dart';
 import 'widgets/business_settings_widget.dart'; // Added
+import 'widgets/business_accounting_widget.dart'; // Added
 
 class BusinessPage extends ConsumerStatefulWidget {
   const BusinessPage({super.key});
@@ -32,7 +33,7 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
     // Check inherited controller to prevent crash if AppLayout thinks we are in a different mode
     final inheritedController = DefaultTabController.of(context);
     final inheritedLength = inheritedController.length;
-    const requiredLength = 8;
+    const requiredLength = 9;
 
     Widget content = TabBarView(
       children: [
@@ -59,6 +60,9 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
 
         // TAB 8: SETTINGS
         const BusinessSettingsWidget(),
+
+        // TAB 9: ACCOUNTING
+        const BusinessAccountingWidget(),
       ],
     );
 

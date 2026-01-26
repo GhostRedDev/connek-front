@@ -7,8 +7,13 @@ import '../../leads/models/lead_model.dart';
 
 class BusinessProposalSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? quoteToEdit;
+  final Lead? prefilledLead;
 
-  const BusinessProposalSheet({super.key, this.quoteToEdit});
+  const BusinessProposalSheet({
+    super.key,
+    this.quoteToEdit,
+    this.prefilledLead,
+  });
 
   @override
   ConsumerState<BusinessProposalSheet> createState() =>
@@ -39,6 +44,14 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
       if (q['expiring'] != null) {
         _selectedDate = DateTime.tryParse(q['expiring']);
       }
+    } else if (widget.prefilledLead != null) {
+      // Prefill Logic
+      _selectedLead = widget.prefilledLead;
+      // Note: We can triggers _selectedService logic after build or here if we have access to services.
+      // But services come from provider in build.
+      // So we handle auto-selection in build or listener if we want it perfect.
+      // For simplicity, we just set _selectedLead and let user confirm details,
+      // or we can try to find service in build if _selectedService is null.
     }
   }
 
@@ -61,6 +74,30 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
     final businessData = ref.watch(businessProvider).value;
     final leads = businessData?.recentLeads ?? [];
     final services = businessData?.services ?? [];
+
+    // Auto-select Service logic if prefilled
+    if (_selectedLead != null &&
+        _selectedService == null &&
+        services.isNotEmpty) {
+      if (_selectedLead!.serviceId > 0) {
+        try {
+          _selectedService = services.firstWhere(
+            (s) => s['id'] == _selectedLead!.serviceId,
+          );
+          // Auto-fill defaults
+          if (_selectedService != null) {
+            final price = _selectedService!['price_cents'] ?? 0;
+            if (price > 0 && _amountController.text.isEmpty) {
+              _amountController.text = (price / 100).toStringAsFixed(2);
+            }
+            if (_descController.text.isEmpty) {
+              _descController.text =
+                  "Propuesta para ${_selectedService!['name']}";
+            }
+          }
+        } catch (_) {}
+      }
+    }
 
     // Filter leads that don't have a proposal sent?
     // Or just show all. For now show all.
