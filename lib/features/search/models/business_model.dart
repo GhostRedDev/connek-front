@@ -33,6 +33,7 @@ class Business {
   final List<Address> addresses;
   final String? phone;
   final String? website;
+  final String? url;
   final String? instagramHandle;
 
   Business({
@@ -45,7 +46,9 @@ class Business {
     required this.services,
     required this.addresses,
     this.phone,
+
     this.website,
+    this.url,
     this.instagramHandle,
   });
 
@@ -69,6 +72,7 @@ class Business {
           : [],
       phone: json['phone']?.toString(),
       website: json['website'],
+      url: json['url'],
       instagramHandle: json['instagram_handle'],
     );
   }

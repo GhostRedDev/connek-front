@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'search_bar_widget.dart';
 import 'search_result_google_card.dart';
 import '../../../core/providers/locale_provider.dart';
@@ -124,7 +125,7 @@ class SearchResultGoogleWidget extends ConsumerWidget {
                         ],
                       )
                     )
-                  else if (searchState.results.isNotEmpty)
+                  else if (searchState.results.isNotEmpty && searchState.query.isNotEmpty)
                     Column(
                       mainAxisSize: MainAxisSize.max,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,16 +225,13 @@ class SearchResultGoogleWidget extends ConsumerWidget {
         child: Row(
           children: [
             if (label == 'Google') ...[
-              // Custom Google G Style if needed, or just text/icon
-               const Text(
-                 'G', 
-                 style: TextStyle(
-                   color: Colors.red, 
-                   fontWeight: FontWeight.bold,
-                   fontSize: 18
-                 )
-               ),
-               const SizedBox(width: 8),
+              // Custom Google G Style
+              SvgPicture.asset(
+                'assets/images/google-logo-icon.svg',
+                width: 18,
+                height: 18,
+              ),
+              const SizedBox(width: 8),
             ],
             Text(
               label,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/providers/locale_provider.dart';
 
 import '../models/business_model.dart';
@@ -30,6 +31,21 @@ class SearchResultGoogleCard extends ConsumerWidget {
     }
   }
 
+  Future<void> _launchUrlDirect(BuildContext context, String urlString) async {
+    final url = Uri.parse(urlString);
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch $url');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch URL: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tAsync = ref.watch(translationProvider);
@@ -38,7 +54,11 @@ class SearchResultGoogleCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         if (isGoogleResult) {
-           _launchMap(context, business.description); // Description often contains address for Google results
+           if (business.url != null && business.url!.isNotEmpty) {
+             _launchUrlDirect(context, business.url!);
+           } else {
+             _launchMap(context, business.description); 
+           }
         } else {
            context.push('/business/${business.id}');
         }
@@ -118,18 +138,22 @@ class SearchResultGoogleCard extends ConsumerWidget {
                         ),
                         child: Row(
                           children: [
-                             // Google G Icon (approximated with text/icon here)
-                             const Icon(Icons.g_mobiledata, color: Colors.blue, size: 24),
-                             const SizedBox(width: 4),
-                             Text(
-                               'Google',
-                               style: GoogleFonts.inter(
-                                 color: Colors.black,
-                                 fontSize: 14,
-                                 fontWeight: FontWeight.bold,
-                               ),
-                             ),
-                          ],
+                          // Google Badge
+                          SvgPicture.asset(
+                            'assets/images/google-logo-icon.svg',
+                            width: 20, // Adjusted size to match text height roughly 
+                            height: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Google',
+                            style: GoogleFonts.inter(
+                              color: Colors.black,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                         ),
                       )
                     else if (business.website != null)
