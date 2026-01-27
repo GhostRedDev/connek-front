@@ -1584,7 +1584,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: Theme.of(context).primaryColor,
             inactiveThumbColor: Colors.grey,
             inactiveTrackColor: Theme.of(context).dividerColor,

@@ -346,7 +346,6 @@ class LeadDetailsPage extends ConsumerWidget {
                                   Expanded(
                                     child: OutlinedButton(
                                       onPressed: () {},
-                                      child: const Text('Ver perfil'),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: isDark
                                             ? Colors.white
@@ -364,6 +363,7 @@ class LeadDetailsPage extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
+                                      child: const Text('Ver perfil'),
                                     ),
                                   ),
                                 ],
@@ -888,7 +888,6 @@ class LeadDetailsPage extends ConsumerWidget {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {},
-                              child: const Text('Ver perfil'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: isDark
                                     ? Colors.white
@@ -904,6 +903,7 @@ class LeadDetailsPage extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(24),
                                 ),
                               ),
+                              child: const Text('Ver perfil'),
                             ),
                           ),
                         ],

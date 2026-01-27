@@ -245,6 +245,12 @@ class ApiService {
   // Helper to process response
   dynamic _processResponse(http.Response response) {
     print('📥 Response [${response.statusCode}]: ${response.body}');
+    
+    // Handle 503 Service Unavailable globally
+    if (response.statusCode == 503) {
+      throw Exception('Servicio no disponible momentáneamente. Por favor intenta más tarde.');
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       final decodedBody = response.body;
@@ -283,7 +289,7 @@ class ApiService {
       } catch (e) {
         print('⚠️ API Error Body is not valid JSON: $errorBody');
         throw Exception(
-          'API Error (${response.statusCode}): ${errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody}',
+          'API Error (${response.statusCode}): ${errorBody.length > 200 ? "${errorBody.substring(0, 200)}..." : errorBody}',
         );
       }
     }

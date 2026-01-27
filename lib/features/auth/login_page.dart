@@ -330,7 +330,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          (t['no_account'] ?? "Don't have an account?") + " ",
+                          "${t['no_account'] ?? "Don't have an account?"} ",
                           style: TextStyle(color: Colors.grey[400]),
                         ),
                         InkWell(

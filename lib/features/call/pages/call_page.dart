@@ -123,8 +123,9 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   Future<void> _handleOffer(dynamic offerData) async {
-    if (widget.isCaller)
+    if (widget.isCaller) {
       return; // Caller ignores offers? Or race condition handling needed.
+    }
 
     await _peerConnection!.setRemoteDescription(
       RTCSessionDescription(offerData['sdp'], offerData['type']),
@@ -263,26 +264,26 @@ class _CallPageState extends ConsumerState<CallPage> {
                 FloatingActionButton(
                   heroTag: 'mic',
                   backgroundColor: _micMuted ? Colors.white : Colors.white24,
+                  onPressed: _toggleMic,
                   child: Icon(
                     _micMuted ? Icons.mic_off : Icons.mic,
                     color: _micMuted ? Colors.black : Colors.white,
                   ),
-                  onPressed: _toggleMic,
                 ),
                 FloatingActionButton(
                   heroTag: 'hangup',
                   backgroundColor: Colors.red,
-                  child: const Icon(Icons.call_end, color: Colors.white),
                   onPressed: _hangUp,
+                  child: const Icon(Icons.call_end, color: Colors.white),
                 ),
                 FloatingActionButton(
                   heroTag: 'camera',
                   backgroundColor: _cameraOff ? Colors.white : Colors.white24,
+                  onPressed: _toggleCamera,
                   child: Icon(
                     _cameraOff ? Icons.videocam_off : Icons.videocam,
                     color: _cameraOff ? Colors.black : Colors.white,
                   ),
-                  onPressed: _toggleCamera,
                 ),
               ],
             ),

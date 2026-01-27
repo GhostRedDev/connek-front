@@ -227,7 +227,7 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
             id = contactBusiness['id'];
           } else if (contactClient != null) {
             bucket = 'client';
-            id = contactClient!['id'];
+            id = contactClient['id'];
           }
 
           // Fix: Prepend folder ID if missing (path is just filename)

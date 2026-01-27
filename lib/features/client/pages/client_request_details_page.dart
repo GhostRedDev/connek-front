@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/service_request_model.dart';
-import '../widgets/client_lead_card_widget.dart';
 import 'package:go_router/go_router.dart';
 
 class ClientRequestDetailsPage extends StatelessWidget {

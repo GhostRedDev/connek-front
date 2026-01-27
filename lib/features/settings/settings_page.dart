@@ -248,7 +248,7 @@ class SettingsPage extends ConsumerWidget {
               color: isDark ? Colors.white : Colors.black,
             ),
           ),
-          activeColor: const Color(0xFF4285F4),
+          activeThumbColor: const Color(0xFF4285F4),
         );
       },
     );

@@ -50,7 +50,7 @@ class CallService {
   ) async {
     // We broadcast to the RECEIVER'S channel
     final receiverChannel = _supabase.channel('user:$receiverId');
-    await receiverChannel.subscribe();
+    receiverChannel.subscribe();
 
     // Tiny delay to ensure connection?
     await Future.delayed(const Duration(milliseconds: 100));

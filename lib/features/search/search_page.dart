@@ -44,13 +44,9 @@ class _SearchPageState extends State<SearchPage> {
         body: SizedBox(
           width: double.infinity,
           height: double.infinity,
-          child: SingleChildScrollView(
-            // Top padding to account for Glass AppBar (AppLayout extendsBodyBehindAppBar)
-            // Bottom padding for NavBar
-            padding: const EdgeInsets.only(top: 120, bottom: 80),
-            child: SearchResultGoogleWidget(
-              // We can pass callback if needed
-            ),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 120), // Top padding for Glass AppBar, bottom handled by widget
+            child: const SearchResultGoogleWidget(),
           ),
         ),
       ),

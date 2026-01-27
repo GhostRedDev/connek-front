@@ -379,10 +379,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   builder: (_) => UserProfilePage(
                     contact: ContactDetails(
                       id: contactInfo!['id'] ?? 0,
-                      firstName: contactInfo!['name'] ?? 'User',
+                      firstName: contactInfo['name'] ?? 'User',
                       lastName: '',
-                      profileUrl: contactInfo!['image'],
-                      hasBusiness: contactInfo!['is_business'] ?? false,
+                      profileUrl: contactInfo['image'],
+                      hasBusiness: contactInfo['is_business'] ?? false,
                       verifiedIdentity: true, // Mock
                     ),
                   ),

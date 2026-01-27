@@ -399,7 +399,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
     showDialog(
       context: context,
       builder: (context) =>
-          const _VideoPlayerDialog(assetPath: 'assets/videos/greg-bot-video.mp4'),
+          const _VideoPlayerDialog(assetPath: 'assets/videos/greg-bot.mp4'),
     );
   }
 
@@ -511,7 +511,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
   }
 
   Widget _buildTabBar() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: TabBar(
         controller: _tabController,
@@ -725,7 +725,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                               Switch(
                                 value: _isActive,
                                 onChanged: _toggleActivation,
-                                activeColor: const Color(0xFF249689),
+                                activeThumbColor: const Color(0xFF249689),
                                 activeTrackColor: const Color(
                                   0xFF249689,
                                 ).withOpacity(0.3),
@@ -843,7 +843,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                     ),
 
                   // Action Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
@@ -1277,7 +1277,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                           Switch(
                             value: true, // Hardcoded as per image for now
                             onChanged: (v) {},
-                            activeColor: const Color(0xFF4B39EF),
+                            activeThumbColor: const Color(0xFF4B39EF),
                             activeTrackColor: const Color(
                               0xFF4B39EF,
                             ).withOpacity(0.3),
@@ -1349,7 +1349,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                     ),
                     value: _notifications,
                     onChanged: _isSwitchLoading ? null : _toggleNotifications,
-                    activeColor: const Color(0xFF4B39EF),
+                    activeThumbColor: const Color(0xFF4B39EF),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),

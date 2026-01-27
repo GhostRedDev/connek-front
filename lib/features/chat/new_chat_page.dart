@@ -79,10 +79,11 @@ class _NewChatPageState extends ConsumerState<NewChatPage> {
           .read(chatProvider.notifier)
           .getMyId(isBusinessMode);
       if (myId == null) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Error identifying user')),
           );
+        }
         return;
       }
 
