@@ -436,7 +436,7 @@ HeaderData getHeaderConfig(
       route == '/reset-password' ||
       route == '/confirm-phone') {
     return HeaderData(
-      titleWidget: logoWidget,
+      titleWidget: null,
       bgTrans: true,
       showProfile: false, // No profile on auth pages
       actions: [], // No actions on auth pages

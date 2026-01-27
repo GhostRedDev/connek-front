@@ -56,66 +56,75 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Widget build(BuildContext context) {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Light/Dark mode specific assets and colors
+    final bgImage = isDark
+        ? 'assets/images/regis.png' // Keep existing logic for dark if it's an asset
+        : 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=2670&auto=format&fit=crop'; // Business light theme
+
+    final gradientColors = isDark
+        ? [const Color(0xCC222831), const Color(0x00222831)]
+        : [
+            const Color(0xFFF5F5F5).withOpacity(0.95),
+            const Color(0xFFF5F5F5).withOpacity(0.0),
+          ];
+
+    final appBarColor = Theme.of(context).scaffoldBackgroundColor;
+    final backIconColor = isDark ? Colors.white : Colors.black;
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        backgroundColor: const Color(0xFF1A1D21),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
               expandedHeight: MediaQuery.of(context).size.height * 0.40,
               pinned: true,
-              backgroundColor: const Color(0xFF1A1D21),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: () => context.go('/'),
+              backgroundColor: appBarColor,
+              leading: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Theme.of(context).cardColor.withOpacity(0.4),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    onPressed: () => context.go('/'),
+                  ),
+                ),
               ),
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
                   children: [
                     // Background Image
                     Positioned.fill(
-                      child: Image.asset(
-                        'assets/images/regis.png', // Ensure this asset exists or use placeholder
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(color: Colors.grey[900]),
-                      ),
+                      child: isDark
+                          ? Image.asset(
+                              'assets/images/regis.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(color: Colors.grey[900]),
+                            )
+                          : Image.network(
+                              bgImage,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(color: Colors.grey[200]),
+                            ),
                     ),
                     // Gradient
                     Positioned.fill(
                       child: Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xCC222831), Color(0x00222831)],
-                            stops: [0, 1],
-                            begin: AlignmentDirectional(-0.64, 1),
-                            end: AlignmentDirectional(0.64, -1),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Logo
-                    Align(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 40),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            'assets/images/conneck_logo_white.png',
-                            width: 100,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Text(
-                                  'connek',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 30,
-                                  ),
-                                ),
+                            colors: gradientColors,
+                            stops: const [0, 1],
+                            begin: const AlignmentDirectional(-0.64, 1),
+                            end: const AlignmentDirectional(0.64, -1),
                           ),
                         ),
                       ),
@@ -138,7 +147,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         t['register_title_create_account'] ??
                             'Create an account',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                           fontSize: 22,
                           fontWeight: FontWeight.w500,
                         ),
@@ -150,6 +159,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         children: [
                           Expanded(
                             child: _buildTextField(
+                              context,
                               controller: _firstNameController,
                               label:
                                   t['register_label_firstname'] ?? 'First Name',
@@ -160,6 +170,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _buildTextField(
+                              context,
                               controller: _lastNameController,
                               label:
                                   t['register_label_lastname'] ?? 'Last Name',
@@ -172,12 +183,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                       // Contact Fields
                       _buildTextField(
+                        context,
                         controller: _emailController,
                         label: 'Email',
                         hint: t['email_hint'] ?? 'Enter your email',
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
+                        context,
                         controller: _phoneController,
                         label: t['register_label_phone'] ?? 'Phone',
                         hint: t['register_hint_phone'] ?? 'Enter your phone',
@@ -189,7 +202,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       Text(
                         t['register_label_dob'] ?? 'Date of Birth',
                         style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -199,6 +212,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           Expanded(
                             flex: 2,
                             child: _buildTextField(
+                              context,
                               controller: _yearController,
                               hint: t['register_hint_year'] ?? 'Year',
                               keyboardType: TextInputType.number,
@@ -207,6 +221,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildTextField(
+                              context,
                               controller: _monthController,
                               hint: t['register_hint_month'] ?? 'Month',
                               keyboardType: TextInputType.number,
@@ -215,6 +230,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildTextField(
+                              context,
                               controller: _dayController,
                               hint: t['register_hint_day'] ?? 'Day',
                               keyboardType: TextInputType.number,
@@ -226,6 +242,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                       // Password Fields
                       _buildTextField(
+                        context,
                         controller: _passwordController,
                         label: t['password_label'] ?? 'Password',
                         hint: t['password_hint'] ?? 'Password',
@@ -244,6 +261,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
+                        context,
                         controller: _confirmPasswordController,
                         label:
                             t['register_label_confirm_password'] ??
@@ -299,7 +317,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       Center(
                         child: Text(
                           t['register_social_or'] ?? 'Or sign up with',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(
+                            color: Theme.of(context).disabledColor,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -307,12 +327,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _socialButton(
+                            context,
                             Icons.g_mobiledata,
                             'Google',
                             _googleSignIn,
-                          ), // Replace icon/image
+                          ),
                           const SizedBox(width: 20),
-                          _socialButton(Icons.apple, 'Apple', () {}),
+                          _socialButton(context, Icons.apple, 'Apple', () {}),
                         ],
                       ),
 
@@ -325,14 +346,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           Text(
                             t['register_text_already_account'] ??
                                 'Already have an account? ',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                              color: Theme.of(context).disabledColor,
+                            ),
                           ),
                           InkWell(
                             onTap: () => context.go('/login'),
                             child: Text(
                               t['register_link_login'] ?? 'Log in now',
                               style: TextStyle(
-                                color: Color(0xFF4F87C9),
+                                color: const Color(0xFF4F87C9),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -351,7 +374,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildTextField(
+    BuildContext context, {
     required TextEditingController controller,
     String? label,
     required String hint,
@@ -359,6 +383,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     Widget? suffixIcon,
     TextInputType? keyboardType,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? const Color(0xFF22262B) : Colors.grey.shade100;
+    final hintColor = isDark ? Colors.grey[600] : Colors.grey.shade500;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -366,7 +394,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           Text(
             label,
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -376,16 +404,26 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: GoogleFonts.inter(color: Colors.white),
+          style: GoogleFonts.inter(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[600]),
+            hintStyle: TextStyle(color: hintColor),
             filled: true,
-            fillColor: const Color(0xFF22262B),
-            hoverColor: Colors.white.withOpacity(0.05),
+            fillColor: fillColor,
+            hoverColor: isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.05),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: isDark
+                  ? BorderSide.none
+                  : BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -420,14 +458,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     }
   }
 
-  Widget _socialButton(IconData icon, String label, VoidCallback? onPressed) {
+  Widget _socialButton(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback? onPressed,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: onPressed,
       child: Container(
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? Colors.white : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(25),
         ),
         child: Icon(icon, color: Colors.black),

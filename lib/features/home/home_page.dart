@@ -77,17 +77,38 @@ class _HomePageState extends State<HomePage>
   Widget _buildAuthBackground(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Common background image for consistency or distinct ones
+    final bgImage = isDark
+        ? 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop'
+        : 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2670&auto=format&fit=crop';
+
     if (!isDark) {
-      // Light Mode Background: Clean White/Grey with subtle gradient
-      return Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          gradient: LinearGradient(
-            colors: [Colors.white, Theme.of(context).scaffoldBackgroundColor],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      // Light Mode Background: Image with Light overlay
+      return Stack(
+        children: [
+          SizedBox.expand(
+            child: Image.network(
+              bgImage,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: const Color(0xFFF5F5F5)),
+            ),
           ),
-        ),
+          SizedBox.expand(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.9),
+                    Colors.white.withOpacity(0.4),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -96,8 +117,7 @@ class _HomePageState extends State<HomePage>
       children: [
         SizedBox.expand(
           child: CachedNetworkImage(
-            imageUrl:
-                'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop',
+            imageUrl: bgImage,
             fit: BoxFit.cover,
             placeholder: (context, url) =>
                 Container(color: const Color(0xFF131619)),
@@ -130,15 +150,31 @@ class _HomePageState extends State<HomePage>
 
     // Light Mode Guest Background
     if (!isDark) {
-      return Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFF5F7FA),
-          gradient: LinearGradient(
-            colors: [Color(0xFFE0E0E0), Color(0xFFF5F7FA)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      return Stack(
+        children: [
+          SizedBox.expand(
+            child: Image.network(
+              'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2670&auto=format&fit=crop',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: const Color(0xFFF5F5F5)),
+            ),
           ),
-        ),
+          SizedBox.expand(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.6),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
