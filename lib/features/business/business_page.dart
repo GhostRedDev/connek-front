@@ -4,6 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/business_leads_widget.dart';
 import 'widgets/business_overview_widget.dart';
 import 'widgets/business_clients_widget.dart'; // Added
+import 'providers/business_provider.dart'; // Added
+import 'widgets/business_services_widget.dart';
+import 'widgets/business_employees_widget.dart';
+import 'widgets/business_profile_widget.dart'; // Added
+import 'widgets/business_proposals_widget.dart'; // Added
+import 'widgets/business_invoices_widget.dart'; // Added
+import 'widgets/business_bookings_widget.dart';
+import 'widgets/business_settings_widget.dart'; // Added
+import 'widgets/business_accounting_widget.dart'; // Added
 
 class BusinessPage extends ConsumerStatefulWidget {
   const BusinessPage({super.key});
@@ -21,36 +30,67 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
     // We don't need a Scaffold or Stack for header anymore.
     // Just the TabBarView content.
 
-    return DefaultTabController(
-      length: 8, // Updated to 8 tabs
-      child: TabBarView(
-        children: [
-          // TAB 1: OVERVIEW
-          BusinessOverviewWidget(),
+    // Check inherited controller to prevent crash if AppLayout thinks we are in a different mode
+    final inheritedController = DefaultTabController.of(context);
+    final inheritedLength = inheritedController.length;
+    const requiredLength = 9;
 
-          // TAB 2: LEADS
-          const BusinessLeadsWidget(),
+    Widget content = TabBarView(
+      children: [
+        // TAB 1: OVERVIEW
+        BusinessOverviewWidget(),
 
-          // TAB 3: CLIENTS
-          const BusinessClientsWidget(),
+        // TAB 2: LEADS
+        const BusinessLeadsWidget(),
 
-          // TAB 4: SALES
-          const _BusinessPlaceholder(title: 'Ventas'),
+        // TAB 3: CLIENTS
+        const BusinessClientsWidget(),
 
-          // TAB 5: SERVICES
-          const _BusinessPlaceholder(title: 'Servicios'),
+        // TAB 4: SALES
+        const BusinessSalesTab(),
 
-          // TAB 6: EMPLOYEES
-          const _BusinessPlaceholder(title: 'Empleados'),
+        // TAB 5: SERVICES
+        const BusinessServicesWidget(),
 
-          // TAB 7: PROFILE
-          const _BusinessPlaceholder(title: 'Perfil'),
+        // TAB 6: EMPLOYEES
+        const BusinessEmployeesWidget(),
 
-          // TAB 8: SETTINGS
-          const _BusinessPlaceholder(title: 'Ajustes'),
-        ],
-      ),
+        // TAB 7: PROFILE
+        const BusinessProfileWidget(),
+
+        // TAB 8: SETTINGS
+        const BusinessSettingsWidget(),
+
+        // TAB 9: ACCOUNTING
+        const BusinessAccountingWidget(),
+      ],
     );
+
+    if (inheritedLength != requiredLength) {
+      return DefaultTabController(length: requiredLength, child: content);
+    }
+
+    return content;
+  }
+}
+
+class BusinessSalesTab extends ConsumerWidget {
+  const BusinessSalesTab({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final view = ref.watch(selectedSalesViewProvider);
+
+    switch (view) {
+      case 'invoices':
+        return const BusinessInvoicesWidget();
+      case 'proposals':
+        return const BusinessProposalsWidget();
+      case 'bookings':
+        return const BusinessBookingsWidget();
+      default:
+        return const _BusinessPlaceholder(title: 'Ventas - General');
+    }
   }
 }
 

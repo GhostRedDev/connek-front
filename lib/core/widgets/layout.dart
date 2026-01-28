@@ -13,11 +13,13 @@ import '../../features/notifications/providers/notification_provider.dart'; // A
 import '../../features/call/services/call_service.dart'; // Added
 import '../../features/call/widgets/incoming_call_overlay.dart'; // Added
 import '../../core/providers/user_mode_provider.dart'; // Added
+import '../../features/business/providers/business_provider.dart'; // Added
 
 import '../../core/providers/locale_provider.dart'; // Added for Localization
 
-// Removed local import of login_dropdown_button.dart since we are migrating it here
-// import '../../features/home/widgets/login_dropdown_button.dart';
+final navbarVisibilityProvider = StateProvider<bool>(
+  (ref) => true,
+); // Added Provider
 
 // ==============================================================================
 // 1. MODERN GLASS IMPLEMENTATION
@@ -148,7 +150,7 @@ class HeaderData {
   final bool showProfile;
   final double? height;
   final bool isCustom;
-  final List<String> tabs;
+  final List<dynamic> tabs;
   final Widget? bottomWidget;
 
   const HeaderData({
@@ -169,6 +171,7 @@ HeaderData getHeaderConfig(
   bool isDark,
   bool isLoggedIn,
   Map<String, String> t,
+  WidgetRef? ref, // Added Ref
 ) {
   Widget logoWidget = Image.asset(
     isDark
@@ -212,20 +215,69 @@ HeaderData getHeaderConfig(
     );
   }
 
-  if (route.startsWith('/business')) {
+  final cleanRoute = route.trim();
+  if (cleanRoute.startsWith('/business') || cleanRoute.startsWith('business')) {
     return HeaderData(
       titleWidget: logoWidget,
-      bgTrans: true,
+      bgTrans: false,
       height: 200, // Increased to 200 to clear safe area overflow
       tabs: [
-        t['tab_overview'] ?? 'Overview',
-        t['tab_leads'] ?? 'Leads',
-        t['tab_clients'] ?? 'Clientes',
-        t['tab_sales'] ?? 'Ventas',
-        t['tab_services'] ?? 'Servicios',
-        t['tab_employees'] ?? 'Empleados',
-        t['tab_profile'] ?? 'Perfil',
-        t['tab_settings'] ?? 'Ajustes',
+        {
+          'label': t['tab_overview'] ?? 'Overview',
+          'icon': Icons.dashboard_outlined,
+        },
+        {
+          'label': t['tab_leads'] ?? 'Leads',
+          'icon': Icons.person_search_outlined,
+        },
+        {'label': t['tab_clients'] ?? 'Clientes', 'icon': Icons.people_outline},
+        // REPLACED SALES TAB WITH DROPDOWN CONFIG
+        {
+          'label': (ref != null)
+              ? _getSalesLabel(ref.watch(selectedSalesViewProvider), t)
+              : (t['tab_sales'] ?? 'Ventas'),
+          'icon': (ref != null)
+              ? _getSalesIcon(ref.watch(selectedSalesViewProvider))
+              : Icons.receipt,
+          'type': 'dropdown',
+          'items': [
+            {'label': 'Facturas', 'value': 'invoices', 'icon': Icons.receipt},
+            {
+              'label': 'Cotizaciones',
+              'value': 'proposals',
+              'icon': Icons.monetization_on_outlined,
+            },
+            {
+              'label': 'Bookings',
+              'value': 'bookings',
+              'icon': Icons.calendar_today_outlined,
+            },
+          ],
+          'onSelected': (value) {
+            if (ref != null) {
+              ref.read(selectedSalesViewProvider.notifier).state = value;
+            }
+          },
+        },
+        // NEW TABS: Services, Employees, Profile, Settings
+        {
+          'label': t['tab_services'] ?? 'Servicios',
+          'icon': Icons.design_services_outlined,
+        },
+        {
+          'label': t['tab_employees'] ?? 'Empleados',
+          'icon': Icons.badge_outlined,
+        },
+        {'label': t['tab_profile'] ?? 'Perfil', 'icon': Icons.person_outline},
+        {
+          'label': t['tab_settings'] ?? 'Ajustes',
+          'icon': Icons.settings_outlined,
+        },
+        // NEW TAB: Accounting (Contabilidad)
+        {
+          'label': t['tab_accounting'] ?? 'Contabilidad',
+          'icon': Icons.account_balance_outlined,
+        },
       ],
       // bottomWidget: _BusinessSubHeader(isDark: isDark), // Removed in favor of Tabs
       actions: [
@@ -239,7 +291,8 @@ HeaderData getHeaderConfig(
   // Specific exception for Support
   if (route.contains('/client/dashboard/support')) {
     return HeaderData(
-      title: t['header_support'] ?? 'Support',
+      // title: t['header_support'] ?? 'Support', // Removed to avoid overlap with page header
+      titleWidget: null,
       bgTrans: true, // Transparent
       showProfile: true,
       actions: [
@@ -249,7 +302,43 @@ HeaderData getHeaderConfig(
     );
   }
 
-  if (route.contains('/client/dashboard/requests')) {
+  if (cleanRoute == '/client' || cleanRoute.startsWith('/client')) {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: false,
+      height: 200,
+      tabs: [
+        {
+          'label': t['client_tab_requests'] ?? 'Solicitudes',
+          'icon': Icons.person_outline_rounded,
+          'route': '/client/dashboard/requests',
+        },
+        {
+          'label': t['client_tab_bookings'] ?? 'Bookings',
+          'icon': Icons.calendar_month_outlined,
+          'route': '/client/dashboard/booking',
+        },
+        {
+          'label': t['client_tab_wallet'] ?? 'Wallet',
+          'icon': Icons.monetization_on_outlined,
+          'route': '/client/dashboard/wallet',
+        },
+        {
+          'label': t['client_tab_bookmarks'] ?? 'Bookmarks',
+          'icon': Icons.bookmark_border_rounded,
+          'route':
+              '/client/dashboard/bookmarks', // Ensure this route matches router
+        },
+      ],
+      actions: [
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
+      ],
+    );
+  }
+
+  // Catch-all for other Client Sub-routes (Booking, Wallet, etc.)
+  if (route.startsWith('/client')) {
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: false,
@@ -258,15 +347,6 @@ HeaderData getHeaderConfig(
         HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
         HeaderAction(icon: Icons.notifications_none),
       ],
-    );
-  }
-
-  if (route == '/client') {
-    return HeaderData(
-      titleWidget: logoWidget,
-      bgTrans: false,
-      isCustom: true,
-      height: 0,
     );
   }
 
@@ -366,6 +446,33 @@ HeaderData getHeaderConfig(
   return HeaderData(titleWidget: logoWidget, bgTrans: false, height: 130);
 }
 
+// Helper to get dynamic label for Sales
+String _getSalesLabel(String view, Map<String, String> t) {
+  switch (view) {
+    case 'invoices':
+      return 'Facturas';
+    case 'proposals':
+      return 'Cotizaciones';
+    case 'bookings':
+      return 'Bookings';
+    default:
+      return t['tab_sales'] ?? 'Ventas';
+  }
+}
+
+IconData _getSalesIcon(String view) {
+  switch (view) {
+    case 'invoices':
+      return Icons.receipt;
+    case 'proposals':
+      return Icons.monetization_on_outlined;
+    case 'bookings':
+      return Icons.calendar_today_outlined;
+    default:
+      return Icons.point_of_sale_outlined;
+  }
+}
+
 // ==============================================================================
 // 4. MAIN LAYOUT - SIMPLIFICADO
 // ==============================================================================
@@ -376,8 +483,13 @@ HeaderData getHeaderConfig(
 
 class AppLayout extends ConsumerStatefulWidget {
   final Widget child;
+  final String currentPath; // Added
 
-  const AppLayout({required this.child, super.key});
+  const AppLayout({
+    required this.child,
+    required this.currentPath, // Added
+    super.key,
+  });
 
   @override
   ConsumerState<AppLayout> createState() => _AppLayoutState();
@@ -443,7 +555,9 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
           },
         );
 
-        _callService!.listenToIncomingCalls(_myDbId!);
+        if (mounted) {
+          _callService!.listenToIncomingCalls(_myDbId!);
+        }
       }
     } catch (e) {
       print('Error init call service: $e');
@@ -464,7 +578,10 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
   void _acceptCall() {
     if (_incomingCall == null) return;
     final callId = _incomingCall!['call_id'];
-    context.push('/call/$callId?isCaller=false');
+    final caller = _incomingCall!['caller'] as Map<String, dynamic>?;
+    final isVideo = caller?['isVideo'] ?? true; // Default to true
+
+    context.push('/call/$callId?isCaller=false&isVideo=$isVideo');
     setState(() {
       _incomingCall = null;
     });
@@ -478,7 +595,8 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    // Use passed location
+    final location = widget.currentPath;
     final initialSession = Supabase.instance.client.auth.currentSession;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -503,75 +621,107 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         final tAsync = ref.watch(translationProvider);
         final t = tAsync.value ?? {};
 
-        // Re-get config with correct auth state and translation
-        final activeConfig = getHeaderConfig(location, isDark, isLoggedIn, t);
+        final activeConfig = getHeaderConfig(
+          location,
+          isDark,
+          isLoggedIn,
+          t,
+          ref,
+        );
         final hasTabs = activeConfig.tabs.isNotEmpty;
 
-        Widget scaffold = Scaffold(
-          // Use theme background
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 900;
-              final showSidebar = isLoggedIn && isDesktop;
-              // Hide BottomBar if on desktop OR if in Chat views (to avoid overlay)
-              final bool isChatView =
-                  location.startsWith('/chats') ||
-                  location.startsWith('/chat/');
-              final showBottomBar = isLoggedIn && !isDesktop && !isChatView;
+        // Calculate initial index based on route
+        int initialIndex = 0;
+        if (hasTabs) {
+          for (int i = 0; i < activeConfig.tabs.length; i++) {
+            final tab = activeConfig.tabs[i];
+            if (tab is Map && tab['route'] != null) {
+              final tabRoute = tab['route'] as String;
+              if (location == tabRoute || location.startsWith(tabRoute)) {
+                initialIndex = i;
+                if (location == tabRoute) break;
+              }
+            }
+          }
+        }
 
-              return Row(
-                children: [
-                  // Desktop Sidebar
-                  if (showSidebar) _ModernSidebar(activeRoute: location),
-
-                  // Main Content
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        // Content
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: (activeConfig.isCustom || activeConfig.bgTrans)
-                                ? 0
-                                : (activeConfig.height ?? 0),
-                          ),
-                          child: widget.child,
-                        ),
-
-                        // AppBar moderno (Top)
-                        _ModernGlassAppBar(location: location),
-
-                        // NavBar (Bottom) - Mobile Only
-                        if (showBottomBar)
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: _ModernGlassNavBar(),
-                          ),
-
-                        // INCOMING CALL OVERLAY
-                        if (_incomingCall != null)
-                          IncomingCallOverlay(
-                            caller: _incomingCall!['caller'] ?? {},
-                            onAccept: _acceptCall,
-                            onDecline: _declineCall,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+        print(
+          'DEBUG: AppLayout build. Route: $location. Tabs: ${activeConfig.tabs.length}. HasTabs: $hasTabs. Index: $initialIndex',
         );
 
-        // Always wrap in DefaultTabController
+        print(
+          'DEBUG: AppLayout build. Route: $location. Tabs: ${activeConfig.tabs.length}. HasTabs: $hasTabs. Index: $initialIndex',
+        );
+
+        // Responsive Check using MediaQuery to avoid LayoutBuilder complications
+        // This is safe from "RenderLayoutBuilder mutated" errors and generally more stable for root layout
+        final double screenWidth = MediaQuery.of(context).size.width;
+        final bool isDesktop = screenWidth >= 900;
+        final bool showSidebar = isLoggedIn && isDesktop;
+
+        // Hide BottomBar if on desktop OR if in Chat views (to avoid overlay)
+        final bool isChatView =
+            location.startsWith('/chats') || location.startsWith('/chat/');
+        final bool showBottomBar = isLoggedIn && !isDesktop && !isChatView;
+
         return DefaultTabController(
-          key: ValueKey(hasTabs ? activeConfig.tabs.length : 1),
+          // Key ensures controller is recreated if tabs configuration changes (e.g. different route)
+          key: ValueKey(
+            '${hasTabs ? activeConfig.tabs.length : 1}_$initialIndex',
+          ),
           length: hasTabs ? activeConfig.tabs.length : 1,
-          child: scaffold,
+          initialIndex: initialIndex,
+          child: Scaffold(
+            // Use theme background
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Row(
+              children: [
+                // Desktop Sidebar
+                if (showSidebar) _ModernSidebar(activeRoute: location),
+
+                // Main Content
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // Content
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: (activeConfig.isCustom || activeConfig.bgTrans)
+                              ? 0
+                              : (activeConfig.height ?? 0),
+                        ),
+                        child: widget.child,
+                      ),
+
+                      // AppBar moderno (Top)
+                      _ModernGlassAppBar(location: location),
+
+                      // NavBar (Bottom) - Mobile Only
+                      if (showBottomBar)
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          left: 0,
+                          right: 0,
+                          bottom: ref.watch(navbarVisibilityProvider)
+                              ? 0
+                              : -120,
+                          child: _ModernGlassNavBar(currentPath: location),
+                        ),
+
+                      // INCOMING CALL OVERLAY
+                      if (_incomingCall != null)
+                        IncomingCallOverlay(
+                          caller: _incomingCall!['caller'] ?? {},
+                          onAccept: _acceptCall,
+                          onDecline: _declineCall,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -752,7 +902,7 @@ class _ModernGlassAppBar extends ConsumerWidget {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
-    HeaderData config = getHeaderConfig(location, isDark, isLoggedIn, t);
+    HeaderData config = getHeaderConfig(location, isDark, isLoggedIn, t, ref);
 
     // Inject real data into config actions if they exist
     if (config.actions.isNotEmpty) {
@@ -794,184 +944,295 @@ class _ModernGlassAppBar extends ConsumerWidget {
     // Contenido interno con TABS Support
     Widget innerContent = SafeArea(
       bottom: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // TOP ROW (Logo + Icons)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 1. CENTER LOGO (Absolute Center) - Only for Search
-                if (location == '/search' && config.titleWidget != null)
-                  config.titleWidget!,
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // TOP ROW (Logo + Icons)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 1. CENTER LOGO (Absolute Center) - Only for Search
+                  if (location == '/search' && config.titleWidget != null)
+                    config.titleWidget!,
 
-                // 2. LEFT & RIGHT CONTENT (Row)
-                Row(
-                  children: [
-                    // --- LEFT SIDE ---
-                    if (location == '/search')
-                      IconButton(
-                        icon: Icon(
-                          Icons.close,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          size: 28,
-                        ),
-                        onPressed: () => context.pop(),
-                      )
-                    else if (location == '/chats' && config.titleWidget != null)
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              size: 28,
-                            ),
-                            onPressed: () => context.go('/'),
+                  // 2. LEFT & RIGHT CONTENT (Row)
+                  Row(
+                    children: [
+                      // --- LEFT SIDE ---
+                      if (location == '/search')
+                        IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            size: 28,
                           ),
-                          const SizedBox(width: 8),
-                          config.titleWidget!,
-                        ],
-                      )
-                    else
-                    // Standard Title/Logo
-                    if (config.titleWidget != null)
-                      config.titleWidget!
-                    else if (config.title != null)
-                      Text(
-                        config.title!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Roboto',
-                        ),
-                      ),
-
-                    const Spacer(),
-
-                    // --- RIGHT SIDE ---
-                    ...config.actions.map(
-                      (action) => Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Stack(
-                          alignment: Alignment.topRight,
+                          onPressed: () => context.pop(),
+                        )
+                      else if (location == '/chats' &&
+                          config.titleWidget != null)
+                        Row(
                           children: [
                             IconButton(
                               icon: Icon(
-                                action.icon,
-                                color:
-                                    action.color ??
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface.withOpacity(0.7),
+                                Icons.arrow_back,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 size: 28,
                               ),
-                              onPressed:
-                                  action.onTap ??
-                                  () {
-                                    if (action.route != null) {
-                                      context.push(action.route!);
-                                    }
-                                  },
-                              style: IconButton.styleFrom(
-                                padding: const EdgeInsets.all(8),
-                              ),
+                              onPressed: () => context.go('/'),
                             ),
-                            if (action.badgeCount > 0)
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 16,
-                                    minHeight: 16,
-                                  ),
-                                  child: Text(
-                                    '${action.badgeCount}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
+                            const SizedBox(width: 8),
+                            config.titleWidget!,
+                          ],
+                        )
+                      else
+                      // Standard Title/Logo
+                      if (config.titleWidget != null)
+                        config.titleWidget!
+                      else if (config.title != null)
+                        Text(
+                          config.title!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Roboto',
+                          ),
+                        ),
+
+                      const Spacer(),
+
+                      // --- RIGHT SIDE ---
+                      ...config.actions.map(
+                        (action) => Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  action.icon,
+                                  color:
+                                      action.color ??
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.7),
+                                  size: 28,
+                                ),
+                                onPressed:
+                                    action.onTap ??
+                                    () {
+                                      if (action.route != null) {
+                                        context.push(action.route!);
+                                      }
+                                    },
+                                style: IconButton.styleFrom(
+                                  padding: const EdgeInsets.all(8),
                                 ),
                               ),
-                          ],
+                              if (action.badgeCount > 0)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 16,
+                                      minHeight: 16,
+                                    ),
+                                    child: Text(
+                                      '${action.badgeCount}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    // Profile
-                    if (config.showProfile)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: SizedBox(
-                          height: 48,
-                          width: 48,
-                          child: LoginDropdownButton(),
+                      // Profile
+                      if (config.showProfile)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: SizedBox(
+                            height: 48,
+                            width: 48,
+                            child: LoginDropdownButton(),
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // TABS ROW (If present)
-          if (config.tabs.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).dividerColor.withOpacity(0.1),
-                    width: 1,
+            // TABS ROW (If present)
+            if (config.tabs.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                alignment: Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).dividerColor.withOpacity(0.1),
+                      width: 1,
+                    ),
                   ),
                 ),
-              ),
-              child: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                indicator: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                labelColor: Theme.of(context).colorScheme.surface,
-                unselectedLabelColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withOpacity(0.6),
-                // We need google fonts imported here, assuming it is.
-                // If not, we use system font or standard TextStyles.
-                // Assuming imported as project uses it.
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  fontFamily: 'Inter',
-                ),
-                dividerColor: Colors.transparent,
-                indicatorSize: TabBarIndicatorSize.tab,
-                tabs: config.tabs.map((t) => Tab(text: t)).toList(),
-              ),
-            ),
-          ],
+                child: TabBar(
+                  key: ValueKey(
+                    'TabBar_${config.tabs.length}',
+                  ), // Force rebuild for safety
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  indicator: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  labelColor: Theme.of(context).colorScheme.surface,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                  // We need google fonts imported here, assuming it is.
+                  // If not, we use system font or standard TextStyles.
+                  // Assuming imported as project uses it.
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontFamily: 'Inter',
+                  ),
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  onTap: (index) {
+                    if (index >= 0 && index < config.tabs.length) {
+                      final tab = config.tabs[index];
+                      if (tab is Map && tab.containsKey('route')) {
+                        final route = tab['route'] as String;
+                        context.go(route);
+                      }
+                    }
+                  },
+                  tabs: config.tabs.map((t) {
+                    if (t is String) {
+                      return Tab(text: t); // Fallback for pure strings
+                    } else if (t is Map) {
+                      final label = t['label'] ?? '';
+                      // Custom Dropdown Tab
+                      if (t['type'] == 'dropdown') {
+                        return Tab(
+                          child: PopupMenuButton<String>(
+                            onSelected: (value) {
+                              // Find the index of this tab to select it
+                              final index = config.tabs.indexOf(t);
+                              DefaultTabController.of(context).animateTo(index);
 
-          // Display Custom Bottom Widget (e.g., Business Chips)
-          if (config.bottomWidget != null) config.bottomWidget!,
-        ],
+                              // Trigger callback
+                              final onSelected =
+                                  t['onSelected'] as Function(String)?;
+                              if (onSelected != null) {
+                                onSelected(value);
+                              }
+                            },
+                            offset: const Offset(
+                              0,
+                              40,
+                            ), // Push down to avoid overlapping
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Added Dynamic Icon
+                                if (t['icon'] != null) ...[
+                                  Icon(
+                                    t['icon'],
+                                    size: 18,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(label),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 16,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                              ],
+                            ),
+                            itemBuilder: (context) {
+                              final items =
+                                  t['items'] as List<Map<String, dynamic>>;
+                              return items.map((item) {
+                                return PopupMenuItem<String>(
+                                  value: item['value'],
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        item['icon'],
+                                        size: 18,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.7),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(item['label']),
+                                    ],
+                                  ),
+                                );
+                              }).toList();
+                            },
+                          ),
+                        );
+                      } else {
+                        // Standard Tab with Icon
+                        return Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (t['icon'] != null) ...[
+                                Icon(t['icon'], size: 18),
+                                const SizedBox(width: 8),
+                              ],
+                              Text(label),
+                            ],
+                          ),
+                        );
+                      }
+                    }
+                    return const Tab(text: 'Error');
+                  }).toList(),
+                ),
+              ),
+            ],
+
+            // Display Custom Bottom Widget (e.g., Business Chips)
+            if (config.bottomWidget != null) config.bottomWidget!,
+          ],
+        ),
       ),
     );
 
@@ -1007,10 +1268,19 @@ class _ModernGlassAppBar extends ConsumerWidget {
           ).scaffoldBackgroundColor, // Solid color for opacity
           border: Border(
             bottom: BorderSide(
-              color: Theme.of(context).dividerColor.withOpacity(0.1),
+              color: Theme.of(
+                context,
+              ).dividerColor.withOpacity(0.2), // Increased opacity from 0.1
               width: 1,
             ),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: innerContent, // Content (Buttons, etc.)
       ),
@@ -1023,7 +1293,9 @@ class _ModernGlassAppBar extends ConsumerWidget {
 // ==============================================================================
 
 class _ModernGlassNavBar extends ConsumerWidget {
-  const _ModernGlassNavBar();
+  final String currentPath; // Added prop
+
+  const _ModernGlassNavBar({required this.currentPath});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1031,8 +1303,8 @@ class _ModernGlassNavBar extends ConsumerWidget {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
-    bool isActive(String route) =>
-        GoRouterState.of(context).uri.toString().startsWith(route);
+    // Use passed currentPath instead of GoRouterState.of(context)
+    bool isActive(String route) => currentPath.startsWith(route);
 
     if (!isBusinessMode) {
       // --- CLIENT VIEW (Strictly 3 buttons) ---
@@ -1041,7 +1313,11 @@ class _ModernGlassNavBar extends ConsumerWidget {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            padding: const EdgeInsets.only(
+              left: 40,
+              right: 40,
+              bottom: 5,
+            ), // Reduced vertical padding
             child: ModernGlass(
               height: 70,
               borderRadius: 35,
@@ -1054,13 +1330,15 @@ class _ModernGlassNavBar extends ConsumerWidget {
                 children: [
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.shopping_bag_outlined,
                     t['nav_requests'] ?? 'Compras',
                     '/client/dashboard/requests',
-                    isActive('/client/dashboard/requests'),
+                    isActive('/client/dashboard'),
                   ),
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.search_rounded,
                     t['nav_market'] ?? 'Buscar',
                     '/search',
@@ -1068,6 +1346,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                   ),
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.help_outline_rounded,
                     t['nav_support'] ?? 'Soporte',
                     '/client/dashboard/support', // Placeholder
@@ -1075,6 +1354,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                   ),
                   _buildNavItem(
                     context,
+                    ref,
                     Icons.person_outline_rounded,
                     t['nav_profile'] ?? 'Perfil',
                     '/profile',
@@ -1093,7 +1373,11 @@ class _ModernGlassNavBar extends ConsumerWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: 5,
+        ), // Reduced vertical padding
         child: Row(
           children: [
             Expanded(
@@ -1104,7 +1388,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
                 blur: 30,
                 border: true,
                 tintColor: Theme.of(context).cardColor,
-                child: _buildNavItems(context, isActive, t),
+                child: _buildNavItems(context, ref, isActive, t),
               ),
             ),
             const SizedBox(width: 16),
@@ -1139,6 +1423,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
 
   Widget _buildNavItems(
     BuildContext context,
+    WidgetRef ref, // Add ref here
     bool Function(String) isActive,
     Map<String, String> t,
   ) {
@@ -1147,6 +1432,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
       children: [
         _buildNavItem(
           context,
+          ref,
           Icons.shopping_bag_outlined,
           t['nav_buy'] ?? 'Buy',
           '/client',
@@ -1154,6 +1440,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
         ),
         _buildNavItem(
           context,
+          ref,
           Icons.receipt_long_outlined,
           t['nav_sell'] ?? 'Sell',
           '/business',
@@ -1161,6 +1448,7 @@ class _ModernGlassNavBar extends ConsumerWidget {
         ),
         _buildNavItem(
           context,
+          ref,
           Icons.cleaning_services_outlined,
           t['nav_office'] ?? 'Office',
           '/office',
@@ -1172,39 +1460,69 @@ class _ModernGlassNavBar extends ConsumerWidget {
 
   Widget _buildNavItem(
     BuildContext context,
+    WidgetRef ref, // Added ref
     IconData icon,
     String label,
     String route,
     bool active,
   ) {
-    // Only use blue accent if active
-    final color = active
-        ? Theme.of(context).colorScheme.secondary
+    // User requested: Active Background Black, Text White
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Active Color matches contrast of background
+    // Light Mode: Bg=Black, Text=White
+    // Dark Mode: Bg=White, Text=Black
+    final fgColor = active
+        ? (isDark ? Colors.black : Colors.white)
         : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
 
     return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => context.go(route),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: color, size: 22),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    // Use Layout's imported font
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 4,
+        ), // Add spacing between pills
+        child: Material(
+          color: active
+              ? (isDark
+                    ? Colors.white
+                    : Colors
+                          .black) // Black in Light Mode, White in Dark Mode for contrast? Or just Black?
+              // User said "background de color negro". Let's assume strict black for now, or adapt for dark mode.
+              // In dark mode, black background is invisible on dark app background.
+              // Let's stick to user request: "background de color negro".
+              // BUT if the app is dark mode, maybe "white" background is better?
+              // The user screenshot is Light Mode.
+              // I will use Colors.black for light mode, and Colors.white for dark mode (inverted) for visibility, OR strict black if requested.
+              // "background de color negro" implies they want that specific look.
+              // However, typically "Selected = Inverse of Surface".
+              // Let's try explicit Black. If Dark Mode, Black on Black might be bad.
+              // I will use: isDark ? Colors.white : Colors.black (High Contrast Pill)
+              // And text: isDark ? Colors.black : Colors.white.
+              // Wait, user said "background negro text blanco". I'll conform to that for Light Mode.
+              // For Dark Mode, I'll default to Theme Primary or White to ensure visibility.
+              // Let's assume Light Mode context from screenshot.
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(30), // Pill shape
+          child: GestureDetector(
+            onTap: () => context.go(route),
+            child: Container(
+              color: Colors.transparent, // Hit test behavior
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: fgColor, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      color: fgColor,
+                      fontSize: 10,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1271,19 +1589,14 @@ class ModernGlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: ModernGlass(
-          borderRadius: borderRadius,
-          opacity: 0.1,
-          tintColor: tintColor,
-          padding: padding,
-          child: Center(child: child),
-        ),
+    return GestureDetector(
+      onTap: onPressed,
+      child: ModernGlass(
+        borderRadius: borderRadius,
+        opacity: 0.1,
+        tintColor: tintColor,
+        padding: padding,
+        child: Center(child: child),
       ),
     );
   }
@@ -1323,67 +1636,77 @@ class LoginDropdownButton extends ConsumerWidget {
           }
         }
 
-        return InkWell(
-          onTap: () {
-            final currentRoute = GoRouterState.of(context).uri.toString();
-            showProfileBottomSheet(context, currentRoute);
-          },
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            padding: const EdgeInsets.all(2), // Border width
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: isLoggedIn
-                  ? LinearGradient(
-                      colors: isBusinessMode
-                          ? [
-                              Colors.purpleAccent,
-                              Colors.deepPurple,
-                            ] // Differentiate Business Border
-                          : [const Color(0xFF4285F4), const Color(0xFF90CAF9)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xFF2C3138), const Color(0xFF1A1D21)]
-                          : [const Color(0xFFE0E0E0), const Color(0xFFF5F5F5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-            ),
+        return Material(
+          // Added Material widget to allow InkWell to work properly
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              final currentRoute = GoRouterState.of(context).uri.toString();
+              showProfileBottomSheet(context, currentRoute);
+            },
+            borderRadius: BorderRadius.circular(50),
             child: Container(
-              // width: 40, // Removed to fill parent
-              // height: 40, // Removed to fill parent
+              padding: const EdgeInsets.all(2), // Border width
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.4), // Inner bg
-                image:
+                gradient: isLoggedIn
+                    ? LinearGradient(
+                        colors: isBusinessMode
+                            ? [
+                                Colors.purpleAccent,
+                                Colors.deepPurple,
+                              ] // Differentiate Business Border
+                            : [
+                                const Color(0xFF4285F4),
+                                const Color(0xFF90CAF9),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : LinearGradient(
+                        colors: isDark
+                            ? [const Color(0xFF2C3138), const Color(0xFF1A1D21)]
+                            : [
+                                const Color(0xFFE0E0E0),
+                                const Color(0xFFF5F5F5),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+              ),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withOpacity(0.4), // Inner bg
+                  image:
+                      (isLoggedIn &&
+                          displayImage != null &&
+                          displayImage.isNotEmpty)
+                      ? DecorationImage(
+                          image: CachedNetworkImageProvider(displayImage),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child:
                     (isLoggedIn &&
                         displayImage != null &&
                         displayImage.isNotEmpty)
-                    ? DecorationImage(
-                        image: CachedNetworkImageProvider(displayImage),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child:
-                  (isLoggedIn &&
-                      displayImage != null &&
-                      displayImage.isNotEmpty)
-                  ? null // Image is in decoration
-                  : Center(
-                      child: Icon(
-                        isLoggedIn
-                            ? (isBusinessMode
-                                  ? Icons.store_mall_directory_outlined
-                                  : Icons.person)
-                            : Icons.person_outline,
-                        color: Colors.white,
-                        size: 20, // Adjusted size
+                    ? null // Image is in decoration
+                    : Center(
+                        child: Icon(
+                          isLoggedIn
+                              ? (isBusinessMode
+                                    ? Icons.store_mall_directory_outlined
+                                    : Icons.person)
+                              : Icons.person_outline,
+                          color: Colors.white,
+                          size: 20, // Adjusted size
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         );
@@ -1415,6 +1738,8 @@ class ProfileBottomSheet extends ConsumerStatefulWidget {
 
 class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
   // No local state needed for theme anymore
+  // No change needed here if provider is restored globally. I'll skip this or use view_file.
+  // Wait, I cannot skip. I'll just view layout.dart to ensure import. theme anymore
 
   @override
   Widget build(BuildContext context) {
@@ -1833,9 +2158,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
         ? const Color(0xFF4F87C9).withOpacity(0.15)
         : Colors.transparent;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(50),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -1921,9 +2245,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -1971,9 +2294,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(

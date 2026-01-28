@@ -413,14 +413,14 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF131619),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF131619),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -464,18 +464,24 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2429),
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white12),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withOpacity(0.1),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                  Icon(
+                    Icons.arrow_back,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Mis bots',
                     style: GoogleFonts.inter(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -488,7 +494,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
           Text(
             'Greg',
             style: GoogleFonts.outfit(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
@@ -518,12 +524,14 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
         isScrollable: true,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
-          color: const Color(0xFF1E2429),
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.grey,
+        labelColor: Theme.of(
+          context,
+        ).colorScheme.primary, // Or specific active color
+        unselectedLabelColor: Theme.of(context).unselectedWidgetColor,
         labelPadding: const EdgeInsets.symmetric(horizontal: 16),
         tabs: [
           _buildTabItem(Icons.face_outlined, 'Identidad'),
@@ -658,7 +666,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                   child: Text(
                     'Greg',
                     style: GoogleFonts.outfit(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 26,
                       fontWeight: FontWeight.w600,
                     ),
@@ -667,17 +675,22 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 const SizedBox(height: 5),
                 Text(
                   'Te ayuda a responder consultas sobre obras, materiales y servicios de construcción.',
-                  style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+                  style: GoogleFonts.inter(
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey,
+                    fontSize: 14,
+                  ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Divider(color: Colors.white12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  child: Divider(color: Theme.of(context).dividerColor),
                 ),
                 // Status Toggle Card
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131619),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Column(
@@ -686,7 +699,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                       Text(
                         'Estado',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                         ),
@@ -699,7 +712,9 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.black.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Row(
@@ -707,7 +722,9 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                             Text(
                               'Inactivo',
                               style: GoogleFonts.inter(
-                                color: Colors.white70,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 13,
                               ),
                             ),
@@ -734,7 +751,9 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                             Text(
                               'Activo',
                               style: GoogleFonts.inter(
-                                color: Colors.white70,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 13,
                               ),
                             ),
@@ -945,7 +964,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 Text(
                   'Personalidad & Estilo de Conversación',
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
                   ),
@@ -953,17 +972,22 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 const SizedBox(height: 5),
                 Text(
                   'Define cómo quieres que hable Greg con tus clientes.',
-                  style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+                  style: GoogleFonts.inter(
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey,
+                    fontSize: 14,
+                  ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Divider(color: Colors.white12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Divider(color: Theme.of(context).dividerColor),
                 ),
                 // Tone Selection
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131619),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Column(
@@ -972,7 +996,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                       Text(
                         'Tono de conversación',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                         ),
@@ -998,7 +1022,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131619),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Column(
@@ -1007,7 +1031,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                       Text(
                         'Lista negra de palabras',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1088,7 +1112,9 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF4B39EF) : Colors.white12,
+            color: isSelected
+                ? const Color(0xFF4B39EF)
+                : Theme.of(context).dividerColor,
           ),
         ),
         child: Row(
@@ -1103,7 +1129,9 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -1145,9 +1173,11 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF1E2429),
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.1),
+              ),
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -1156,7 +1186,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 Text(
                   'Integraciones',
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1164,17 +1194,22 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 const SizedBox(height: 8),
                 Text(
                   'Define cómo quieres que hable Greg con tus clientes.',
-                  style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+                  style: GoogleFonts.inter(
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey,
+                    fontSize: 14,
+                  ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Divider(color: Colors.white12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Divider(color: Theme.of(context).dividerColor),
                 ),
                 // WhatsApp Integration Card
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131619),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(color: Colors.white.withOpacity(0.05)),
                   ),
@@ -1189,7 +1224,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                             width: 48,
                             height: 48,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1E2429),
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -1239,7 +1274,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                       Text(
                         'WhatsApp',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1262,7 +1297,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1E2429),
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: Text(
@@ -1304,7 +1339,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
         children: [
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1E2429),
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white.withOpacity(0.05)),
             ),
@@ -1315,7 +1350,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                 Text(
                   'Notificaciones & Alertas',
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1325,27 +1360,32 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                   'Decide cuándo recibir notificaciones sobre Greg.',
                   style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Divider(color: Colors.white12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Divider(color: Theme.of(context).dividerColor),
                 ),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131619),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: SwitchListTile(
-                    title: const Text(
+                    title: Text(
                       'Recibir alertas de Greg',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Te avisaremos cuando Greg necesite ayuda o complete tareas importantes.',
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                      style: TextStyle(
+                        color:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey,
+                        fontSize: 13,
+                      ),
                     ),
                     value: _notifications,
                     onChanged: _isSwitchLoading ? null : _toggleNotifications,

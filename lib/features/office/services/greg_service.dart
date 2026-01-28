@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Direct DB Access
 import '../../../core/models/greg_model.dart';
 import '../../../core/services/api_service.dart';
 
@@ -34,8 +35,25 @@ class GregService {
       // Explicitly set/override businessId to ensure it's preserved
       return model.copyWith(businessId: businessId);
     } catch (e) {
-      debugPrint('❌ GregService: Error fetching Greg: $e');
-      return null;
+      debugPrint(
+        '❌ GregService: Error fetching Greg via API. Trying Direct DB...',
+      );
+      try {
+        final data = await Supabase.instance.client
+            .from('greg')
+            .select()
+            .eq('business_id', businessId)
+            .maybeSingle();
+
+        if (data != null) {
+          debugPrint('✅ GregService: Found Greg via Direct DB');
+          return GregModel.fromJson(data);
+        }
+        return null;
+      } catch (dbError) {
+        debugPrint('❌ GregService: Direct DB fetch failed: $dbError');
+        return null;
+      }
     }
   }
 
@@ -83,7 +101,7 @@ class GregService {
 
       final response = await _apiService.putUrlEncoded(
         '/employees/greg/business/${greg.businessId}',
-        fields,
+        body: fields,
       );
       debugPrint('📥 GregService: Update response: $response');
       debugPrint('✅ GregService: Greg settings updated successfully');

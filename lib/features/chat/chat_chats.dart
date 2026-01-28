@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'providers/chat_provider.dart';
 import 'chat_page.dart'; // Import ChatPage for Split View
 import 'new_chat_page.dart';
+import '../../core/widgets/glass_fab_button.dart';
 
 class ChatChats extends ConsumerStatefulWidget {
   const ChatChats({super.key});
@@ -105,16 +106,14 @@ class _ChatChatsState extends ConsumerState<ChatChats> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButton: GlassFabButton(
         onPressed: () {
           Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const NewChatPage()));
         },
-        label: const Text('Nuevo Chat'),
-        icon: const Icon(Icons.message),
-        backgroundColor: const Color(0xFF4285F4),
-        foregroundColor: Colors.white,
+        icon: Icons.message,
       ),
     );
   }
@@ -143,7 +142,11 @@ class _ChatChatsState extends ConsumerState<ChatChats> {
               if (showRefresh)
                 IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: () => ref.refresh(chatProvider),
+                  onPressed: () {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref.refresh(chatProvider);
+                    });
+                  },
                   color: Colors.grey,
                 ),
             ],

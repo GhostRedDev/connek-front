@@ -6,6 +6,7 @@ import '../providers/business_provider.dart';
 import '../../call/services/call_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/providers/locale_provider.dart';
+import 'business_client_sheet.dart'; // Added Import
 
 class BusinessClientsWidget extends ConsumerStatefulWidget {
   const BusinessClientsWidget({super.key});
@@ -21,7 +22,10 @@ class _BusinessClientsWidgetState extends ConsumerState<BusinessClientsWidget> {
   // For now, we will perform the navigate-and-notify dance directly here or extract it.
   final _supabase = Supabase.instance.client;
 
-  Future<void> _initiateCall(Map<String, dynamic> client) async {
+  Future<void> _initiateCall(
+    Map<String, dynamic> client, {
+    bool isVideo = false,
+  }) async {
     final receiverId = client['id'];
     if (receiverId == null) return;
 
@@ -37,7 +41,7 @@ class _BusinessClientsWidgetState extends ConsumerState<BusinessClientsWidget> {
     final callId = DateTime.now().millisecondsSinceEpoch.toString();
 
     // 3. Navigate
-    context.push('/call/$callId?isCaller=true');
+    context.push('/call/$callId?isCaller=true&isVideo=$isVideo');
 
     // 4. Notify
     try {
@@ -51,10 +55,12 @@ class _BusinessClientsWidgetState extends ConsumerState<BusinessClientsWidget> {
       // We know client ID is int.
       // But wait, clients table uses int ID.
       // receiverId is int.
-      await callService.startCallNotification(receiverId, {
-        'name': myName,
-        'image': myImage,
-      }, callId);
+      await callService.startCallNotification(
+        receiverId,
+        {'name': myName, 'image': myImage},
+        callId,
+        isVideo: isVideo,
+      );
     } catch (e) {
       print('Error calling: $e');
     }
@@ -109,7 +115,7 @@ class _BusinessClientsWidgetState extends ConsumerState<BusinessClientsWidget> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 210, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -301,13 +307,11 @@ class _AddClientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton.icon(
       onPressed: () {
-        // TODO: Open Add Client Modal
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              t['add_client_coming_soon'] ?? 'Add Client Coming Soon',
-            ),
-          ),
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const BusinessClientSheet(),
         );
       },
       icon: const Icon(Icons.add),

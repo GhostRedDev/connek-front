@@ -18,6 +18,8 @@ class Lead {
   final int? requestBudgetMax;
   final int? requestBudgetMin;
   final String? clientImageUrl;
+  final String? clientPhone;
+  final DateTime? proposedBookingDate;
 
   Lead({
     required this.id,
@@ -39,6 +41,8 @@ class Lead {
     this.requestBudgetMax,
     this.requestBudgetMin,
     this.clientImageUrl,
+    this.clientPhone,
+    this.proposedBookingDate,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -69,6 +73,10 @@ class Lead {
       requestBudgetMax: json['requestBudgetMax'],
       requestBudgetMin: json['requestBudgetMin'],
       clientImageUrl: json['clientImageUrl'],
+      clientPhone: json['clientPhone'],
+      proposedBookingDate: json['proposedBookingDate'] != null
+          ? DateTime.tryParse(json['proposedBookingDate'])
+          : null,
     );
   }
 
@@ -77,7 +85,8 @@ class Lead {
     final client = request['client'] ?? {};
 
     // Prioritize photo_id as it seems to hold the updated public URL
-    String? imageUrl = client['photo_id'] ?? client['profile_url'];
+    String? imageUrl =
+        client['photo_id'] ?? client['profile_url'] ?? client['profile_image'];
 
     return Lead(
       id: json['id'],
@@ -99,6 +108,10 @@ class Lead {
       requestBudgetMax: request['budget_max_cents'],
       requestBudgetMin: request['budget_min_cents'],
       clientImageUrl: imageUrl,
+      clientPhone: client['phone']?.toString(),
+      proposedBookingDate: json['proposed_booking_date'] != null
+          ? DateTime.tryParse(json['proposed_booking_date'])
+          : null,
     );
   }
 }

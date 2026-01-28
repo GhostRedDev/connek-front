@@ -7,6 +7,7 @@ import 'lead_newx_widget.dart';
 import 'lead_card_info_widget.dart';
 import '../../leads/models/lead_model.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/widgets/glass_fab_button.dart';
 
 class BusinessLeadsWidget extends ConsumerStatefulWidget {
   const BusinessLeadsWidget({super.key});
@@ -33,7 +34,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
       data: (data) {
         final allLeads = data.recentLeads;
 
-        // --- Filter Logic ---
+        // --- Filter Logic (Leads) ---
         List<Lead> filteredLeads = allLeads.where((lead) {
           // 1. Status Filter
           bool statusMatch = true;
@@ -48,6 +49,9 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
             case 'rejected':
               statusMatch =
                   lead.status == 'cancelled' || lead.status == 'declined';
+              break;
+            case 'waitlist':
+              statusMatch = lead.status == 'waitlist';
               break;
             case 'all':
             default:
@@ -70,176 +74,220 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth > 800;
 
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 210, 16, 0),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const EmptySpaceTopWidget(),
+            return Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const EmptySpaceTopWidget(),
 
-                    // --- Recent Leads Section ---
-                    if (allLeads.isNotEmpty) ...[
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF1A1F24)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.grey.withOpacity(0.1),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                t['received_last_week'] ?? 'Received last week',
-                                style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 18,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
+                        // --- Recent Leads Section ---
+                        if (allLeads.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1A1F24)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.1),
                               ),
                             ),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              child: Row(
-                                children: allLeads.take(5).map((lead) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 10),
-                                    child: LeadNewxWidget(lead: lead),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // --- Search & Filters ---
-                    SizedBox(
-                      width: double.infinity,
-                      child: isDesktop
-                          ? Row(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: _buildSearchBar(isDark, t),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 3,
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: _buildFilterButtons(isDark, t),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              children: [
-                                _buildSearchBar(isDark, t),
-                                const SizedBox(height: 10),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: _buildFilterButtons(isDark, t),
-                                ),
-                              ],
-                            ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // --- Filtered Leads List ---
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1A1F24) : Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              t['all_leads'] ?? 'Todos los leads',
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 18,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                          ),
-                          filteredLeads.isEmpty
-                              ? Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(30.0),
-                                    child: Text(
-                                      t['no_leads_found'] ??
-                                          'No se encontraron leads',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.grey,
-                                      ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    t['received_last_week'] ??
+                                        'Received last week',
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 18,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                     ),
                                   ),
-                                )
-                              : Padding(
+                                ),
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
                                   padding: const EdgeInsets.fromLTRB(
                                     16,
                                     0,
                                     16,
                                     16,
                                   ),
-                                  child: isDesktop
-                                      ? Wrap(
-                                          // Desktop Grid
-                                          spacing: 16,
-                                          runSpacing: 16,
-                                          children: filteredLeads.map((lead) {
-                                            return SizedBox(
-                                              width:
-                                                  (constraints.maxWidth -
-                                                          32 - // padding (16*2)
-                                                          32 - // container padding (16*2)
-                                                          16) / // spacing
-                                                      2 -
-                                                  1, // Approx half width
-                                              child: LeadCardInfoWidget(
-                                                lead: lead,
-                                              ),
-                                            );
-                                          }).toList(),
-                                        )
-                                      : Column(
-                                          // Mobile List
-                                          children: filteredLeads.map((lead) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 10,
-                                              ),
-                                              child: LeadCardInfoWidget(
-                                                lead: lead,
-                                              ),
-                                            );
-                                          }).toList(),
+                                  child: Row(
+                                    children: allLeads.take(5).map((lead) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 10,
                                         ),
+                                        child: LeadNewxWidget(lead: lead),
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                         ],
-                      ),
+
+                        // --- Search & Filters ---
+                        SizedBox(
+                          width: double.infinity,
+                          child: isDesktop
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: _buildSearchBar(isDark, t),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      flex: 3,
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: _buildFilterButtons(isDark, t),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    _buildSearchBar(isDark, t),
+                                    const SizedBox(height: 10),
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: _buildFilterButtons(isDark, t),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // --- Filtered Leads List ---
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF1A1F24)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.grey.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  t['all_leads'] ?? 'Todos los leads',
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 18,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              filteredLeads.isEmpty
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(30.0),
+                                        child: Text(
+                                          t['no_leads_found'] ??
+                                              'No se encontraron leads',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        0,
+                                        16,
+                                        16,
+                                      ),
+                                      child: isDesktop
+                                          ? Wrap(
+                                              // Desktop Grid
+                                              spacing: 16,
+                                              runSpacing: 16,
+                                              children: filteredLeads.map((
+                                                lead,
+                                              ) {
+                                                return SizedBox(
+                                                  width:
+                                                      (constraints.maxWidth -
+                                                              32 - // padding (16*2)
+                                                              32 - // container padding (16*2)
+                                                              16) / // spacing
+                                                          2 -
+                                                      1, // Approx half width
+                                                  child: LeadCardInfoWidget(
+                                                    lead: lead,
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            )
+                                          : Column(
+                                              // Mobile List
+                                              children: filteredLeads.map((
+                                                lead,
+                                              ) {
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 10,
+                                                      ),
+                                                  child: LeadCardInfoWidget(
+                                                    lead: lead,
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ),
+                                    ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 80),
+                      ],
                     ),
-                    const EmptySpaceWidget(),
-                  ],
+                  ),
                 ),
-              ),
+                Positioned(
+                  left: 20,
+                  bottom: 20,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: GlassFabButton(
+                      icon: Icons.add,
+                      onPressed: () {
+                        // Action to create lead? or show sheet
+                        // Leaving empty or todo as user didnt specify new logic
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Crear Lead - Coming Soon'),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -279,6 +327,7 @@ class _BusinessLeadsWidgetState extends ConsumerState<BusinessLeadsWidget> {
       {'id': 'all', 'label': t['filter_all'] ?? 'Todos'},
       {'id': 'pending', 'label': t['filter_pending'] ?? 'Pendientes'},
       {'id': 'converted', 'label': t['filter_converted'] ?? 'Convertidos'},
+      {'id': 'waitlist', 'label': 'Lista de espera'},
       {'id': 'rejected', 'label': t['filter_rejected'] ?? 'Rechazados'},
     ];
 

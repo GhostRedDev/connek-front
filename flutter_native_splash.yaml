@@ -1,0 +1,16 @@
+flutter_native_splash:
+  color: "#ffffff"
+  image: "assets/images/conneck_logo_dark.png"
+  branding: "assets/images/conneck_logo_dark.png"
+  
+  color_dark: "#000000"
+  image_dark: "assets/images/conneck_logo_white.png"
+  branding_dark: "assets/images/conneck_logo_white.png"
+  
+  android_12:
+    image: "assets/images/conneck_logo_dark.png"
+    icon_background_color: "#ffffff"
+    image_dark: "assets/images/conneck_logo_white.png"
+    icon_background_color_dark: "#000000"
+  
+  web: true

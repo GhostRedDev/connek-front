@@ -79,7 +79,11 @@ class _OfficeMarketplaceWidgetState
                     style: GoogleFonts.outfit(
                       fontSize: 26,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                      color: isDark
+                          ? Colors.white
+                          : const Color(
+                              0xFF1A1D21,
+                            ), // Keep explicit dark for banner contrast
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -109,7 +113,7 @@ class _OfficeMarketplaceWidgetState
                 style: GoogleFonts.outfit(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
@@ -118,7 +122,9 @@ class _OfficeMarketplaceWidgetState
                     'Bots con mejor desempeño general',
                 style: GoogleFonts.inter(
                   fontSize: 13,
-                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                  color:
+                      Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey,
                 ),
               ),
             ],

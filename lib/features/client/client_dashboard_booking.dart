@@ -2,60 +2,181 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'providers/booking_provider.dart';
-import 'models/booking_model.dart';
+import 'package:go_router/go_router.dart';
+import '../shared/models/booking_model.dart';
+import '../shared/providers/booking_provider.dart';
 import '../../core/providers/locale_provider.dart';
-// import '../../core/widgets/layout.dart';
+import 'widgets/client_booking_card.dart';
 
 class ClientDashboardBooking extends ConsumerWidget {
   const ClientDashboardBooking({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bookingsAsync = ref.watch(bookingProvider);
+    // Consume Shared Provider as 'client'
+    final bookingsAsync = ref.watch(bookingListProvider('client'));
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tAsync = ref.watch(translationProvider);
-    final t = tAsync.value ?? {};
 
-    return Scaffold(
-      backgroundColor: Colors.transparent, // Let layout background show
-      body: Column(
+    // Style constants
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
+    final cardColor = isDark ? const Color(0xFF1E2429) : Colors.white;
+
+    return Container(
+      color: backgroundColor,
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Section
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  t['client_bookings_title'] ?? 'Reservas',
+                  'Bookings',
                   style: GoogleFonts.inter(
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF1A1D21),
+                    color: textColor,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
-                  t['client_bookings_subtitle'] ??
-                      'Consulta todas tus reservaciones.',
+                  'View and manage your bookings',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: Colors.grey[600],
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Search Bar
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Buscar reservaciones',
+                    hintStyle: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Colors.grey[500],
+                      size: 20,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF131619)
+                        : Colors.grey[100], // Darker input bg
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white12 : Colors.grey[300]!,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(color: Colors.blueAccent),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
+                  style: GoogleFonts.inter(fontSize: 14, color: textColor),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Todos', true, isDark),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Proximas', false, isDark),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Completadas', false, isDark),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Canceladas', false, isDark),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+
           Expanded(
             child: bookingsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, st) => Center(child: Text('Error: $err')),
               data: (bookings) {
                 if (bookings.isEmpty) {
-                  return const Center(child: Text('No bookings yet.'));
+                  return Center(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Calendar Icon
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 80,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            const SizedBox(height: 24),
+
+                            Text(
+                              "You don't have any bookings yet",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Bookings will appear here once you book a service",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Search Services Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // Navigate to Search or Home
+                                  context.go('/');
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: Text(
+                                  "Search services",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
                 }
 
                 return ListView.separated(
@@ -67,7 +188,7 @@ class ClientDashboardBooking extends ConsumerWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final booking = bookings[index];
-                    return _BookingCard(booking: booking, isDark: isDark);
+                    return _buildBookingCard(context, booking);
                   },
                 );
               },
@@ -77,194 +198,59 @@ class ClientDashboardBooking extends ConsumerWidget {
       ),
     );
   }
-}
 
-class _BookingCard extends StatelessWidget {
-  final BookingModel booking;
-  final bool isDark;
-
-  const _BookingCard({required this.booking, required this.isDark});
-
-  Color _getStatusColor(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.confirmed:
-        return Colors.green;
-      case BookingStatus.pending:
-        return Colors.orange;
-      case BookingStatus.cancelled:
-        return Colors.red;
-      case BookingStatus.completed:
-        return Colors.blue;
-    }
-  }
-
-  String _getStatusText(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.confirmed:
-        return 'Confirmado';
-      case BookingStatus.pending:
-        return 'Pendiente';
-      case BookingStatus.cancelled:
-        return 'Cancelado';
-      case BookingStatus.completed:
-        return 'Completado';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildFilterChip(String label, bool isSelected, bool isDark) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: isSelected
+            ? (isDark ? const Color(0xFF333333) : Colors.black87)
+            : (isDark ? const Color(0xFF1E2429) : Colors.grey[200]),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(
+          color: isSelected
+              ? Colors.transparent
+              : (isDark ? Colors.white10 : Colors.transparent),
+        ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Image
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: CachedNetworkImageProvider(booking.serviceImage),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.serviceName,
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isDark ? Colors.white : const Color(0xFF1A1D21),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      booking.providerName,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 14,
-                          color: Colors.grey[500],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          DateFormat('MMM d, h:mm a').format(booking.date),
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Price & Status
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(booking.status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _getStatusText(booking.status),
-                      style: GoogleFonts.inter(
-                        color: _getStatusColor(booking.status),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '\$${booking.price.toStringAsFixed(0)}',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: BorderSide(
-                      color: isDark ? Colors.white24 : Colors.grey[300]!,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Text(
-                    'Reprogramar',
-                    style: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4285F4),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
-                  ),
-                  child: const Text('Ver Detalles'),
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          color: isSelected ? Colors.white : Colors.grey[600],
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookingCard(BuildContext context, BookingModel booking) {
+    // Format helpers
+    final dateFormat = DateFormat('d MMM yyyy', 'es');
+
+    return GestureDetector(
+      onTap: () {
+        context.push('/client/dashboard/booking/${booking.id}');
+      },
+      child: ClientBookingCard(
+        title: booking.serviceName,
+        status: booking.status.label, // "Pending" -> "Próxima" ideally
+        id: "BK${booking.id.replaceAll(RegExp(r'[^0-9]'), '').padLeft(3, '0')}",
+        format: "Llamada", // This info (Format) ideally comes from ServiceType
+        date: dateFormat.format(booking.date),
+        time: booking.timeRange.contains("-")
+            ? booking.timeRange.split("-").first.trim()
+            : (booking.timeRange == 'Por definir'
+                  ? '10:00'
+                  : booking.timeRange), // Fallback
+        duration: "30 min", // Hardcoded for now as it's not in model
+        price: booking.price,
+        clientName: booking.client.name,
+        clientImage: booking.client.image.isNotEmpty
+            ? booking.client.image
+            : null,
+        agentName: booking.agent.name,
+        agentImage: booking.agent.image.isNotEmpty ? booking.agent.image : null,
       ),
     );
   }

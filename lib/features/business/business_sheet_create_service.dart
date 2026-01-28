@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'widgets/business_service_sheet.dart';
 
 class BusinessSheetCreateService extends StatelessWidget {
   const BusinessSheetCreateService({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final extra = GoRouterState.of(context).extra;
+    final Map<String, dynamic>? serviceToEdit = (extra is Map<String, dynamic>?)
+        ? extra
+        : null;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Service')),
-      body: const Center(child: Text('Create Service Form')),
+      backgroundColor: Colors.transparent, // Or handle in widget
+      body: BusinessServiceSheet(
+        serviceToEdit: serviceToEdit,
+      ), // Pass edit data
     );
   }
 }

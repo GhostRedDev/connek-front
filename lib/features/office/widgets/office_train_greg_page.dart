@@ -353,60 +353,75 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF131619),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Scrollbar(
-          controller: _scrollController,
-          thumbVisibility: true,
-          trackVisibility: true,
-          thickness: 6,
-          radius: const Radius.circular(3),
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 20),
-                _buildIntroSection(),
-                _buildTabBar(),
-                // Dynamic Content based on Tab
-                AnimatedBuilder(
-                  animation: _tabController,
-                  builder: (context, _) {
-                    return IndexedStack(
-                      index: _tabController.index,
-                      children: [
-                        _buildCancellationsTab(),
-                        _buildPaymentsTab(),
-                        _buildProceduresTab(),
-                        _buildPrivacyTab(),
-                        const Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: Center(
-                            child: Text(
-                              'Políticas - Coming Soon',
-                              style: TextStyle(color: Colors.white),
+      body: Stack(
+        children: [
+          // Content Layer
+          Positioned.fill(
+            child: Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              trackVisibility: true,
+              thickness: 6,
+              radius: const Radius.circular(3),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(top: 160), // Push content down
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildIntroSection(),
+                    _buildTabBar(),
+                    // Dynamic Content based on Tab
+                    AnimatedBuilder(
+                      animation: _tabController,
+                      builder: (context, _) {
+                        return IndexedStack(
+                          index: _tabController.index,
+                          children: [
+                            _buildCancellationsTab(),
+                            _buildPaymentsTab(),
+                            _buildProceduresTab(),
+                            _buildPrivacyTab(),
+                            const Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Center(
+                                child: Text(
+                                  'Políticas - Coming Soon',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        _buildLibraryTab(),
-                      ],
-                    );
-                  },
+                            _buildLibraryTab(),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
           ),
-        ),
+          // Fixed Header Layer
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: _buildHeader(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -426,7 +441,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: Theme.of(
+                  context,
+                ).scaffoldBackgroundColor, // Or cardColor, but scaffold might be safer for "App Bar" look if it's top level. Wait, the previous code had `Theme.of(context).cardColor` in my previous read of `OfficeTrainGregPage` (lines 427).
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
                   color: Theme.of(context).dividerColor.withOpacity(0.1),
@@ -460,7 +477,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 Text(
                   'Greg',
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
@@ -469,9 +486,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () => context.push('/office/settings-greg'),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.settings_outlined,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     size: 24,
                   ),
                   splashRadius: 20,
@@ -585,7 +602,9 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: const Color(0xFF8BB7FF), // Light blue selected color
+        labelColor: Theme.of(
+          context,
+        ).colorScheme.primary, // Light blue selected color
         unselectedLabelColor: Colors.grey,
         labelStyle: GoogleFonts.outfit(
           fontSize: 14,
@@ -707,7 +726,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
               ),
             ],
             const SizedBox(height: 16),
-            const Divider(color: Colors.white24),
+            Divider(color: Theme.of(context).dividerColor),
             const SizedBox(height: 16),
             ...children,
             const SizedBox(height: 100),
@@ -751,7 +770,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
         Text(
           'Adjuntar documentos',
           style: GoogleFonts.outfit(
-            color: Colors.white70,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -769,14 +788,18 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.file_present_outlined,
-                      color: Colors.white70,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.7),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -784,7 +807,7 @@ class _OfficeTrainGregPageState extends ConsumerState<OfficeTrainGregPage>
                       child: Text(
                         doc,
                         style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 13,
                         ),
                       ),

@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../leads/models/lead_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import 'providers/business_provider.dart';
+import 'widgets/business_proposal_sheet.dart';
 
 class LeadDetailsPage extends ConsumerWidget {
   final Lead lead;
@@ -14,26 +17,39 @@ class LeadDetailsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print('DEBUG: LeadDetailsPage build. Lead ID: ${lead.id}');
+    final businessData = ref.watch(businessProvider).value;
+    // Try to find updated lead in provider, otherwise use passed lead
+    final currentLead =
+        businessData?.recentLeads.firstWhere(
+          (l) => l.id == lead.id,
+          orElse: () => lead,
+        ) ??
+        lead;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
 
-    final name = '${lead.clientFirstName} ${lead.clientLastName}'.trim();
-    final leadImage = lead.clientImageUrl;
+    final name = '${currentLead.clientFirstName} ${currentLead.clientLastName}'
+        .trim();
+    final leadImage = currentLead.clientImageUrl;
     final dateStr =
-        '${lead.createdAt.day}/${lead.createdAt.month}/${lead.createdAt.year} ${lead.createdAt.hour}:${lead.createdAt.minute.toString().padLeft(2, '0')}';
-    final amount = (lead.requestBudgetMax ?? 0) / 100.0;
+        '${currentLead.createdAt.day}/${currentLead.createdAt.month}/${currentLead.createdAt.year} ${currentLead.createdAt.hour}:${currentLead.createdAt.minute.toString().padLeft(2, '0')}';
+    final amount = (currentLead.requestBudgetMax ?? 0) / 100.0;
 
     // Status Logic
     String statusText = 'Pendiente';
     Color statusColor = const Color(0xFFFB8C00);
     Color statusBgColor = const Color(0xFFFFF3E0);
 
-    if (lead.status == 'completed' || lead.status == 'converted') {
+    if (currentLead.status == 'completed' ||
+        currentLead.status == 'converted') {
       statusText = 'Completado';
       statusColor = const Color(0xFF4285F4);
       statusBgColor = const Color(0xFFE3F2FD);
-    } else if (lead.status == 'cancelled' || lead.status == 'declined') {
+    } else if (currentLead.status == 'cancelled' ||
+        currentLead.status == 'declined') {
       statusText = 'Cancelado';
       statusColor = const Color(0xFFFF5252);
       statusBgColor = const Color(0xFFFFEBEE);
@@ -56,14 +72,24 @@ class LeadDetailsPage extends ConsumerWidget {
     }
 
     final serviceName = resolvedService != null
-        ? resolvedService['title'] ?? 'Servicio'
+        ? resolvedService['name'] ?? 'Servicio'
         : 'Servicio';
-    final servicePrice = resolvedService != null
-        ? resolvedService['priceRange'] ?? '\$--'
-        : '\$--';
-    final serviceImage = resolvedService != null
-        ? resolvedService['image']
+
+    String servicePrice = '\$--';
+    if (resolvedService != null && resolvedService['price_cents'] != null) {
+      final price = (resolvedService['price_cents'] as int) / 100.0;
+      servicePrice = '\$${price.toStringAsFixed(2)}';
+    }
+
+    String? serviceImageView = resolvedService != null
+        ? (resolvedService['profile_image'] as String?)
         : null;
+
+    // Fix Service Image URL
+    if (serviceImageView != null && !serviceImageView.startsWith('http')) {
+      serviceImageView =
+          'https://bzndcfewyihbytjpitil.supabase.co/storage/v1/object/public/business/$serviceImageView';
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -73,8 +99,8 @@ class LeadDetailsPage extends ConsumerWidget {
         leading: Padding(
           padding: const EdgeInsets.only(
             left: 16,
-            top: 260,
-            bottom: 60,
+            top: 8,
+            bottom: 8,
             right: 16,
           ),
           child: Center(
@@ -124,6 +150,11 @@ class LeadDetailsPage extends ConsumerWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth > 900;
+          final leadImageUrl = (leadImage != null && leadImage.isNotEmpty)
+              ? (leadImage.startsWith('http')
+                    ? leadImage
+                    : 'https://bzndcfewyihbytjpitil.supabase.co/storage/v1/object/public/client/$leadImage')
+              : '';
 
           if (isDesktop) {
             return SingleChildScrollView(
@@ -151,7 +182,7 @@ class LeadDetailsPage extends ConsumerWidget {
                               Row(
                                 children: [
                                   CachedNetworkImage(
-                                    imageUrl: leadImage ?? '',
+                                    imageUrl: leadImageUrl,
                                     imageBuilder: (context, imageProvider) =>
                                         Container(
                                           width: 48,
@@ -322,10 +353,73 @@ class LeadDetailsPage extends ConsumerWidget {
                                       onPressed: () =>
                                           context.push('/chats/${lead.id}'),
                                       icon: const Icon(
-                                        Icons.add_circle_outline,
+                                        Icons.message_outlined,
                                         size: 16,
                                       ),
-                                      label: const Text('Enviar mensaje'),
+                                      label: const Text('Mensaje'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: cardColor,
+                                        foregroundColor: isDark
+                                            ? Colors.white
+                                            : Colors.black,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        elevation: 0,
+                                        side: BorderSide(
+                                          color: Colors.grey.withOpacity(0.2),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () async {
+                                        final uri = Uri.parse(
+                                          'tel:${lead.clientPhone ?? ""}',
+                                        );
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri);
+                                        } else {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  "No se pudo iniciar la llamada",
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      icon: const Icon(Icons.phone, size: 16),
+                                      label: const Text('Llamar'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: Colors.black,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        elevation: 0,
+                                        side: BorderSide(
+                                          color: Colors.grey.withOpacity(0.2),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () =>
+                                          context.push('/chats/${lead.id}'),
+                                      child: const Text('Enviar mensaje'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color(
                                           0xFF111418,
@@ -395,103 +489,131 @@ class LeadDetailsPage extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
                               // Service Widget
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: isDark ? Colors.white10 : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.grey.withOpacity(0.1),
+                              if (resolvedService != null)
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.white10
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Colors.grey.withOpacity(0.1),
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      height: 60,
-                                      width: 80,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        image: serviceImage != null
-                                            ? DecorationImage(
-                                                image: NetworkImage(
-                                                  serviceImage,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        height: 60,
+                                        width: 80,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          image: serviceImageView != null
+                                              ? DecorationImage(
+                                                  image: NetworkImage(
+                                                    serviceImageView!,
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : null,
+                                          color: Colors.grey[300],
+                                        ),
+                                        child: serviceImageView == null
+                                            ? Center(
+                                                child: Icon(
+                                                  Icons.spa,
+                                                  color: Colors.grey,
                                                 ),
-                                                fit: BoxFit.cover,
                                               )
                                             : null,
-                                        color: Colors.grey[300],
                                       ),
-                                      child: serviceImage == null
-                                          ? Center(
-                                              child: Icon(
-                                                Icons.spa,
-                                                color: Colors.grey,
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
                                               ),
-                                            )
-                                          : null,
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[200],
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                "Service",
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
                                             ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[200],
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              "Service",
-                                              style: TextStyle(
-                                                fontSize: 10,
+                                            SizedBox(height: 4),
+                                            Text(
+                                              serviceName,
+                                              style: GoogleFonts.outfit(
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black,
+                                                fontSize: 14,
                                               ),
                                             ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            serviceName,
-                                            style: GoogleFonts.outfit(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
+                                            Text(
+                                              servicePrice,
+                                              style: GoogleFonts.inter(
+                                                color: Colors.green,
+                                                fontSize: 12,
+                                              ),
                                             ),
-                                          ),
-                                          Text(
-                                            servicePrice,
-                                            style: GoogleFonts.inter(
-                                              color: Colors.green,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {},
-                                      style: TextButton.styleFrom(
-                                        backgroundColor: Colors.grey[200],
-                                        foregroundColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                      child: Text(
-                                        "Ver servicio",
-                                        style: TextStyle(fontSize: 10),
+                                      TextButton(
+                                        onPressed: () {
+                                          context.push(
+                                            '/business/create-service',
+                                            extra: resolvedService,
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          backgroundColor: Colors.grey[200],
+                                          foregroundColor: Colors.black,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          "Ver servicio",
+                                          style: TextStyle(fontSize: 10),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              if (resolvedService == null)
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text("No service info available"),
+                                    ],
+                                  ),
+                                ),
                               const SizedBox(height: 16),
                               Text(
                                 "Mensaje:",
@@ -535,7 +657,17 @@ class LeadDetailsPage extends ConsumerWidget {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) =>
+                                          BusinessProposalSheet(
+                                            prefilledLead: currentLead,
+                                          ),
+                                    );
+                                  },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF111418),
                                     foregroundColor: Colors.white,
@@ -546,7 +678,7 @@ class LeadDetailsPage extends ConsumerWidget {
                                       vertical: 14,
                                     ),
                                   ),
-                                  child: const Text("Enviar propuesta"),
+                                  child: const Text("Cotizar"),
                                 ),
                               ),
                             ],
@@ -563,95 +695,18 @@ class LeadDetailsPage extends ConsumerWidget {
                     child: Column(
                       children: [
                         // Timeline
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Colors.grey.withOpacity(0.1),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF111418),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      "Timeline",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    // Status badge
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[100],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle,
-                                          size: 14,
-                                          color: Colors.blue[900],
-                                        ),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          "En progreso",
-                                          style: TextStyle(
-                                            color: Colors.blue[900],
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 20),
-                              _buildTimelineStep(
-                                context,
-                                "Nuevo lead",
-                                lead.createdAt,
-                                true,
-                                false,
-                              ), // Step 1
-                              _buildTimelineStep(
-                                context,
-                                "En revisión",
-                                lead.createdAt.add(Duration(minutes: 5)),
-                                lead.seen,
-                                false,
-                              ), // Step 2 (Mock time)
-                              _buildTimelineStep(
-                                context,
-                                "Por agendar",
-                                null,
-                                lead.clientContacted,
-                                true,
-                              ), // Step 3
-                            ],
-                          ),
+                        _buildDynamicTimeline(context, currentLead),
+                        const SizedBox(height: 20),
+
+                        _buildFinancialActivity(
+                          context,
+                          ref,
+                          cardColor,
+                          currentLead,
                         ),
+                        const SizedBox(height: 20),
+
+                        _buildManageLeadTile(context, ref, currentLead),
                         const SizedBox(height: 20),
 
                         // Delete Button
@@ -679,6 +734,7 @@ class LeadDetailsPage extends ConsumerWidget {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
@@ -691,8 +747,8 @@ class LeadDetailsPage extends ConsumerWidget {
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 159,
-            ), // Keeping user preference
+              vertical: 20,
+            ), // Standard padding
             child: Column(
               children: [
                 // --- Client Card ---
@@ -709,7 +765,7 @@ class LeadDetailsPage extends ConsumerWidget {
                       Row(
                         children: [
                           CachedNetworkImage(
-                            imageUrl: leadImage ?? '',
+                            imageUrl: leadImageUrl,
                             imageBuilder: (context, imageProvider) => Container(
                               width: 48,
                               height: 48,
@@ -949,15 +1005,15 @@ class LeadDetailsPage extends ConsumerWidget {
                               width: 80,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                image: serviceImage != null
+                                image: serviceImageView != null
                                     ? DecorationImage(
-                                        image: NetworkImage(serviceImage),
+                                        image: NetworkImage(serviceImageView!),
                                         fit: BoxFit.cover,
                                       )
                                     : null,
                                 color: Colors.grey[300],
                               ),
-                              child: serviceImage == null
+                              child: serviceImageView == null
                                   ? Center(
                                       child: Icon(
                                         Icons.spa,
@@ -1004,6 +1060,20 @@ class LeadDetailsPage extends ConsumerWidget {
                                       fontSize: 12,
                                     ),
                                   ),
+                                  if (resolvedService?['description'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        resolvedService!['description']
+                                            .toString(),
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -1170,6 +1240,12 @@ class LeadDetailsPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
+                _buildManageLeadTile(context, ref, currentLead),
+                const SizedBox(height: 20),
+
+                _buildFinancialActivity(context, ref, cardColor, currentLead),
+                const SizedBox(height: 20),
+
                 // --- Delete Button ---
                 SizedBox(
                   width: double.infinity,
@@ -1198,69 +1274,695 @@ class LeadDetailsPage extends ConsumerWidget {
     );
   }
 
+  Widget _buildManageLeadTile(BuildContext context, WidgetRef ref, Lead lead) {
+    // Checks
+    final businessData = ref.watch(businessProvider).value;
+    final hasMissingDate = lead.bookingMade && lead.proposedBookingDate == null;
+    final hasDraftProposals =
+        businessData?.quotes.any(
+          (q) => q['status'] == 'draft' && q['lead_id'] == lead.id,
+        ) ??
+        false;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          title: Row(
+            children: [
+              Icon(Icons.manage_accounts, color: Colors.blue[900]),
+              const SizedBox(width: 12),
+              Text(
+                "Gestionar Cliente Potencial",
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Validation / Missing items
+                  if (hasMissingDate || hasDraftProposals) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          if (hasDraftProposals)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Propuestas en borrador",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.orange[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          if (hasMissingDate)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.event_busy,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Falta definir fecha",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.orange[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Toggles
+                  const Divider(),
+                  _buildToggle(
+                    context,
+                    ref,
+                    lead,
+                    "Visto por mí",
+                    lead.seen,
+                    'seen',
+                  ),
+                  _buildToggle(
+                    context,
+                    ref,
+                    lead,
+                    "Cliente Contactado",
+                    lead.clientContacted,
+                    'client_contacted',
+                  ),
+                  _buildToggle(
+                    context,
+                    ref,
+                    lead,
+                    "Propuesta Enviada",
+                    lead.proposalSent,
+                    'proposal_sent',
+                  ),
+                  _buildToggle(
+                    context,
+                    ref,
+                    lead,
+                    "Booking Agendado",
+                    lead.bookingMade,
+                    'booking_made',
+                  ),
+                  _buildToggle(
+                    context,
+                    ref,
+                    lead,
+                    "Pago Realizado",
+                    lead.paymentMade,
+                    'payment_made',
+                  ),
+
+                  const Divider(height: 24),
+
+                  // Propose Appointment
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        // Show Date Picker
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
+                        );
+                        if (date != null && context.mounted) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (time != null && context.mounted) {
+                            // Call backend to update 'proposed_booking_date'
+                            final dateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+
+                            await ref
+                                .read(businessProvider.notifier)
+                                .updateLeadField(lead.id, {
+                                  'proposed_booking_date': dateTime
+                                      .toIso8601String(),
+                                });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Cita propuesta para ${DateFormat('dd/MM').format(date)} a las ${time.format(context)}",
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: const Text("Proponer Cita"),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Status Dropdown
+                  Text(
+                    "Estado del Lead",
+                    style: GoogleFonts.inter(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value:
+                            [
+                              'open',
+                              'completed',
+                              'cancelled',
+                            ].contains(lead.status)
+                            ? lead.status
+                            : 'open',
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'open',
+                            child: Text("Abierto / En Progreso"),
+                          ),
+                          DropdownMenuItem(
+                            value: 'completed',
+                            child: Text("Completado"),
+                          ),
+                          DropdownMenuItem(
+                            value: 'cancelled',
+                            child: Text("Cancelado"),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            ref.read(businessProvider.notifier).updateLeadField(
+                              lead.id,
+                              {'status': val},
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggle(
+    BuildContext context,
+    WidgetRef ref,
+    Lead lead,
+    String title,
+    bool value,
+    String field,
+  ) {
+    return SwitchListTile(
+      title: Text(title, style: GoogleFonts.inter(fontSize: 14)),
+      value: value,
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      activeColor: Colors.blue[900],
+      onChanged: (val) {
+        ref.read(businessProvider.notifier).updateLeadField(lead.id, {
+          field: val,
+        });
+      },
+    );
+  }
+
+  Widget _buildFinancialActivity(
+    BuildContext context,
+    WidgetRef ref,
+    Color cardColor,
+    Lead lead,
+  ) {
+    final businessData = ref.watch(businessProvider).value;
+    final quotes =
+        businessData?.quotes.where((q) {
+          final qLeadId = q['lead_id'];
+          final qLeads = q['leads'];
+          final nestedLeadId = qLeads is Map ? qLeads['id'] : null;
+          return qLeadId == lead.id || nestedLeadId == lead.id;
+        }).toList() ??
+        [];
+
+    // Sort by date descending if created_at exists
+    quotes.sort((a, b) {
+      final dateA =
+          DateTime.tryParse(a['created_at']?.toString() ?? '') ??
+          DateTime(2000);
+      final dateB =
+          DateTime.tryParse(b['created_at']?.toString() ?? '') ??
+          DateTime(2000);
+      return dateB.compareTo(dateA);
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Actividad Comercial",
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildStatusRow(
+            "Booking",
+            lead.bookingMade ? "Agendado" : "Pendiente",
+            lead.bookingMade ? Colors.green : Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          _buildStatusRow(
+            "Pago",
+            lead.paymentMade ? "Pagado" : "Pendiente",
+            lead.paymentMade ? Colors.green : Colors.orange,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(height: 1),
+          ),
+          if (!lead.paymentMade)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showPaymentDialog(context, ref, lead),
+                  icon: const Icon(Icons.attach_money, size: 18),
+                  label: const Text("Registrar Pago"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Text(
+            "Propuestas",
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          if (quotes.isEmpty)
+            Text(
+              "No se han enviado propuestas.",
+              style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+            )
+          else
+            ...quotes.map((q) {
+              final status = q['status'] ?? 'Draft';
+              final isAccepted = status == 'accepted' || status == 'paid';
+              final isCounterOffer = status == 'counter_offer';
+
+              Color statusColor = Colors.blue;
+              Color statusBg = Colors.blue.withOpacity(0.1);
+
+              if (isAccepted) {
+                statusColor = Colors.green;
+                statusBg = Colors.green.withOpacity(0.1);
+              } else if (isCounterOffer) {
+                statusColor = Colors.deepPurple;
+                statusBg = Colors.deepPurple.withOpacity(0.1);
+              }
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Propuesta #${q['id']}",
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "\$${((q['amount_cents'] ?? q['amountCents'] ?? 0) / 100).toStringAsFixed(2)}",
+                          style: GoogleFonts.inter(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isCounterOffer
+                            ? "CONTRA OFERTA"
+                            : status.toString().toUpperCase(),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicTimeline(BuildContext context, Lead lead) {
+    // Define steps based on Lead status
+    final steps = <Map<String, dynamic>>[
+      {
+        'title': 'Nuevo lead',
+        'time': lead.createdAt,
+        'isActive': true,
+        'isCompleted': true,
+      },
+      {
+        'title': lead.seen ? 'Visto' : 'Por revisar',
+        'time': lead.seen
+            ? lead.createdAt.add(const Duration(minutes: 5))
+            : null, // Mock time or real if available
+        'isActive': lead.seen,
+        'isCompleted': lead.seen,
+      },
+      {
+        'title': lead.clientContacted ? 'Contactado' : 'Por contactar',
+        'time': null,
+        'isActive': lead.clientContacted,
+        'isCompleted': lead.clientContacted,
+      },
+      {
+        'title': lead.proposalSent ? 'Propuesta Enviada' : 'Enviar Propuesta',
+        'time': null,
+        'isActive': lead.proposalSent,
+        'isCompleted': lead.proposalSent,
+      },
+      {
+        'title': lead.bookingMade ? 'Agendado' : 'Por Agendar',
+        'time': null,
+        'isActive': lead.bookingMade,
+        'isCompleted': lead.bookingMade,
+      },
+      {
+        'title': lead.paymentMade ? 'Pagado' : 'Pendiente de Pago',
+        'time': null,
+        'isActive': lead.paymentMade,
+        'isCompleted': lead.paymentMade,
+      },
+      if (lead.status == 'completed')
+        {
+          'title': 'Completado',
+          'time': null,
+          'isActive': true,
+          'isCompleted': true,
+        },
+      if (lead.status == 'cancelled')
+        {
+          'title': 'Cancelado',
+          'time': null,
+          'isActive': true,
+          'isCompleted': true,
+          'isError': true,
+        },
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      // ... same decoration logic ...
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.timeline, size: 16, color: Colors.blue[900]),
+              const SizedBox(width: 8),
+              Text(
+                "Línea de tiempo",
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...steps.asMap().entries.map((entry) {
+            final index = entry.key;
+            final step = entry.value;
+            final isLast = index == steps.length - 1;
+            return _buildTimelineStep(
+              context,
+              step['title'] as String,
+              step['time'] as DateTime?,
+              step['isActive'] as bool,
+              isLast,
+              isError: step['isError'] == true,
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTimelineStep(
     BuildContext context,
     String title,
     DateTime? time,
     bool isActive,
-    bool isLast,
-  ) {
+    bool isLast, {
+    bool isError = false,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Icon(
-              Icons.circle_outlined,
-              color: isActive ? Colors.blue : Colors.grey[300],
-              size: 20,
-            ),
-            if (!isLast)
-              Container(
-                width: 2,
-                height: 40,
-                color: isActive ? Colors.blue : Colors.grey[300],
+    final activeColor = isError ? Colors.red : Colors.blue;
+    final activeBg = isError
+        ? Colors.red.withOpacity(0.1)
+        : (isDark ? Colors.blue.withOpacity(0.1) : Colors.blue[50]);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Icon(
+                isActive ? Icons.check_circle : Icons.circle_outlined,
+                color: isActive ? activeColor : Colors.grey[300],
+                size: 20,
               ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? (isDark ? Colors.blue.withOpacity(0.1) : Colors.blue[50])
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    color: isActive ? Colors.blue : Colors.grey,
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isActive ? activeColor : Colors.grey[300],
                   ),
                 ),
-                if (time != null)
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        "${time.hour}:${time.minute.toString().padLeft(2, '0')} AM",
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                    ],
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isActive ? activeBg : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? activeColor : Colors.grey,
+                    ),
                   ),
-              ],
+                  if (time != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          size: 12,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${time.hour}:${time.minute.toString().padLeft(2, '0')}",
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.inter(color: Colors.grey, fontSize: 13)),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                color == Colors.green
+                    ? Icons.check_circle
+                    : Icons.hourglass_empty,
+                size: 12,
+                color: color,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: color,
+                ),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  void _showPaymentDialog(BuildContext context, WidgetRef ref, Lead lead) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Registrar Pago"),
+          content: const Text(
+            "¿Confirmas que has recibido el pago por este servicio? Esta acción marcará el lead como PAGADO.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context); // Close dialog
+                final success = await ref
+                    .read(businessProvider.notifier)
+                    .updateLeadField(lead.id, {'payment_made': true});
+
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Pago registrado exitosamente"),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Confirmar Pago"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

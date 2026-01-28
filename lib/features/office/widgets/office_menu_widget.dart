@@ -15,26 +15,20 @@ class OfficeMenuWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
     // Theme Colors
     // Background of the pill container
-    final containerColor = isDark
-        ? const Color(0xFF1E2429) // Dark grey
-        : Colors.grey.shade200; // Light grey
+    final containerColor = Theme.of(context).cardColor;
 
     // Active Tab Color
-    final activeTabColor = isDark
-        ? const Color(0xFF262D34) // Slightly lighter dark
-        : Colors.white;
+    final activeTabColor = Theme.of(context).scaffoldBackgroundColor;
 
     // Text Colors
-    final activeTextColor = isDark ? Colors.white : Colors.black;
-    final inactiveTextColor = isDark
-        ? const Color(0xFF95A1AC)
-        : Colors.grey.shade600;
+    final activeTextColor = Theme.of(context).colorScheme.primary;
+    final inactiveTextColor =
+        Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
 
     return Center(
       // Center horizontally
@@ -45,8 +39,10 @@ class OfficeMenuWidget extends ConsumerWidget {
         decoration: BoxDecoration(
           color: containerColor,
           borderRadius: BorderRadius.circular(100),
-          // Optional border for contrast in light mode
-          border: isDark ? null : Border.all(color: Colors.grey.shade300),
+          // Optional border for contrast
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

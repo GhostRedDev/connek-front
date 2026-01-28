@@ -33,8 +33,9 @@ class MarketplaceBotCard extends StatelessWidget {
     final cardColor = isDark
         ? const Color(0xFF131619)
         : Colors.white; // Darker bg for card
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
-    final subTextColor = isDark ? Colors.grey[400] : Colors.grey[600];
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final subTextColor =
+        Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
 
     return Container(
       width: double.infinity,
@@ -46,23 +47,24 @@ class MarketplaceBotCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF161B22), const Color(0xFF0D1117)]
-              : [Colors.white, const Color(0xFFF0F4FF)],
+              : [
+                  Theme.of(context).cardColor,
+                  Theme.of(context).cardColor,
+                ], // Use card color for light mode
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isDark
               ? const Color(0xFF4285F4).withOpacity(0.1)
-              : Colors.blue.withOpacity(0.1),
+              : Theme.of(context).dividerColor.withOpacity(0.5),
         ),
-        boxShadow: isDark
-            ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

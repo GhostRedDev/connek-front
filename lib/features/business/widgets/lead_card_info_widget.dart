@@ -132,8 +132,7 @@ class LeadCardInfoWidget extends ConsumerWidget {
               ),
               IconButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
+                  Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(
                       builder: (context) =>
                           LeadDetailsPage(lead: lead, service: service),

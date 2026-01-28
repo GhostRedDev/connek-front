@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'widgets/business_leads_widget.dart';
 
 class BusinessDashboardLeads extends ConsumerWidget {
   const BusinessDashboardLeads({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Text(
-        'Business Leads - Coming Soon',
-        style: GoogleFonts.inter(fontSize: 18),
-      ),
+    return const Scaffold(
+      backgroundColor: Colors.transparent, // Let parent background show
+      body: BusinessLeadsWidget(),
     );
   }
 }

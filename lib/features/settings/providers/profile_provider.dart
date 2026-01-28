@@ -20,7 +20,7 @@ class ProfileRepository {
     if (user == null) return null;
 
     try {
-      print('🚀 ProfileRepository: FAST FETCH for ${user.id}...');
+      // print('🚀 ProfileRepository: FAST FETCH for ${user.id}...');
 
       // PARALLEL REQUESTS: Fetch Client AND Business simultaneously
       final results = await Future.wait([

@@ -37,48 +37,74 @@ class ClientDashboardBookmarks extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // Companies Section
-            Text(
-              t['client_bookmarks_companies'] ?? 'Empresas',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+            // Companies Section Container
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 140, // Height for the horizontal cards
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: 2, // Mock data
-                separatorBuilder: (context, index) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  return _CompanyCard(isDark: isDark);
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t['client_bookmarks_companies'] ?? 'Empresas',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 140,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 2, // Mock data
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 16),
+                      itemBuilder: (context, index) {
+                        return _CompanyCard(isDark: isDark);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 24),
 
-            // Services Section
-            Text(
-              t['client_bookmarks_services'] ?? 'Servicios',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+            // Services Section Container
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-            const SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3, // Mock data
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                return _ServiceCard(isDark: isDark);
-              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t['client_bookmarks_services'] ?? 'Servicios',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Column(
+                    children: List.generate(3, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _ServiceCard(isDark: isDark),
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -95,6 +121,7 @@ class _CompanyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 250,
+      height: double.infinity, // Fill the parent height (140)
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white, // Surface color
         borderRadius: BorderRadius.circular(16),
@@ -160,7 +187,8 @@ class _ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 120, // Approximate height
+      // height: 120, // Removed fixed height to prevent overflow
+      height: 140, // Fixed height to prevent Spacer unbounded error
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -168,6 +196,8 @@ class _ServiceCard extends StatelessWidget {
         // Add shadow if needed
       ),
       child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.stretch, // Ensure fixed height is respected
         children: [
           // Image
           Container(

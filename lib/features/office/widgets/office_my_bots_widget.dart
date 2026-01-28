@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'greg_card.dart'; // Using our existing GregCard
 import '../../../../core/providers/locale_provider.dart';
+import '../providers/greg_provider.dart';
 
 class OfficeMyBotsWidget extends ConsumerStatefulWidget {
   const OfficeMyBotsWidget({super.key});
@@ -16,6 +17,7 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
@@ -38,7 +40,7 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
                   Text(
                     t['office_my_bots_title'] ?? 'My bots',
                     style: GoogleFonts.outfit(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 32,
                       fontWeight: FontWeight.w600,
                     ),
@@ -48,7 +50,9 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
                     t['office_my_bots_subtitle'] ??
                         'Find, train and tune your bots.',
                     style: GoogleFonts.outfit(
-                      color: const Color(0xFF95A1AC), // Secondary300
+                      color:
+                          Theme.of(context).textTheme.bodyMedium?.color ??
+                          Colors.grey,
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
                     ),
@@ -67,16 +71,19 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
                     _buildFilterButton(
                       'filter_all',
                       t['filter_all'] ?? 'Todos',
+                      isDark,
                     ),
                     const SizedBox(width: 8),
                     _buildFilterButton(
                       'office_filter_active',
                       t['office_filter_active'] ?? 'Activos',
+                      isDark,
                     ),
                     const SizedBox(width: 8),
                     _buildFilterButton(
                       'office_filter_inactive',
                       t['office_filter_inactive'] ?? 'Inactivos',
+                      isDark,
                     ),
                   ],
                 ),
@@ -85,23 +92,7 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
               const SizedBox(height: 20),
 
               // GRID
-              // Using existing GregCard (renamed from MyBotsGregWidget to be consistent with our project)
-              // Logic: Only show if bots exist (dummy check)
-              GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio:
-                    0.75, // Adjust for card aspect ratio (160x220)
-                shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(), // Let SingleChildScrollView handle scroll
-                padding: EdgeInsets.zero,
-                children: const [
-                  GregCard(),
-                  // Add more cards here if list is populated
-                ],
-              ),
+              _buildBotsGrid(context, ref),
 
               const SizedBox(height: 40), // Bottom spacer
             ],
@@ -111,12 +102,78 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
     );
   }
 
-  Widget _buildFilterButton(String key, String label) {
+  Widget _buildBotsGrid(BuildContext context, WidgetRef ref) {
+    final gregState = ref.watch(gregProvider);
+
+    // Default to active for UI test if not loaded, or handle loading state?
+    // User wants it to work. If not loaded, we can't filter.
+    // Assuming Greg is loaded or we show a loader.
+    // For now, if not loaded, show nothing or loader.
+
+    if (gregState is GregLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    bool isGregActive = true;
+    if (gregState is GregLoaded) {
+      isGregActive = gregState.greg.active;
+    }
+
+    // Filter Logic
+    // filter_all -> Show Greg (regardless of status? No, usually All shows everything)
+    // office_filter_active -> Show Greg if active
+    // office_filter_inactive -> Show Greg if !active
+
+    bool showGreg = false;
+    if (_selectedFilterKey == 'filter_all') {
+      showGreg = true;
+    } else if (_selectedFilterKey == 'office_filter_active') {
+      showGreg = isGregActive;
+    } else if (_selectedFilterKey == 'office_filter_inactive') {
+      showGreg = !isGregActive;
+    }
+
+    if (!showGreg) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 40),
+          child: Column(
+            children: [
+              Icon(
+                Icons.smart_toy_outlined,
+                size: 48,
+                color: Theme.of(context).dividerColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No bots found',
+                style: GoogleFonts.inter(
+                  color:
+                      Theme.of(context).textTheme.bodyMedium?.color ??
+                      Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 0.75,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      children: [GregCard(isActive: isGregActive)],
+    );
+  }
+
+  Widget _buildFilterButton(String key, String label, bool isDark) {
+    // ... existing filter button code ...
     final isSelected = _selectedFilterKey == key;
-    // Tweak colors to match design
-    // Active: Green/White? No, design shows "Todos" dark in snippet 2 (unselected?).
-    // Snippet 1 implies simple pill buttons.
-    // Let's use the style from the previous OfficePage implementation which user liked.
 
     return InkWell(
       onTap: () => setState(() => _selectedFilterKey = key),
@@ -125,19 +182,21 @@ class _OfficeMyBotsWidgetState extends ConsumerState<OfficeMyBotsWidget> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4B39EF).withOpacity(0.2)
-              : const Color(0xFF262D34), // SecondaryAlpha10
+              ? Theme.of(context).primaryColor.withOpacity(0.2)
+              : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
-            color: isSelected ? const Color(0xFF4B39EF) : Colors.transparent,
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).dividerColor,
           ),
         ),
         child: Text(
           label,
           style: GoogleFonts.outfit(
             color: isSelected
-                ? Colors.white
-                : const Color(0xFF95A1AC), // Secondary300
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey,
             fontSize: 13,
             fontWeight: FontWeight.normal,
           ),

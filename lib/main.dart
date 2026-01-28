@@ -5,11 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/router.dart';
 import 'core/providers/theme_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Correct placement
 import 'package:supabase_flutter/supabase_flutter.dart';
 // import 'core/services/supabase_config_service.dart';
 
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,12 +37,17 @@ Future<void> _startApp() async {
   // ignore: deprecated_member_use
   GoogleFonts.config.allowRuntimeFetching = true;
 
-  // Hardcoded Supabase Config to prevent startup hang
-  const supabaseUrl = 'https://bzndcfewyihbytjpitil.supabase.co';
-  const supabaseKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6bmRjZmV3eWloYnl0anBpdGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTc1ODM2MzYsImV4cCI6MjAxMzE1OTYzNn0.pPtLFyOjTCuErcEGdcCh6Htg2pkqqb5xJRH2wLmRa4Y';
-
   try {
+    debugPrint("Initializing app...");
+    await dotenv.load(fileName: "assets/env");
+
+    final supabaseUrl = dotenv.env['SUPABASE_URL'];
+    final supabaseKey = dotenv.env['SUPABASE_KEY'];
+
+    if (supabaseUrl == null || supabaseKey == null) {
+      throw Exception('Supabase configuration missing in .env file');
+    }
+
     debugPrint("Initializing Supabase...");
 
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
@@ -81,6 +87,14 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode, // Dynamic Theme Mode (System/Light/Dark)
 
       routerConfig: ref.watch(routerProvider),
+
+      // Localization
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en', ''), Locale('es', '')],
     );
   }
 }

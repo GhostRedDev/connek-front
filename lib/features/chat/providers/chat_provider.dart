@@ -133,80 +133,106 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
 
       final response = await _supabase
           .from('conversations')
-          .select('*, client1(*), client2(*), business1(*), business2(*)')
+          .select('*') // Removed joins to avoid schema relationship errors
           .or('$idColumn1.eq.$myId, $idColumn2.eq.$myId')
           .order('created_at', ascending: false);
 
       print('ChatProvider DBG: Response Count=${response.length}');
-      if (response.isNotEmpty) {
-        print(
-          'ChatProvider DBG: Sample Row 0: ${response[0]['id']} - Cl1:${response[0]['client1']} Cl2:${response[0]['client2']} B1:${response[0]['business1']} B2:${response[0]['business2']}',
-        );
-      }
+
       final List<ChatConversation> conversations = [];
 
       for (var conv in response) {
-        // Identify Contact based on MY ID
-        // If I am business1/2, then contact is client (usually) or another business (B2B?)
-        // Assuming Standard: Client <-> Business
+        // IDs are now Integers (foreign keys), not Objects.
+        // Identify My Role and Partner Role based on IDs.
 
-        // If I am Business:
-        // Contact is likely in client1 or client2 (whichever is not null OR handled by logic)
-        // If I am Client:
-        // Contact is likely in business1 or business2
+        int? c1 = conv['client1'];
+        int? c2 = conv['client2'];
+        int? b1 = conv['business1'];
+        int? b2 = conv['business2'];
 
-        // Let's make it generic:
         Map<String, dynamic>? contactClient;
         Map<String, dynamic>? contactBusiness;
 
+        // Partner Identification Logic
+        int targetPartnerId = 0;
+        bool targetIsBusiness = false;
+
         if (isBusinessMode) {
-          // I am Business.
-          // Am I business1? -> Partner is client1/2 or business2
-          // Am I business2? -> Partner is client1/2 or business1
-
-          bool amIBusiness1 =
-              conv['business1'] != null && conv['business1']['id'] == myId;
-          bool amIBusiness2 =
-              conv['business2'] != null && conv['business2']['id'] == myId;
-
-          if (amIBusiness1) {
-            print('ChatProvider DBG: I am Business 1');
-            contactClient = conv['client1'] ?? conv['client2'];
-            contactBusiness = conv['business2'];
-          } else if (amIBusiness2) {
-            print('ChatProvider DBG: I am Business 2');
-            contactClient = conv['client1'] ?? conv['client2'];
-            contactBusiness = conv['business1'];
-          } else {
-            print('ChatProvider DBG: I am Business but NOT in B1 or B2?');
-            contactClient = conv['client1'] ?? conv['client2'];
+          // I am Business
+          if (b1 == myId) {
+            // Partner is b2 (if exist) or c1 or c2
+            if (b2 != null) {
+              targetPartnerId = b2;
+              targetIsBusiness = true;
+            } else if (c1 != null) {
+              targetPartnerId = c1;
+              targetIsBusiness = false;
+            } else if (c2 != null) {
+              targetPartnerId = c2;
+              targetIsBusiness = false;
+            }
+          } else if (b2 == myId) {
+            if (b1 != null) {
+              targetPartnerId = b1;
+              targetIsBusiness = true;
+            } else if (c1 != null) {
+              targetPartnerId = c1;
+              targetIsBusiness = false;
+            } else if (c2 != null) {
+              targetPartnerId = c2;
+              targetIsBusiness = false;
+            }
           }
         } else {
-          // I am Client.
-          bool amIClient1 =
-              conv['client1'] != null && conv['client1']['id'] == myId;
-          bool amIClient2 =
-              conv['client2'] != null && conv['client2']['id'] == myId;
-
-          if (amIClient1) {
-            print('ChatProvider DBG: I am Client 1');
-            contactClient = conv['client2'];
-            contactBusiness = conv['business1'] ?? conv['business2'];
-          } else if (amIClient2) {
-            print('ChatProvider DBG: I am Client 2');
-            contactClient = conv['client1'];
-            contactBusiness = conv['business1'] ?? conv['business2'];
-          } else {
-            print('ChatProvider DBG: I am Client but NOT in C1 or C2?');
-            contactBusiness = conv['business1'] ?? conv['business2'];
+          // I am Client
+          if (c1 == myId) {
+            if (c2 != null) {
+              targetPartnerId = c2;
+              targetIsBusiness = false;
+            } else if (b1 != null) {
+              targetPartnerId = b1;
+              targetIsBusiness = true;
+            } else if (b2 != null) {
+              targetPartnerId = b2;
+              targetIsBusiness = true;
+            }
+          } else if (c2 == myId) {
+            if (c1 != null) {
+              targetPartnerId = c1;
+              targetIsBusiness = false;
+            } else if (b1 != null) {
+              targetPartnerId = b1;
+              targetIsBusiness = true;
+            } else if (b2 != null) {
+              targetPartnerId = b2;
+              targetIsBusiness = true;
+            }
           }
         }
 
+        // Fetch Partner Details Manually
+        if (targetPartnerId != 0) {
+          if (targetIsBusiness) {
+            contactBusiness = await _supabase
+                .from('business')
+                .select()
+                .eq('id', targetPartnerId)
+                .maybeSingle();
+          } else {
+            contactClient = await _supabase
+                .from('client')
+                .select()
+                .eq('id', targetPartnerId)
+                .maybeSingle();
+          }
+        }
+
+        // ... Construct Contact Data (Same as before but using fetched maps) ...
         final contactName = contactBusiness != null
             ? contactBusiness['name']
             : (contactClient != null
                   ? '${contactClient['first_name']} ${contactClient['last_name'] ?? ''}'
-                  : 'Unknown');
+                  : 'Usuario'); // Default fallback
 
         // Resolve Image
         String? contactImage = contactBusiness != null
@@ -230,7 +256,6 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
             id = contactClient['id'];
           }
 
-          // Fix: Prepend folder ID if missing (path is just filename)
           if (!path.contains('/') && id != null) {
             path = '$id/$path';
           }
@@ -239,13 +264,11 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
         }
 
         final contactData = {
-          'id': contactBusiness != null
-              ? contactBusiness['id']
-              : (contactClient != null ? contactClient['id'] : 0),
+          'id': targetPartnerId,
           'name': contactName,
           'image': contactImage,
-          'is_business': contactBusiness != null,
-          'business_id': contactBusiness?['id'],
+          'is_business': targetIsBusiness,
+          'business_id': targetIsBusiness ? targetPartnerId : null,
         };
 
         // Get Last Message
@@ -256,10 +279,6 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
             .order('created_at', ascending: false)
             .limit(1)
             .maybeSingle();
-
-        print(
-          'ChatProvider: Processing conv ${conv['id']}. ContactName: $contactName',
-        );
 
         conversations.add(
           ChatConversation(
@@ -674,67 +693,99 @@ class ChatNotifier extends AsyncNotifier<List<ChatConversation>> {
       if (res is Map && res.containsKey('id')) return res['id'];
       if (res is List && res.isNotEmpty) return res[0]['id'];
 
-      // Fallback
-      return res;
+      // Fallback: Direct Insert if RPC fails or returns null
+      // This is crucial for "Client to Client" if the RPC does not support it explicitly.
+      print(
+        'ChatProvider: RPC returned null or failed. Attempting direct insert fallback.',
+      );
+
+      final newConv = await _supabase
+          .from('conversations')
+          .insert({
+            'business1': business1,
+            'business2': business2,
+            'client1': client1,
+            'client2': client2,
+            'created_at': DateTime.now().toIso8601String(),
+            // Add default values to prevent constraints errors if columns are not nullable
+          })
+          .select()
+          .single();
+
+      return newConv['id'];
     } catch (e) {
-      print('Error creating conversation: $e');
-      // If RPC fails (e.g. missing), try fallback insert with minimal defaults?
-      // But we know manual insert failed on client2 constraint.
-      // Try insert with explicit 0s or empty strings?
-      // Only as last resort.
+      print('Error creating conversation (Fallback): $e');
       return null;
     }
   }
 
   // Search Users
-  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+  Future<List<Map<String, dynamic>>> searchUsers(
+    String query, {
+    String filter = 'all', // 'all', 'client', 'business'
+  }) async {
     if (query.isEmpty) return [];
 
     try {
-      // Search Clients
-      final clients = await _supabase
-          .from('client')
-          .select('id, first_name, last_name, photo_id, profile_url')
-          .ilike('first_name', '%$query%') // or last_name
-          .limit(10);
-
-      // Search Businesses
-      final businesses = await _supabase
-          .from('business')
-          .select('id, name, profile_image')
-          .ilike('name', '%$query%')
-          .limit(10);
-
       final results = <Map<String, dynamic>>[];
 
-      for (var c in clients) {
-        results.add({
-          'id': c['id'],
-          'name': '${c['first_name']} ${c['last_name'] ?? ''}',
-          'image': c['photo_id'] ?? c['profile_url'],
-          'is_business': false,
-        });
+      // Search Clients
+      if (filter == 'all' || filter == 'client') {
+        final clients = await _supabase
+            .from('client')
+            .select('id, first_name, last_name, photo_id, profile_url')
+            .ilike('first_name', '%$query%') // or last_name
+            .limit(10);
+
+        for (var c in clients) {
+          // Resolve Client Image
+          String? img = c['photo_id'] ?? c['profile_url'];
+
+          if (img != null && img.isNotEmpty && !img.startsWith('http')) {
+            String path = img;
+            if (!path.contains('/')) {
+              path = '${c['id']}/$path';
+            } else if (path.startsWith('/')) {
+              path = path.substring(1);
+            }
+            img = _supabase.storage.from('client').getPublicUrl(path);
+          }
+
+          results.add({
+            'id': c['id'],
+            'name': '${c['first_name']} ${c['last_name'] ?? ''}',
+            'image': img,
+            'is_business': false,
+          });
+        }
       }
 
-      for (var b in businesses) {
-        // Resolve Image (Same logic as in ProfileRepo/ChatProvider)
-        String? img = b['profile_image'];
-        if (img != null && !img.startsWith('http')) {
-          // We'll trust the view to handle it or resolve it here?
-          // Better to resolve it here for NewChatPage
-          String bPid = img;
-          if (!bPid.contains('/')) {
-            bPid = '${b['id']}/$bPid';
-          }
-          img = _supabase.storage.from('business').getPublicUrl(bPid);
-        }
+      // Search Businesses
+      if (filter == 'all' || filter == 'business') {
+        final businesses = await _supabase
+            .from('business')
+            .select('id, name, profile_image')
+            .ilike('name', '%$query%')
+            .limit(10);
 
-        results.add({
-          'id': b['id'],
-          'name': b['name'],
-          'image': img,
-          'is_business': true,
-        });
+        for (var b in businesses) {
+          // Resolve Image (Same logic as in ProfileRepo/ChatProvider)
+          String? img = b['profile_image'];
+          if (img != null && !img.startsWith('http')) {
+            String bPid = img;
+            if (!bPid.contains('/')) {
+              bPid = '${b['id']}/$bPid';
+            }
+            img = _supabase.storage.from('business').getPublicUrl(bPid);
+          }
+
+          results.add({
+            'id': b['id'],
+            'name': b['name'],
+            'image': img,
+            'is_business': true,
+          });
+        }
       }
 
       return results;

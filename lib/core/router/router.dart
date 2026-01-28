@@ -23,6 +23,7 @@ import '../../features/client/client_page.dart';
 import '../../features/client/create_request_page.dart';
 import '../../features/client/client_booking_service.dart';
 import '../../features/client/client_dashboard_requests.dart';
+import '../../features/client/client_dashboard_bookmarks.dart';
 import '../../features/client/client_dashboard_support.dart'; // Added ClientDashboardSupport
 import '../../features/client/client_dashboard_chat.dart';
 import '../../features/client/client_dashboard_post.dart';
@@ -59,9 +60,12 @@ import '../../features/office/widgets/stripe_success_page.dart';
 // Providers for Redirection Logic
 import '../providers/user_mode_provider.dart';
 import '../../features/settings/providers/profile_provider.dart';
+import '../../features/shared/pages/booking_details_page.dart';
+import '../../features/client/pages/business_public_profile_page.dart';
 
 // Global Key for Root Navigator (to cover shell)
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+bool _isFirstLoad = true; // Track initial app load
 
 final routerProvider = Provider<GoRouter>((ref) {
   // DO NOT watch providers here to avoid recreating GoRouter on every change.
@@ -75,6 +79,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       Supabase.instance.client.auth.onAuthStateChange,
     ),
     redirect: (context, state) {
+      // Force Home on Initial Load (Disable Deep Linking/Persistence on Reload)
+      if (_isFirstLoad) {
+        _isFirstLoad = false;
+        if (state.uri.toString() != '/') {
+          return '/';
+        }
+      }
+
       final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
       final isBusinessRoute = state.uri.toString().startsWith('/business');
       final isOfficeRoute = state.uri.toString().startsWith('/office');
@@ -147,7 +159,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final callId = state.pathParameters['id'] ?? '';
           final isCaller = state.uri.queryParameters['isCaller'] == 'true';
-          return CallPage(callId: callId, isCaller: isCaller);
+          // Default to true if not specified (or check explicit 'false')
+          final isVideo = state.uri.queryParameters['isVideo'] != 'false';
+          return CallPage(callId: callId, isCaller: isCaller, isVideo: isVideo);
         },
       ),
 
@@ -178,7 +192,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       // --- AUTHORIZED & GUEST (Unified Shell) ---
       ShellRoute(
         builder: (context, state, child) {
-          return BiometricAuthGuard(child: AppLayout(child: child));
+          return BiometricAuthGuard(
+            child: AppLayout(currentPath: state.uri.toString(), child: child),
+          );
         },
         routes: [
           // Unified Home Page (Handles both Guest and Auth views)
@@ -303,8 +319,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const ClientDashboardWallet(),
               ),
               GoRoute(
-                path: 'dashboard/booking',
+                path: 'dashboard/bookmarks',
+                builder: (context, state) {
+                  print('Navigating to Bookmarks');
+                  return const ClientDashboardBookmarks();
+                },
+              ),
+              GoRoute(
+                path: 'dashboard/booking', // Matches existing link
                 builder: (context, state) => const ClientDashboardBooking(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => BookingDetailsPage(
+                      bookingId: state.pathParameters['id'] ?? '',
+                      isClientView: true,
+                    ),
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'checkout',
@@ -320,6 +352,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 builder: (context, state) => const ClientPage(),
+              ),
+              GoRoute(
+                path: 'business/:id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return BusinessPublicProfilePage(businessId: id);
+                },
               ),
             ],
           ),
@@ -362,6 +401,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'leads',
                 builder: (context, state) => const BusinessDashboardLeads(),
+              ),
+              GoRoute(
+                path: 'bookings/:id',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => BookingDetailsPage(
+                  bookingId: state.pathParameters['id'] ?? '',
+                  isClientView: false,
+                ),
               ),
               // Wizard
               GoRoute(
