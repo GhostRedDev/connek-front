@@ -5,7 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/greg_provider.dart';
 
 class GregCard extends ConsumerWidget {
-  const GregCard({super.key});
+  final bool isActive;
+  const GregCard({super.key, this.isActive = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -132,11 +133,11 @@ class GregCard extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF249689), // Greenish teal
+                color: isActive ? const Color(0xFF249689) : Colors.red, // Greenish teal or Red
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Activo',
+                isActive ? 'Activo' : 'Inactivo',
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontSize: 12,

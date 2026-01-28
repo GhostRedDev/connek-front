@@ -242,6 +242,65 @@ class ApiService {
     }
   }
 
+  Future<dynamic> postForm(
+    String endpoint, {
+    Map<String, dynamic>? fields,
+    List<http.MultipartFile>? files,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final request = http.MultipartRequest('POST', url);
+      print('🚀 API POST Form: $url');
+      if (fields != null) print('📝 Fields: $fields');
+
+      final headers = await _getHeaders(isMultipart: true);
+      request.headers.addAll(headers);
+
+      if (fields != null) {
+        fields.forEach((key, value) {
+          if (value is List) {
+            for (var item in value) {
+              request.fields[key] = item.toString();
+            }
+          } else {
+            request.fields[key] = value.toString();
+          }
+        });
+      }
+
+      if (files != null) {
+        request.files.addAll(files);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API POST Form Error: $e');
+      throw Exception('API POST Form Error: $e');
+    }
+  }
+
+  Future<Uint8List> getBytes(String endpoint) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      print('🚀 API GET BYTES: $url');
+
+      final response = await http.get(url, headers: headers);
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.bodyBytes;
+      } else {
+         _processResponse(response); // Will throw exception
+         throw Exception('Failed to load bytes');
+      }
+    } catch (e) {
+      print('❌ API GET BYTES Error: $e');
+      throw Exception('API GET BYTES Error: $e');
+    }
+  }
+
   // Helper to process response
   dynamic _processResponse(http.Response response) {
     print('📥 Response [${response.statusCode}]: ${response.body}');
