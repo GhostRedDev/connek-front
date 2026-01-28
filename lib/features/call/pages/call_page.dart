@@ -8,8 +8,9 @@ import '../services/call_service.dart';
 class CallPage extends ConsumerStatefulWidget {
   final String callId;
   final bool isCaller; // True if starting call, False if answering
+  final bool isVideo;
 
-  const CallPage({super.key, required this.callId, required this.isCaller});
+  const CallPage({super.key, required this.callId, required this.isCaller, this.isVideo = true});
 
   @override
   ConsumerState<CallPage> createState() => _CallPageState();
