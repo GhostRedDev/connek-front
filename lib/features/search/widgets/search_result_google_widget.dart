@@ -125,6 +125,7 @@ class SearchResultGoogleWidget extends ConsumerWidget {
                         ],
                       )
                     )
+                  // UPDATED: Added check (&& searchState.query.isNotEmpty) to hide results if search bar is empty
                   else if (searchState.results.isNotEmpty && searchState.query.isNotEmpty)
                     Column(
                       mainAxisSize: MainAxisSize.max,
@@ -225,7 +226,7 @@ class SearchResultGoogleWidget extends ConsumerWidget {
         child: Row(
           children: [
             if (label == 'Google') ...[
-              // Custom Google G Style
+              // UPDATED: Replaced text/icon with official Google SVG Logo
               SvgPicture.asset(
                 'assets/images/google-logo-icon.svg',
                 width: 18,

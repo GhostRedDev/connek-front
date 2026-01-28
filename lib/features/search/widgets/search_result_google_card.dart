@@ -138,10 +138,10 @@ class SearchResultGoogleCard extends ConsumerWidget {
                         ),
                         child: Row(
                           children: [
-                          // Google Badge
+                          // UPDATED: Replaced Icon with Google SVG Logo
                           SvgPicture.asset(
                             'assets/images/google-logo-icon.svg',
-                            width: 20, // Adjusted size to match text height roughly 
+                            width: 20, 
                             height: 20,
                           ),
                           const SizedBox(width: 6),
