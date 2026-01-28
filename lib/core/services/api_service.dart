@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -9,9 +8,7 @@ final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
 class ApiService {
   // Base URL from previous findings
-  // Base URL from previous findings
   final String baseUrl = "https://connek-dev-aa5f5db19836.herokuapp.com";
-  // final String baseUrl = "http://127.0.0.1:8000"; // Localhost for verification
 
   ApiService();
 
@@ -45,62 +42,18 @@ class ApiService {
       print('🚀 API POST: $url');
       if (body != null) print('📦 Body: $body');
 
+      final encodedBody = body != null ? json.encode(body) : null;
+      if (encodedBody != null) print('📦 Encoded JSON Body: $encodedBody');
+
       final response = await http.post(
         url,
         headers: headers,
-        body: body != null ? json.encode(body) : null,
+        body: encodedBody,
       );
       return _processResponse(response);
     } catch (e) {
       print('❌ API POST Error: $e');
       throw Exception('API POST Error: $e');
-    }
-  }
-
-  Future<dynamic> postForm(
-    String endpoint, {
-    Map<String, dynamic>? fields,
-    List<http.MultipartFile>? files,
-  }) async {
-    try {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final request = http.MultipartRequest('POST', url);
-      print('🚀 API POST Form: $url');
-      if (fields != null) print('📝 Fields: $fields');
-
-      final headers = await _getHeaders(isMultipart: true);
-      request.headers.addAll(headers);
-
-      if (fields != null) {
-        fields.forEach((key, value) {
-          if (value is List) {
-            for (var item in value) {
-              request.fields[key] = item
-                  .toString(); // MultipartRequest doesn't support list directly, duplicates key? No, http package fields is Map<String, String>.
-              // Wait, http.MultipartRequest fields is Map<String, String>. It does NOT support multiple values for same key easily unless we manage the body manually or use package that supports it.
-              // However, the backend expects getlist for images, but for simple fields?
-              // Standard MultipartRequest overwrites keys.
-              // If we strictly need lists for fields, we might need a workaround or ensure backend parses stringified lists.
-              // Backend `resources_list` is `Form("[]")`, so it expects a JSON string.
-              // Backend for images uses `File`.
-              // For now, let's assume fields are simple strings or JSON strings.
-            }
-          } else {
-            request.fields[key] = value.toString();
-          }
-        });
-      }
-
-      if (files != null) {
-        request.files.addAll(files);
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      return _processResponse(response);
-    } catch (e) {
-      print('❌ API POST Form Error: $e');
-      throw Exception('API POST Form Error: $e');
     }
   }
 
@@ -123,18 +76,21 @@ class ApiService {
     }
   }
 
-  Future<dynamic> delete(String endpoint, {Map<String, dynamic>? body}) async {
+  Future<dynamic> postUrlEncoded(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
       final headers = await _getHeaders();
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
 
-      debugPrint('🚀 API PUT URL-Encoded: $url');
+      debugPrint('🚀 API POST URL-Encoded: $url');
       debugPrint('📦 Headers: $headers');
 
       // Build body string supporting repeated keys for lists
       final List<String> parts = [];
-      body?.forEach((key, value) {
+      body.forEach((key, value) {
         if (value is List) {
           for (var item in value) {
             parts.add(
@@ -148,24 +104,25 @@ class ApiService {
         }
       });
       final bodyString = parts.join('&');
-      debugPrint('📦 FINAL BODY SENT TO SERVER: $bodyString');
+      debugPrint('📦 FINAL BODY SENT TO SERVER (POST): $bodyString');
 
-      final response = await http.delete(
+      final response = await http.post(
         url,
         headers: headers,
-        body: bodyString.isNotEmpty ? bodyString : null,
+        body: bodyString,
+        encoding: Encoding.getByName('utf-8'),
       );
       return _processResponse(response);
     } catch (e) {
-      print('❌ API DELETE Error: $e');
-      throw Exception('API DELETE Error: $e');
+      print('❌ API POST URL-Encoded Error: $e');
+      throw Exception('API POST URL-Encoded Error: $e');
     }
   }
 
   Future<dynamic> putUrlEncoded(
-    String endpoint, {
-    Map<String, dynamic>? body,
-  }) async {
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
       final headers = await _getHeaders();
@@ -174,9 +131,9 @@ class ApiService {
       debugPrint('🚀 API PUT URL-Encoded: $url');
       debugPrint('📦 Headers: $headers');
 
-      // Build body string
+      // Build body string supporting repeated keys for lists
       final List<String> parts = [];
-      body?.forEach((key, value) {
+      body.forEach((key, value) {
         if (value is List) {
           for (var item in value) {
             parts.add(
@@ -195,7 +152,8 @@ class ApiService {
       final response = await http.put(
         url,
         headers: headers,
-        body: bodyString.isNotEmpty ? bodyString : null,
+        body: bodyString,
+        encoding: Encoding.getByName('utf-8'),
       );
       return _processResponse(response);
     } catch (e) {
@@ -204,46 +162,44 @@ class ApiService {
     }
   }
 
-  Future<Uint8List> getBytes(String endpoint) async {
+  Future<dynamic> delete(String endpoint, {Map<String, dynamic>? body}) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
       final headers = await _getHeaders();
-      print('🚀 API GET BYTES: $url');
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
 
-      final response = await http.get(url, headers: headers);
-      print(
-        '📥 Response [${response.statusCode}] Content-Type: ${response.headers['content-type']} BodyBytes: ${response.bodyBytes.length}',
-      );
+      debugPrint('🚀 API PUT URL-Encoded: $url');
+      debugPrint('📦 Headers: $headers');
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final contentType = response.headers['content-type'];
-        if (contentType != null && contentType.contains('application/json')) {
-          // It's likely an error message wrapped in JSON 200 OK or similar
-          try {
-            final decoded = json.decode(response.body);
-            print('⚠️ API returned JSON instead of bytes for $url: $decoded');
-            if (decoded is Map && decoded['success'] == false) {
-              throw Exception(
-                'API logical error: ${decoded['error'] ?? decoded['message']}',
+      // Build body string supporting repeated keys for lists
+      final List<String> parts = [];
+      if (body != null) {
+        body.forEach((key, value) {
+          if (value is List) {
+            for (var item in value) {
+              parts.add(
+                '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(item.toString())}',
               );
             }
-          } catch (_) {}
-        }
-        return response.bodyBytes;
-      } else {
-        // Try to parse error message from body if possible
-        try {
-          final decoded = json.decode(response.body);
-          throw Exception(
-            'API Error (${response.statusCode}): ${decoded['error'] ?? decoded['message']}',
-          );
-        } catch (_) {
-          throw Exception('API Error (${response.statusCode})');
-        }
+          } else if (value != null) {
+            parts.add(
+              '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(value.toString())}',
+            );
+          }
+        });
       }
+      final bodyString = parts.join('&');
+      debugPrint('📦 FINAL BODY SENT TO SERVER: $bodyString');
+
+      final response = await http.delete(
+        url,
+        headers: headers,
+        body: body != null ? json.encode(body) : null,
+      );
+      return _processResponse(response);
     } catch (e) {
-      print('❌ API GET BYTES Error: $e');
-      throw e; // Rethrow to let caller handle
+      print('❌ API DELETE Error: $e');
+      throw Exception('API DELETE Error: $e');
     }
   }
 
@@ -286,9 +242,74 @@ class ApiService {
     }
   }
 
+  Future<dynamic> postForm(
+    String endpoint, {
+    Map<String, dynamic>? fields,
+    List<http.MultipartFile>? files,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final request = http.MultipartRequest('POST', url);
+      print('🚀 API POST Form: $url');
+      if (fields != null) print('📝 Fields: $fields');
+
+      final headers = await _getHeaders(isMultipart: true);
+      request.headers.addAll(headers);
+
+      if (fields != null) {
+        fields.forEach((key, value) {
+          if (value is List) {
+            for (var item in value) {
+              request.fields[key] = item.toString();
+            }
+          } else {
+            request.fields[key] = value.toString();
+          }
+        });
+      }
+
+      if (files != null) {
+        request.files.addAll(files);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API POST Form Error: $e');
+      throw Exception('API POST Form Error: $e');
+    }
+  }
+
+  Future<Uint8List> getBytes(String endpoint) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      print('🚀 API GET BYTES: $url');
+
+      final response = await http.get(url, headers: headers);
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.bodyBytes;
+      } else {
+         _processResponse(response); // Will throw exception
+         throw Exception('Failed to load bytes');
+      }
+    } catch (e) {
+      print('❌ API GET BYTES Error: $e');
+      throw Exception('API GET BYTES Error: $e');
+    }
+  }
+
   // Helper to process response
   dynamic _processResponse(http.Response response) {
     print('📥 Response [${response.statusCode}]: ${response.body}');
+    
+    // Handle 503 Service Unavailable globally
+    if (response.statusCode == 503) {
+      throw Exception('Servicio no disponible momentáneamente. Por favor intenta más tarde.');
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       final decodedBody = response.body;
@@ -327,7 +348,7 @@ class ApiService {
       } catch (e) {
         print('⚠️ API Error Body is not valid JSON: $errorBody');
         throw Exception(
-          'API Error (${response.statusCode}): ${errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody}',
+          'API Error (${response.statusCode}): ${errorBody.length > 200 ? "${errorBody.substring(0, 200)}..." : errorBody}',
         );
       }
     }

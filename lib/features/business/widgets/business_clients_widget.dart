@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/business_provider.dart';
-import '../../chat/providers/chat_provider.dart';
 import '../../call/services/call_service.dart';
-import '../../social/user_profile_page.dart';
-import '../../social/models/contact_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/providers/locale_provider.dart';
 import 'business_client_sheet.dart'; // Added Import

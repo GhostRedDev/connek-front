@@ -107,7 +107,7 @@ class UserProfile {
       dob: dob ?? this.dob,
       businessProfileImage: businessProfileImage ?? this.businessProfileImage,
       businessName: businessName ?? this.businessName,
-      businessId: businessId ?? this.businessId,
+      businessId: businessId ?? businessId,
     );
   }
 }

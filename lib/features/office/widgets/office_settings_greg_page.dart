@@ -5,8 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/greg_provider.dart';
 import '../providers/office_provider.dart';
 import '../../../core/models/greg_model.dart';
+import 'package:intl/intl.dart';
 import '../../settings/providers/profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:video_player/video_player.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'office_menu_widget.dart';
 
 class OfficeSettingsGregPage extends ConsumerStatefulWidget {
@@ -23,17 +26,22 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
   late TextEditingController _blacklistController;
   bool _isLoading = true;
   bool _isSwitchLoading = false;
+  bool _isSubscriptionLoading = false;
 
   // Local state for settings
   bool _isActive = true;
   String _conversationTone = 'friendly';
   List<String> _blacklist = [];
   bool _notifications = true;
+  bool _isSubscriptionActive = false;
+  bool _cancelAtPeriodEnd = false; // New state
+  String? _nextBillingDate; // Store locally for display
+  int? _businessId;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _blacklistController = TextEditingController();
 
     _tabController.addListener(() {
@@ -67,6 +75,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
 
       if (businessData != null) {
         final bId = businessData['id'] as int;
+        _businessId = bId; // Store locally
         debugPrint('📡 Settings Page: Loading Greg for businessId: $bId');
         await ref.read(gregProvider.notifier).loadGreg(bId);
 
@@ -96,9 +105,13 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
       _conversationTone = greg.conversationTone;
       _blacklist = List<String>.from(greg.blacklist);
       _notifications = greg.notifications;
+      _notifications = greg.notifications;
+      _isSubscriptionActive = greg.subscriptionActive;
+      _cancelAtPeriodEnd = greg.cancelAtPeriodEnd;
+      _nextBillingDate = greg.nextBillingDate;
     });
     debugPrint(
-      '📝 Fields populated: Tone=$_conversationTone, Blacklist=$_blacklist',
+      '📝 Fields populated: SubActive=$_isSubscriptionActive, Tone=$_conversationTone',
     );
   }
 
@@ -230,6 +243,166 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
     }
   }
 
+  Future<void> _activateSubscription() async {
+    int? businessId;
+
+    final currentState = ref.read(gregProvider);
+    if (currentState is GregLoaded) {
+      businessId = currentState.greg.businessId;
+    } else {
+      businessId = _businessId; // Fallback to locally stored ID
+    }
+
+    if (businessId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se pudo identificar el negocio.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    debugPrint('🔘 UI: Activate Subscription Clicked. BusinessID: $businessId');
+    setState(() => _isSubscriptionLoading = true);
+
+    try {
+      final redirectUrl = await ref
+          .read(gregServiceProvider)
+          .activateSubscription(businessId: businessId);
+
+      debugPrint('🔗 UI: Received Redirect URL: $redirectUrl');
+
+      if (redirectUrl != null && redirectUrl.isNotEmpty) {
+        final uri = Uri.parse(redirectUrl);
+        debugPrint('🚀 UI: Attempting to launch URL: $uri');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          debugPrint('✅ UI: URL Launched');
+        } else {
+          debugPrint('❌ UI: Cannot launch URL');
+          throw 'No se pudo abrir la URL: $redirectUrl';
+        }
+      } else {
+        throw 'No se recibió URL de redirección';
+      }
+    } catch (e) {
+      debugPrint('❌ UI: Error activating: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al iniciar suscripción: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubscriptionLoading = false);
+    }
+  }
+
+  Future<void> _confirmCancelSubscription(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E2429),
+          title: Text(
+            '¿Estás seguro de suspender esta suscripción?',
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Tu suscripción permanecerá activa hasta el final del periodo de facturación actual. No se te volverá a cobrar.',
+            style: GoogleFonts.inter(color: Colors.grey),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Close modal
+              child: Text('No', style: GoogleFonts.inter(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close modal first
+                _handleCancelSubscription(); // Proceed
+              },
+              child: Text(
+                'Sí, suspender',
+                style: GoogleFonts.inter(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleCancelSubscription() async {
+    int? businessId;
+    final currentState = ref.read(gregProvider);
+    if (currentState is GregLoaded) {
+      businessId = currentState.greg.businessId;
+    } else {
+      businessId = _businessId;
+    }
+
+    if (businessId == null) return;
+
+    setState(() => _isSubscriptionLoading = true);
+
+    try {
+      final success = await ref
+          .read(gregServiceProvider)
+          .cancelSubscription(businessId: businessId);
+
+      if (success) {
+        // Refresh data to reflect status
+        await ref.read(gregProvider.notifier).loadGreg(businessId);
+
+        // Update local state with new data
+        final newState = ref.read(gregProvider);
+        if (newState is GregLoaded) {
+          _populateFields(newState.greg);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Suscripción suspendida correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw 'La API devolvió éxito falso';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al suspender: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubscriptionLoading = false);
+    }
+  }
+
+  void _showVideoPlayer(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          const _VideoPlayerDialog(assetPath: 'assets/videos/greg-bot.mp4'),
+    );
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -344,7 +517,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
   }
 
   Widget _buildTabBar() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: TabBar(
         controller: _tabController,
@@ -365,6 +538,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
           _buildTabItem(Icons.chat_bubble_outline, 'Conversación'),
           _buildTabItem(Icons.sync_outlined, 'Integraciones'),
           _buildTabItem(Icons.notifications_none_outlined, 'Notificaciones'),
+          _buildTabItem(Icons.credit_card_outlined, 'Suscripción'),
         ],
       ),
     );
@@ -396,6 +570,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
           if (_tabController.index == 1) _buildConversationTab(),
           if (_tabController.index == 2) _buildIntegrationsTab(),
           if (_tabController.index == 3) _buildNotificationsTab(),
+          if (_tabController.index == 4) _buildSubscriptionManagementTab(),
         ],
       ),
     );
@@ -462,17 +637,20 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                             ),
                             Align(
                               alignment: Alignment.bottomLeft,
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: Colors.white10,
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                child: const Icon(
-                                  Icons.play_circle_outline,
-                                  color: Colors.white,
-                                  size: 28,
+                              child: GestureDetector(
+                                onTap: () => _showVideoPlayer(context),
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white10,
+                                    borderRadius: BorderRadius.circular(100),
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_circle_outline,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                             ),
@@ -564,7 +742,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                               Switch(
                                 value: _isActive,
                                 onChanged: _toggleActivation,
-                                activeColor: const Color(0xFF249689),
+                                activeThumbColor: const Color(0xFF249689),
                                 activeTrackColor: const Color(
                                   0xFF249689,
                                 ).withOpacity(0.3),
@@ -588,8 +766,183 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
               ],
             ),
           ),
+          const SizedBox(height: 25),
+          // Subscription & Training Logic
+          Consumer(
+            builder: (context, ref, child) {
+              final gregState = ref.watch(gregProvider);
+              // Strict check: Only true if backend says so
+              final isSubscribed =
+                  gregState is GregLoaded && gregState.greg.subscriptionActive;
+              final greg = gregState is GregLoaded
+                  ? gregState.greg
+                  : GregModel(id: 0); // Fallback
+
+              return Column(
+                children: [
+                  // Subscription Info Card (Only if Subscribed)
+                  if (isSubscribed)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E2429),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF249689).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                color: Color(0xFF249689),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Información de Suscripción',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _buildSubInfoRow(
+                            'Plan',
+                            greg.subscriptionPlan != null &&
+                                    greg.subscriptionPlan!.isNotEmpty
+                                ? greg.subscriptionPlan!
+                                : 'Greg Asistente (Mensual)',
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSubInfoRow(
+                            'Costo',
+                            '${greg.subscriptionPrice == 0 ? "15.00" : greg.subscriptionPrice.toStringAsFixed(2)} ${greg.subscriptionCurrency} / mes',
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSubInfoRow(
+                            'Activo',
+                            'Estado',
+                            valueColor: const Color(0xFF249689),
+                            icon: Icons.check_circle,
+                          ),
+                          const SizedBox(height: 12),
+                          Builder(
+                            builder: (context) {
+                              String formattedDate = 'Próximamente';
+                              if (greg.nextBillingDate != null) {
+                                try {
+                                  final date = DateTime.parse(
+                                    greg.nextBillingDate!,
+                                  );
+                                  formattedDate = DateFormat(
+                                    'dd MMM yyyy',
+                                    'es',
+                                  ).format(date);
+                                } catch (e) {
+                                  formattedDate = greg.nextBillingDate!;
+                                }
+                              }
+                              return _buildSubInfoRow(
+                                'Próxima Facturación',
+                                formattedDate,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (isSubscribed) {
+                          context.push('/office/train-greg');
+                        } else {
+                          // Only allow activation if NOT subscribed
+                          if (!_isSubscriptionLoading) {
+                            _activateSubscription();
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4B39EF),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isSubscriptionLoading && !isSubscribed
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              isSubscribed
+                                  ? 'Entrenar a Greg'
+                                  : 'Activar Suscripción',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSubInfoRow(
+    String label,
+    String value, {
+    Color? valueColor,
+    IconData? icon,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+        ),
+        Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: valueColor ?? Colors.white, size: 16),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              value,
+              style: GoogleFonts.inter(
+                color: valueColor ?? Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -959,7 +1312,7 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                           Switch(
                             value: true, // Hardcoded as per image for now
                             onChanged: (v) {},
-                            activeColor: const Color(0xFF4B39EF),
+                            activeThumbColor: const Color(0xFF4B39EF),
                             activeTrackColor: const Color(
                               0xFF4B39EF,
                             ).withOpacity(0.3),
@@ -1036,13 +1389,165 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
                     ),
                     value: _notifications,
                     onChanged: _isSwitchLoading ? null : _toggleNotifications,
-                    activeColor: const Color(0xFF4B39EF),
+                    activeThumbColor: const Color(0xFF4B39EF),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionManagementTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          if (!_isSubscriptionActive)
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2429),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.credit_card_off,
+                    color: Colors.grey,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No tienes una suscripción activa',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Activa Greg para acceder a todas sus funciones.',
+                    style: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else if (_cancelAtPeriodEnd)
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2429),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.amber),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Cancelación Programada',
+                        style: GoogleFonts.outfit(
+                          color: Colors.amber,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Builder(
+                    builder: (context) {
+                      String dateStr =
+                          _nextBillingDate ?? 'el final del periodo';
+                      try {
+                        if (_nextBillingDate != null) {
+                          final date = DateTime.parse(_nextBillingDate!);
+                          dateStr = DateFormat(
+                            'dd MMM yyyy',
+                            'es_ES',
+                          ).format(date);
+                        }
+                      } catch (e) {
+                        debugPrint('Date Format Error in Tab: $e');
+                      }
+                      return Text(
+                        'Tu suscripción se cancelará automáticamente el $dateStr. Hasta entonces, seguirás teniendo acceso.',
+                        style: GoogleFonts.inter(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2429),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Suspender suscripción:',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isSubscriptionLoading
+                          ? null
+                          : () => _confirmCancelSubscription(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isSubscriptionLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Suspender suscripción',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -1072,6 +1577,129 @@ class _OfficeSettingsGregPageState extends ConsumerState<OfficeSettingsGregPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _VideoPlayerDialog extends StatefulWidget {
+  final String assetPath;
+  const _VideoPlayerDialog({required this.assetPath});
+
+  @override
+  _VideoPlayerDialogState createState() => _VideoPlayerDialogState();
+}
+
+class _VideoPlayerDialogState extends State<_VideoPlayerDialog> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use .asset for all platforms, the plugin handles web path resolution
+    _controller = VideoPlayerController.asset(widget.assetPath);
+
+    _controller
+        .initialize()
+        .then((_) {
+          if (mounted) {
+            setState(() => _initialized = true);
+            _controller.play();
+            _controller.setLooping(true);
+          }
+        })
+        .catchError((e) {
+          if (mounted) {
+            setState(() => _error = e.toString());
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.black,
+      insetPadding: const EdgeInsets.all(10),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Error al cargar video: $_error',
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else if (_initialized)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: VideoPlayer(_controller),
+                  ),
+                ),
+                VideoProgressIndicator(
+                  _controller,
+                  allowScrubbing: true,
+                  colors: const VideoProgressColors(
+                    playedColor: Color(0xFF4B39EF),
+                    bufferedColor: Colors.white24,
+                    backgroundColor: Colors.white10,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        _controller.value.isPlaying
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _controller.value.isPlaying
+                              ? _controller.pause()
+                              : _controller.play();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4B39EF)),
+            ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

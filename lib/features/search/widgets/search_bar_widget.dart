@@ -3,12 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 class SearchBarWidget extends StatefulWidget {
   final Function(String) onSubmitted;
+  final Function(String)? onChanged;
   final String? initialValue;
   final String? hintText;
 
   const SearchBarWidget({
     super.key,
     required this.onSubmitted,
+    this.onChanged,
     this.initialValue,
     this.hintText,
   });
@@ -47,6 +49,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           focusNode: _focusNode,
           onFieldSubmitted: (val) {
             widget.onSubmitted(val);
+          },
+          onChanged: (val) {
+             if(widget.onChanged != null) widget.onChanged!(val);
           },
           autofocus: false,
           enabled: true,

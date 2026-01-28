@@ -2,7 +2,8 @@ import 'dart:convert';
 
 class GregModel {
   final int id;
-  final String cancellations; // Renamed from cancellationPolicy
+  final int businessId; // Added back
+  final String cancellations;
   final bool allowRescheduling;
   final bool cancellationMotive;
   final List<String> procedures;
@@ -16,6 +17,7 @@ class GregModel {
   final String? refundPolicyDetails;
   final int escalationTimeMinutes;
   final List<String> cancellationDocuments;
+  final List<String> blacklist; // Added back
   final List<Map<String, String>> excludedPhones;
   final List<Map<String, String>> library;
   final String conversationTone;
@@ -27,12 +29,16 @@ class GregModel {
   final bool askForConsent;
   final String? informationNotToShare;
   final List<Map<String, String>>? customPolicies;
-
-  final int businessId;
-  final List<String> blacklist;
+  final String? nextBillingDate; // New field from backend
+  final bool subscriptionActive;
+  final String? subscriptionPlan;
+  final double subscriptionPrice;
+  final String subscriptionCurrency;
+  final bool cancelAtPeriodEnd;
 
   GregModel({
     required this.id,
+    this.businessId = 0,
     this.cancellations = '',
     this.allowRescheduling = false,
     this.cancellationMotive = false,
@@ -47,6 +53,7 @@ class GregModel {
     this.refundPolicyDetails,
     this.escalationTimeMinutes = 0,
     this.cancellationDocuments = const [],
+    this.blacklist = const [],
     this.excludedPhones = const [],
     this.library = const [],
     this.conversationTone = 'friendly',
@@ -56,8 +63,12 @@ class GregModel {
     this.askForConsent = false,
     this.informationNotToShare,
     this.customPolicies,
-    this.businessId = 0,
-    this.blacklist = const [],
+    this.nextBillingDate,
+    this.subscriptionActive = false,
+    this.subscriptionPlan,
+    this.subscriptionPrice = 0.0,
+    this.subscriptionCurrency = 'USD',
+    this.cancelAtPeriodEnd = false,
   });
 
   static List<T> _parseList<T>(
@@ -90,6 +101,12 @@ class GregModel {
   }
 
   factory GregModel.fromJson(Map<String, dynamic> map) {
+    // Debug print to verify backend response
+    print('🔍 GregModel JSON RAW: $map');
+    print(
+      '🔍 GregModel SubActiveRaw: ${map['subscription_active']} (Type: ${map['subscription_active'].runtimeType})',
+    );
+
     return GregModel(
       id: map['id'] as int? ?? 0,
       businessId: map['business_id'] as int? ?? 0,
@@ -148,12 +165,19 @@ class GregModel {
         }
         return {};
       }),
+      nextBillingDate: map['next_billing_date'] as String?,
+      subscriptionActive: map['subscription_active'] as bool? ?? false,
+      subscriptionPlan: map['subscription_plan'] as String?,
+      subscriptionPrice: (map['subscription_price'] as num? ?? 0.0).toDouble(),
+      subscriptionCurrency: map['subscription_currency'] as String? ?? 'USD',
+      cancelAtPeriodEnd: map['cancel_at_period_end'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'cancellations': cancellations,
+      'business_id': businessId,
       'allow_rescheduling': allowRescheduling,
       'cancellation_motive': cancellationMotive,
       'procedures': procedures,
@@ -167,7 +191,8 @@ class GregModel {
       'refund_policy_details': refundPolicyDetails,
       'escalation_time_minutes': escalationTimeMinutes,
       'cancellation_documents': cancellationDocuments,
-      'blacklist': blacklist, // Fixed: was excludedPhones
+      'blacklist': blacklist,
+      'excluded_phones': excludedPhones,
       'library': library,
       'conversation_tone': conversationTone,
       'notifications': notifications,
@@ -176,11 +201,17 @@ class GregModel {
       'ask_for_consent': askForConsent,
       'information_not_to_share': informationNotToShare,
       'custom_policies': customPolicies,
-      'business_id': businessId,
+      'next_billing_date': nextBillingDate,
+      'subscription_active': subscriptionActive,
+      'subscription_plan': subscriptionPlan,
+      'subscription_price': subscriptionPrice,
+      'subscription_currency': subscriptionCurrency,
+      'cancel_at_period_end': cancelAtPeriodEnd,
     };
   }
 
   GregModel copyWith({
+    int? businessId,
     String? cancellations,
     bool? allowRescheduling,
     bool? cancellationMotive,
@@ -195,8 +226,9 @@ class GregModel {
     String? refundPolicyDetails,
     int? escalationTimeMinutes,
     List<String>? cancellationDocuments,
-    List<Map<String, String>>? excludedPhones,
-    List<Map<String, String>>? library,
+    List<String>? blacklist,
+    List<Map<String, String>?>? excludedPhones,
+    List<Map<String, String>?>? library,
     String? conversationTone,
     bool? notifications,
     bool? active,
@@ -204,11 +236,16 @@ class GregModel {
     bool? askForConsent,
     String? informationNotToShare,
     List<Map<String, String>>? customPolicies,
-    int? businessId,
-    List<String>? blacklist,
+    String? nextBillingDate,
+    bool? subscriptionActive,
+    String? subscriptionPlan,
+    double? subscriptionPrice,
+    String? subscriptionCurrency,
+    bool? cancelAtPeriodEnd,
   }) {
     return GregModel(
       id: id,
+      businessId: businessId ?? this.businessId,
       cancellations: cancellations ?? this.cancellations,
       allowRescheduling: allowRescheduling ?? this.allowRescheduling,
       cancellationMotive: cancellationMotive ?? this.cancellationMotive,
@@ -227,8 +264,10 @@ class GregModel {
           escalationTimeMinutes ?? this.escalationTimeMinutes,
       cancellationDocuments:
           cancellationDocuments ?? this.cancellationDocuments,
-      excludedPhones: excludedPhones ?? this.excludedPhones,
-      library: library ?? this.library,
+      blacklist: blacklist ?? this.blacklist,
+      excludedPhones:
+          excludedPhones?.map((e) => e ?? {}).toList() ?? this.excludedPhones,
+      library: library?.map((e) => e ?? {}).toList() ?? this.library,
       conversationTone: conversationTone ?? this.conversationTone,
       notifications: notifications ?? this.notifications,
       active: active ?? this.active,
@@ -237,8 +276,12 @@ class GregModel {
       informationNotToShare:
           informationNotToShare ?? this.informationNotToShare,
       customPolicies: customPolicies ?? this.customPolicies,
-      businessId: businessId ?? this.businessId,
-      blacklist: blacklist ?? this.blacklist,
+      nextBillingDate: nextBillingDate ?? this.nextBillingDate,
+      subscriptionActive: subscriptionActive ?? this.subscriptionActive,
+      subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
+      subscriptionPrice: subscriptionPrice ?? this.subscriptionPrice,
+      subscriptionCurrency: subscriptionCurrency ?? this.subscriptionCurrency,
+      cancelAtPeriodEnd: cancelAtPeriodEnd ?? this.cancelAtPeriodEnd,
     );
   }
 }
