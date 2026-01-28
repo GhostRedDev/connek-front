@@ -523,7 +523,7 @@ class BusinessRepository {
       return null;
     } catch (e) {
       print('Error creating business: $e');
-      throw e;
+      rethrow;
     }
   }
 

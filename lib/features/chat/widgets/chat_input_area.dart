@@ -1,12 +1,10 @@
 import 'dart:async';
-// import 'dart:io';
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../../core/providers/locale_provider.dart';
 
@@ -71,7 +69,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea>
       if (await _audioRecorder.hasPermission()) {
         String path = '';
         if (!kIsWeb) {
-          final dynamic dir = await getTemporaryDirectory();
+          final dir = await getTemporaryDirectory();
           path =
               '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
         }

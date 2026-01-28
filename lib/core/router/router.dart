@@ -52,7 +52,10 @@ import '../../features/business/wizard/create_business_step_7.dart';
 import '../../features/business/wizard/create_business_step_8.dart';
 import '../../features/office/office_page.dart';
 import '../../features/office/widgets/office_train_greg_page.dart';
+
 import '../../features/office/widgets/office_settings_greg_page.dart';
+import '../../features/office/widgets/greg_test_chat_page.dart';
+import '../../features/office/widgets/stripe_success_page.dart';
 
 // Providers for Redirection Logic
 import '../providers/user_mode_provider.dart';
@@ -87,6 +90,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
       final isBusinessRoute = state.uri.toString().startsWith('/business');
       final isOfficeRoute = state.uri.toString().startsWith('/office');
+
+      // 0. Deep Link Handling for Stripe Success
+      // When opened via io.supabase.connek://stripe-success, the host is 'stripe-success'
+      if (state.uri.scheme == 'io.supabase.connek' &&
+          state.uri.host == 'stripe-success') {
+        return '/stripe-success';
+      }
 
       // Access current state via ref.read
       final userMode = ref.read(userModeProvider);
@@ -160,6 +170,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/chats/new',
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const NewChatPage(),
+      ),
+
+      GoRoute(
+        path: '/test-greg/:businessId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final businessId =
+              int.tryParse(state.pathParameters['businessId'] ?? '') ?? 0;
+          return GregTestChatPage(businessId: businessId);
+        },
+      ),
+
+      // Stripe Success Deep Link
+      GoRoute(
+        path: '/stripe-success',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const StripeSuccessPage(),
       ),
 
       // --- AUTHORIZED & GUEST (Unified Shell) ---

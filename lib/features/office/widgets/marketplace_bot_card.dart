@@ -10,6 +10,8 @@ class MarketplaceBotCard extends StatelessWidget {
   final int userCount;
   final String price;
   final List<String> tags;
+  final String actionLabel;
+  final VoidCallback? onAction;
 
   const MarketplaceBotCard({
     super.key,
@@ -21,6 +23,8 @@ class MarketplaceBotCard extends StatelessWidget {
     this.userCount = 5400,
     this.price = '\$0',
     this.tags = const ['Respuesta instantánea', '24/7', 'Multi-idioma'],
+    this.actionLabel = 'Contratar',
+    this.onAction,
   });
 
   @override
@@ -191,9 +195,7 @@ class MarketplaceBotCard extends StatelessWidget {
 
               // Action Button
               ElevatedButton(
-                onPressed: () {
-                  // TODO: Implement hire action
-                },
+                onPressed: onAction,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4285F4), // Light Blue
                   foregroundColor: Colors.white,
@@ -208,7 +210,7 @@ class MarketplaceBotCard extends StatelessWidget {
                   elevation: 4,
                 ),
                 child: Text(
-                  'Contratar',
+                  actionLabel,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

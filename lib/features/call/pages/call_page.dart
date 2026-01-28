@@ -8,14 +8,8 @@ import '../services/call_service.dart';
 class CallPage extends ConsumerStatefulWidget {
   final String callId;
   final bool isCaller; // True if starting call, False if answering
-  final bool isVideo; // New flag for Audio vs Video
 
-  const CallPage({
-    super.key,
-    required this.callId,
-    required this.isCaller,
-    this.isVideo = true, // Default to true for backward compatibility
-  });
+  const CallPage({super.key, required this.callId, required this.isCaller});
 
   @override
   ConsumerState<CallPage> createState() => _CallPageState();
@@ -28,12 +22,11 @@ class _CallPageState extends ConsumerState<CallPage> {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
   bool _micMuted = false;
-  late bool _cameraOff; // Initialize based on isVideo
+  bool _cameraOff = false;
 
   @override
   void initState() {
     super.initState();
-    _cameraOff = !widget.isVideo; // If audio call, camera starts OFF
     _initRenderers();
   }
 
@@ -50,15 +43,9 @@ class _CallPageState extends ConsumerState<CallPage> {
       onHangUp: _handleRemoteHangUp, // Handle remote hangup
     );
 
+    _callService.connect(widget.callId);
+
     await _setupPeerConnection();
-
-    // Connect to signaling channel AFTER PeerConnection is ready
-    await _callService.connect(widget.callId);
-
-    if (widget.isCaller) {
-      // Create Offer ONLY after signaling is connected
-      await _createOffer();
-    }
   }
 
   Future<void> _setupPeerConnection() async {
@@ -81,17 +68,17 @@ class _CallPageState extends ConsumerState<CallPage> {
     };
 
     _peerConnection!.onTrack = (event) {
-      if (event.streams.isNotEmpty && mounted) {
-        safeSetState(() {
+      if (event.streams.isNotEmpty) {
+        setState(() {
           _remoteRenderer.srcObject = event.streams[0];
         });
       }
     };
 
-    // Get User Media - DIFFERENTIATE AUDIO/VIDEO
+    // Get User Media
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
-      'video': widget.isVideo ? {'facingMode': 'user'} : false,
+      'video': {'facingMode': 'user'},
     };
 
     _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
@@ -100,12 +87,15 @@ class _CallPageState extends ConsumerState<CallPage> {
     _localStream!.getTracks().forEach((track) {
       _peerConnection!.addTrack(track, _localStream!);
     });
+
+    if (widget.isCaller) {
+      await _createOffer();
+    }
   }
 
   Timer? _offerRetryTimer;
 
   Future<void> _createOffer() async {
-    if (_peerConnection == null) return;
     RTCSessionDescription offer = await _peerConnection!.createOffer();
     await _peerConnection!.setLocalDescription(offer);
 
@@ -133,9 +123,9 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   Future<void> _handleOffer(dynamic offerData) async {
-    if (_peerConnection == null) return;
-    if (widget.isCaller)
+    if (widget.isCaller) {
       return; // Caller ignores offers? Or race condition handling needed.
+    }
 
     await _peerConnection!.setRemoteDescription(
       RTCSessionDescription(offerData['sdp'], offerData['type']),
@@ -151,14 +141,12 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   Future<void> _handleAnswer(dynamic answerData) async {
-    if (_peerConnection == null) return;
     await _peerConnection!.setRemoteDescription(
       RTCSessionDescription(answerData['sdp'], answerData['type']),
     );
   }
 
   Future<void> _handleIceCandidate(dynamic candidateData) async {
-    if (_peerConnection == null) return;
     await _peerConnection!.addCandidate(
       RTCIceCandidate(
         candidateData['candidate'],
@@ -196,9 +184,6 @@ class _CallPageState extends ConsumerState<CallPage> {
   }
 
   void _toggleCamera() {
-    // Only allow toggling if it's a Video call. Audio-only calls shouldn't enable camera randomly.
-    if (!widget.isVideo) return;
-
     setState(() {
       _cameraOff = !_cameraOff;
     });
@@ -218,27 +203,13 @@ class _CallPageState extends ConsumerState<CallPage> {
   void dispose() {
     _offerRetryTimer?.cancel();
 
-    // Stop listening to events
-    try {
-      _callService.dispose();
-    } catch (_) {}
-
-    // Cleanup Renderers safely
-    _localRenderer.srcObject = null;
-    _remoteRenderer.srcObject = null;
-    // Delay disposal slightly to allow UI to unmount? No, standard verify.
+    // Dispose resources strictly here to avoid double-dispose race conditions
     _localRenderer.dispose();
     _remoteRenderer.dispose();
-
     _localStream?.dispose();
     _peerConnection?.dispose();
 
     super.dispose();
-  }
-
-  // Helper to safely setState
-  void safeSetState(VoidCallback fn) {
-    if (mounted) setState(fn);
   }
 
   @override
@@ -247,89 +218,40 @@ class _CallPageState extends ConsumerState<CallPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Remote Video (Full Screen) OR Avatar
-          widget.isVideo
-              ? Positioned.fill(
-                  child: RTCVideoView(
-                    _remoteRenderer,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                  ),
-                )
-              : Positioned.fill(
-                  child: Container(
-                    color: const Color(0xFF1A1A1A), // Dark grey background
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Avatar
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blueAccent.withOpacity(0.2),
-                              border: Border.all(
-                                color: Colors.blueAccent,
-                                width: 3,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.blueAccent.withOpacity(0.4),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            "En Llamada...",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+          // Remote Video (Full Screen)
+          Positioned.fill(
+            child: RTCVideoView(
+              _remoteRenderer,
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+            ),
+          ),
 
-          // Local Video (Small Overlay) - Only if Video enabled
-          if (widget.isVideo)
-            Positioned(
-              right: 20,
-              bottom: 140, // Above controls
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.blueAccent,
-                    width: 2,
-                  ), // Azul chiquito
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10), // Inner radius
-                  child: SizedBox(
-                    width: 100,
-                    height: 150,
-                    child: RTCVideoView(
-                      _localRenderer,
-                      mirror: true,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    ),
+          // Local Video (Small Overlay)
+          Positioned(
+            right: 20,
+            bottom: 140, // Above controls
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.blueAccent,
+                  width: 2,
+                ), // Azul chiquito
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10), // Inner radius
+                child: SizedBox(
+                  width: 100,
+                  height: 150,
+                  child: RTCVideoView(
+                    _localRenderer,
+                    mirror: true,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                   ),
                 ),
               ),
             ),
+          ),
 
           // Controls
           Positioned(
@@ -342,30 +264,27 @@ class _CallPageState extends ConsumerState<CallPage> {
                 FloatingActionButton(
                   heroTag: 'mic',
                   backgroundColor: _micMuted ? Colors.white : Colors.white24,
+                  onPressed: _toggleMic,
                   child: Icon(
                     _micMuted ? Icons.mic_off : Icons.mic,
                     color: _micMuted ? Colors.black : Colors.white,
                   ),
-                  onPressed: _toggleMic,
                 ),
                 FloatingActionButton(
                   heroTag: 'hangup',
                   backgroundColor: Colors.red,
-                  child: const Icon(Icons.call_end, color: Colors.white),
                   onPressed: _hangUp,
+                  child: const Icon(Icons.call_end, color: Colors.white),
                 ),
-
-                // Camera Toggle - Disabled/Hidden for Audio calls
-                if (widget.isVideo)
-                  FloatingActionButton(
-                    heroTag: 'camera',
-                    backgroundColor: _cameraOff ? Colors.white : Colors.white24,
-                    child: Icon(
-                      _cameraOff ? Icons.videocam_off : Icons.videocam,
-                      color: _cameraOff ? Colors.black : Colors.white,
-                    ),
-                    onPressed: _toggleCamera,
+                FloatingActionButton(
+                  heroTag: 'camera',
+                  backgroundColor: _cameraOff ? Colors.white : Colors.white24,
+                  onPressed: _toggleCamera,
+                  child: Icon(
+                    _cameraOff ? Icons.videocam_off : Icons.videocam,
+                    color: _cameraOff ? Colors.black : Colors.white,
                   ),
+                ),
               ],
             ),
           ),

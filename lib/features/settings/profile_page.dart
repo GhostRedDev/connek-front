@@ -1,4 +1,5 @@
-import 'dart:ui';
+// Add this for ImageFilter
+// Add this for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'widgets/profile_menu_widget.dart';
 import 'widgets/settings_view.dart';
 import 'providers/profile_provider.dart';
 import '../../../core/models/user_model.dart';
@@ -20,68 +22,106 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  String _currentTab = 'Profile'; // Profile, Media, Reviews, Settings
+  late ProfileSection _currentSection;
+  final bool _isEditing = false;
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
   late TextEditingController _nameController;
-  late TextEditingController
-  _descriptionController; // Combined name/bio? Image shows "Name" field having "Miguel Montilla..." clearly a full string.
-  // Actually image shows:
-  // Name: "Miguel Montilla - Especialista Hipotecario TD"
-  // Description: "Asesor hipotecario..."
-
+  late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
+  late TextEditingController _aboutController;
   late TextEditingController _emailController;
-  late TextEditingController _addressController;
 
   @override
   void initState() {
     super.initState();
+    // Initialize section based on param
     if (widget.initialTab == 'settings') {
-      _currentTab = 'Settings';
+      _currentSection = ProfileSection.settings;
+    } else {
+      _currentSection = ProfileSection.profile;
     }
 
     _nameController = TextEditingController();
-    _descriptionController = TextEditingController();
+    _lastNameController = TextEditingController();
     _phoneController = TextEditingController();
+    _aboutController = TextEditingController();
     _emailController = TextEditingController();
-    _addressController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
+    _aboutController.dispose();
     _emailController.dispose();
-    _addressController.dispose();
     super.dispose();
   }
 
   void _initializeControllers(UserProfile? user) {
     if (user == null) return;
+    // Always sync if controllers are empty or we want to ensure data is fresh on first load
+    // But don't overwrite if user is typing (which is why we usually check specific conditions or use key)
+    // Since we are rebuilding the form on every build if we don't manage state carefully,
+    // we should only set text if empty.
     if (_nameController.text.isEmpty) {
-      // Logic to format display name similar to image if possible
-      String displayName = "${user.firstName} ${user.lastName}".trim();
-      if (user.businessName != null && user.businessName!.isNotEmpty) {
-        displayName = "$displayName - ${user.businessName}";
-      }
-
-      _nameController.text = displayName;
-      _descriptionController.text = user.aboutMe ?? '';
+      _nameController.text = user.firstName;
+      _lastNameController.text = user.lastName;
       _phoneController.text = user.phone ?? '';
+      _aboutController.text = user.aboutMe ?? '';
       _emailController.text = user.email;
-      _addressController.text =
-          "Charallave, Miranda, Venezuela"; // Placeholder/Default
     }
   }
 
+  // Generic Image Picker
   Future<void> _pickImage(bool isBanner) async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isBanner ? "Change Banner" : "Change Profile Photo",
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _uploadIds(ImageSource.camera, isBanner);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _uploadIds(ImageSource.gallery, isBanner);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _uploadIds(ImageSource source, bool isBanner) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-    ); // Default to gallery for ease
+    final pickedFile = await picker.pickImage(source: source);
     if (pickedFile != null) {
       if (isBanner) {
         await ref.read(profileProvider.notifier).uploadBanner(pickedFile);
@@ -92,427 +132,498 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Future<void> _saveProfile() async {
-    // Basic logic to split name back if needed, or just save bio/phone
-    // Implementation of full save logic similar to before
+    if (!_formKey.currentState!.validate()) return;
+
     await ref
         .read(profileProvider.notifier)
         .updateProfile(
-          aboutMe: _descriptionController.text,
+          firstName: _nameController.text,
+          lastName: _lastNameController.text,
           phone: _phoneController.text,
-          // Name parsing is complex if we merged it.
-          // For now, let's assume we just update what we can.
+          aboutMe: _aboutController.text,
+          email: _emailController.text,
         );
+
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
     }
   }
 
+  // ... Build Method (Unchanged until content) ...
   @override
   Widget build(BuildContext context) {
-    // Dark Theme forced for this design as per image
-    final backgroundColor = const Color(0xFF131619);
-    final cardColor = const Color(0xFF1A1D21); // Slightly lighter
-    final textColor = Colors.white;
+    // (Keep existing build method structure, this replaces logic)
 
-    final profileAsync = ref.watch(profileProvider);
-
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(
-          child: Text('Error: $e', style: TextStyle(color: textColor)),
-        ),
-        data: (user) {
-          if (user == null) return const Center(child: Text("No user data"));
-          _initializeControllers(user);
-
-          return Stack(
-            children: [
-              // Content Scrollable
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 100),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // 1. Banner Area
-                      SizedBox(
-                        height: 280, // Height for banner + overlap
-                        child: Stack(
-                          children: [
-                            // Banner Image
-                            GestureDetector(
-                              onTap: () => _pickImage(true),
-                              child: Container(
-                                height: 200,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[800],
-                                  image:
-                                      (user.bannerUrl != null &&
-                                          user.bannerUrl!.isNotEmpty)
-                                      ? DecorationImage(
-                                          image: CachedNetworkImageProvider(
-                                            user.bannerUrl!,
-                                          ),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : const DecorationImage(
-                                          image: AssetImage(
-                                            'assets/images/bgNewB.png',
-                                          ), // Fallback
-                                          fit: BoxFit.cover,
-                                        ),
-                                ),
-                                // Camera Icon on Banner (Bottom Right)
-                                child: Stack(
-                                  children: [
-                                    Positioned(
-                                      bottom: 16,
-                                      right: 16,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.6),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.camera_alt,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            // Circular Avatar (Centered, overlapping)
-                            Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: GestureDetector(
-                                  onTap: () => _pickImage(false),
-                                  child: Container(
-                                    width: 120,
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: backgroundColor,
-                                        width: 4,
-                                      ),
-                                      image:
-                                          (user.photoId != null &&
-                                              user.photoId!.isNotEmpty)
-                                          ? DecorationImage(
-                                              image: CachedNetworkImageProvider(
-                                                user.photoId!,
-                                              ),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : const DecorationImage(
-                                              image: AssetImage(
-                                                'assets/images/Perfil.png',
-                                              ),
-                                              fit: BoxFit.cover,
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // 2. Tabs Row
-                      const SizedBox(height: 20),
-
-                      // 3. Information Content
-                      if (_currentTab == 'Profile') ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Información basica",
-                                style: GoogleFonts.inter(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: cardColor,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.white12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Name"),
-                                    const SizedBox(height: 8),
-                                    _buildDarkInput(_nameController),
-                                    const SizedBox(height: 16),
-                                    _buildLabel("Description"),
-                                    const SizedBox(height: 8),
-                                    _buildDarkInput(
-                                      _descriptionController,
-                                      maxLines: 4,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                "Información de contacto",
-                                style: GoogleFonts.inter(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: cardColor,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.white12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Phone number"),
-                                    const SizedBox(height: 8),
-                                    _buildDarkInput(
-                                      _phoneController,
-                                      icon: Icons.phone_outlined,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _buildLabel("Email"),
-                                    const SizedBox(height: 8),
-                                    _buildDarkInput(
-                                      _emailController,
-                                      icon: Icons.email_outlined,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _buildLabel("Dirección"),
-                                    const SizedBox(height: 8),
-                                    _buildDarkInput(
-                                      _addressController,
-                                      icon: Icons.location_on_outlined,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else if (_currentTab == 'Settings') ...[
-                        const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: SettingsView(),
-                        ),
-                      ] else ...[
-                        SizedBox(
-                          height: 300,
-                          child: Center(
-                            child: Text(
-                              "$_currentTab Coming Soon",
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Top Tab Bar (Floating/Fixed)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 90, // Include SafeArea top
-                  padding: const EdgeInsets.only(
-                    top: 40,
-                    left: 16,
-                    right: 16,
-                    bottom: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        backgroundColor.withOpacity(0.9),
-                        backgroundColor.withOpacity(0.0),
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Custom Tabs
-                      _buildTabItem("Profile", Icons.person),
-                      _buildTabItem("Media", Icons.image),
-                      _buildTabItem("Reviews", Icons.star),
-                      _buildTabItem("Settings", Icons.settings),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Bottom Action Bar
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Row(
-                  children: [
-                    // Share Button
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2C3138),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.share, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    // Visitar Perfil Button
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2C3138),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          "Visitar perfil",
-                          style: GoogleFonts.inter(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Actualizar Perfil Button
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _saveProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
-                        child: Text(
-                          "Actualizar perfil",
-                          style: GoogleFonts.inter(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTabItem(String label, IconData icon) {
-    final bool isActive = _currentTab == label;
     return GestureDetector(
-      onTap: () => setState(() => _currentTab = label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: isActive
-            ? BoxDecoration(
-                color: const Color(0xFF2C3138),
-                borderRadius: BorderRadius.circular(20),
-              )
-            : null,
-        child: Row(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
           children: [
-            Icon(icon, size: 16, color: isActive ? Colors.white : Colors.grey),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                color: isActive ? Colors.white : Colors.grey,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Theme.of(context).scaffoldBackgroundColor,
+            ),
+
+            // 1. Content (Now spans full height, with internal padding)
+            Positioned.fill(
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final profileState = ref.watch(profileProvider);
+                  return profileState.when(
+                    data: (user) {
+                      if (user == null) {
+                        return const Center(child: Text("Guest or Error"));
+                      }
+                      _initializeControllers(user);
+
+                      switch (_currentSection) {
+                        case ProfileSection.profile:
+                          // Pass padding to scroll view so it starts low but scrolls BEHIND header
+                          return _buildProfileContent(
+                            user,
+                            Theme.of(context).brightness == Brightness.dark,
+                            profileState.isLoading,
+                            topPadding: 170,
+                          );
+                        case ProfileSection.media:
+                          return const Center(
+                            child: Text("Media Gallery Coming Soon"),
+                          );
+                        case ProfileSection.reviews:
+                          return const Center(
+                            child: Text("Reviews Coming Soon"),
+                          );
+                        case ProfileSection.settings:
+                          // Note: SettingsView handles its own padding internally or via parent logic
+                          // Current parent passes topPadding=170 to _buildProfileContent,
+                          // but SettingsView is just a Widget.
+                          // We need to ensure it has the same top padding logic so it starts below the header?
+                          // ProfilePage passes topPadding 170 to _buildProfileContent which applies it.
+                          // SettingsView is NOT _buildProfileContent.
+                          // We should wrap SettingsView or allow it to accept padding?
+                          // Or simply use padding here.
+                          return SettingsView();
+                      }
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, st) => Center(child: Text("Error: $e")),
+                  );
+                },
               ),
             ),
+
+            // 2. Global AppBar handles the header now. We just show content.
+            // Removed local custom header to fix "Double AppBar" issue.
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
+  Widget _buildProfileContent(
+    UserProfile user,
+    bool isDark,
+    bool isLoading, {
+    double topPadding = 20,
+  }) {
+    final inputFillColor = isDark
+        ? const Color(0xFF2C2C2C)
+        : const Color(0xFFF5F6FA);
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1D1E);
+    final labelColor = isDark ? Colors.grey[400] : const Color(0xFF6B7280);
+
+    return SingleChildScrollView(
+      // Padding 0 at top allows Banner to be behind the Translucent AppBar
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Spacer for Global AppBar (120px) + Extra
+            // But we WANT the banner to be behind it.
+            // So we put the Banner first, and ensure it has height.
+            // The Banner widget is constrained to height 220.
+            // It will sit at top (0,0).
+
+            // Banner + Avatar Section
+            SizedBox(
+              height: 280, // Increased height to accommodate AppBar overlay
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // Banner (Full width, top aligned)
+                  Positioned(
+                    top: 0,
+                    left: -20, // Negate parent padding to stretch full width
+                    right: -20,
+                    height: 200, // Taller banner to be visible behind AppBar
+                    child: GestureDetector(
+                      onTap: () => _pickImage(true),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          image:
+                              (user.bannerUrl != null &&
+                                  user.bannerUrl!.isNotEmpty)
+                              ? DecorationImage(
+                                  image: CachedNetworkImageProvider(
+                                    user.bannerUrl!,
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          gradient:
+                              (user.bannerUrl == null ||
+                                  user.bannerUrl!.isEmpty)
+                              ? const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0052D4),
+                                    Color(0xFF4364F7),
+                                    Color(0xFF6FB1FC),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              bottom: 12,
+                              right: 24, // Adjusted for padding
+                              child: _buildCircleIconButton(
+                                icon: Icons.camera_alt_outlined,
+                                onTap: () => _pickImage(true),
+                                isDark: isDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Avatar
+                  Positioned(
+                    bottom: 0,
+                    child: GestureDetector(
+                      onTap: () => _pickImage(false),
+                      child: Container(
+                        width: 110,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            width: 4,
+                          ),
+                          color: Colors.grey[300],
+                          image:
+                              (user.photoId != null && user.photoId!.isNotEmpty)
+                              ? DecorationImage(
+                                  image: CachedNetworkImageProvider(
+                                    user.photoId!,
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : const DecorationImage(
+                                  image: AssetImage('assets/images/Perfil.png'),
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                        child: Align(
+                          alignment: Alignment.bottomRight,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.blueAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Profile Menu Tabs (Moved here from fixed header)
+            ProfileMenuWidget(
+              currentSection: _currentSection,
+              onSectionSelected: (section) {
+                setState(() {
+                  _currentSection = section;
+                });
+              },
+              isBusiness:
+                  false, // user.hasBusiness ?? false check logic from before
+            ),
+
+            const SizedBox(height: 20),
+
+            // Title and Info
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    "Editar perfil",
+                    style: GoogleFonts.inter(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Actualiza tu información",
+                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Fields
+            _buildLabel("Información básica", textColor, isHeader: true),
+            const SizedBox(height: 16),
+
+            _buildLabel("Nombre de la empresa / Usuario", labelColor),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernInput(
+                    _nameController,
+                    "Nombre",
+                    inputFillColor,
+                    textColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildModernInput(
+                    _lastNameController,
+                    "Apellido",
+                    inputFillColor,
+                    textColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            _buildLabel("Descripción (Bio)", labelColor),
+            const SizedBox(height: 8),
+            _buildModernInput(
+              _aboutController,
+              "Biografía...",
+              inputFillColor,
+              textColor,
+              maxLines: 4,
+            ),
+
+            if (user.hasBusiness) ...[
+              const SizedBox(height: 30),
+              _buildLabel("Información del Negocio", textColor, isHeader: true),
+              const SizedBox(height: 16),
+
+              // Business Image
+              if (user.businessProfileImage != null)
+                Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: NetworkImage(user.businessProfileImage!),
+                        fit: BoxFit.cover,
+                      ),
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _buildLabel("Nombre de la Empresa", labelColor),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  user.businessName ?? 'Sin nombre',
+                  style: TextStyle(color: textColor, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Para editar los datos del negocio, ve a la sección 'Mi Negocio'.",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+
+            const SizedBox(height: 30),
+
+            _buildLabel("Información de contacto", textColor, isHeader: true),
+            const SizedBox(height: 16),
+
+            _buildLabel("Número de teléfono", labelColor),
+            const SizedBox(height: 8),
+            _buildModernInput(
+              _phoneController,
+              "+58...",
+              inputFillColor,
+              textColor,
+              prefixIcon: Icons.phone_outlined,
+            ),
+
+            const SizedBox(height: 16),
+
+            _buildLabel("Correo electrónico", labelColor),
+            const SizedBox(height: 8),
+            _buildModernInput(
+              _emailController,
+              "email@example.com",
+              inputFillColor,
+              textColor,
+              prefixIcon: Icons.email_outlined,
+            ),
+
+            const SizedBox(height: 40),
+
+            // Actions
+            Row(
+              children: [
+                _buildCircleButton(
+                  icon: Icons.arrow_back,
+                  onTap: () => context.go('/'),
+                  color: isDark ? Colors.white12 : Colors.grey[200]!,
+                  iconColor: textColor,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _saveProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF111827),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text("Actualizar perfil"),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDarkInput(
-    TextEditingController controller, {
+  // Helpers
+  Widget _buildLabel(String text, Color? color, {bool isHeader = false}) {
+    return Text(
+      text,
+      style: GoogleFonts.inter(
+        fontSize: isHeader ? 18 : 14,
+        fontWeight: isHeader ? FontWeight.bold : FontWeight.w600,
+        color: color,
+      ),
+    );
+  }
+
+  Widget _buildModernInput(
+    TextEditingController controller,
+    String hint,
+    Color fillColor,
+    Color textColor, {
     int maxLines = 1,
-    IconData? icon,
+    IconData? prefixIcon,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF131619), // Darker than card
+        color: fillColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
       ),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[500]),
+          prefixIcon: prefixIcon != null
+              ? Icon(prefixIcon, color: Colors.grey[500], size: 20)
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
-          prefixIcon: icon != null
-              ? Icon(icon, color: Colors.grey[600], size: 20)
-              : null,
-          hintStyle: TextStyle(color: Colors.grey[600]),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color color,
+    required Color iconColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildCircleIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.3), // Glassy dark
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Icon(icon, color: Colors.white, size: 16),
       ),
     );
   }
