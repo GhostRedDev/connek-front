@@ -167,11 +167,17 @@ class BusinessOverviewWidget extends ConsumerWidget {
                             spacing: 10,
                             runSpacing: 10,
                             children: data.employees
+                            children: data.employees
                                 .map(
-                                  (e) => GregCard(
-                                    isActive: e['active'] == true ||
-                                        e['is_active'] == true,
-                                  ),
+                                  (e) {
+                                  debugPrint('🧐 Employee Data (Desktop): $e');
+                                  final rawActive = e['active'] ?? e['is_active'];
+                                  final isActive = rawActive == true || rawActive == 1 || rawActive.toString().toLowerCase() == 'true';
+                                  
+                                  return GregCard(
+                                    isActive: isActive,
+                                  );
+                                  },
                                 )
                                 .toList(),
                           ),
@@ -254,14 +260,20 @@ class BusinessOverviewWidget extends ConsumerWidget {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: data.employees
+                        children: data.employees
                             .map(
-                              (e) => Padding(
-                                padding: const EdgeInsets.only(right: 10),
-                                child: GregCard(
-                                  isActive: e['active'] == true ||
-                                      e['is_active'] == true,
-                                ),
-                              ),
+                              (e) {
+                                debugPrint('🧐 Employee Data (Mobile): $e');
+                                final rawActive = e['active'] ?? e['is_active'];
+                                final isActive = rawActive == true || rawActive == 1 || rawActive.toString().toLowerCase() == 'true';
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: GregCard(
+                                    isActive: isActive,
+                                  ),
+                                );
+                              },
                             )
                             .toList(),
                       ),
