@@ -230,7 +230,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 );
 
                             // Dismiss loading
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
                             if (response.user != null) {
                               if (mounted) {
@@ -247,7 +247,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } on AuthException catch (error) {
                             // Dismiss loading
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
                             // Specific Supabase Auth Errors (Wrong password, User not found, etc.)
                             if (mounted) {
@@ -263,7 +263,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } catch (e) {
                             // Dismiss loading
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
                             // General Errors (Network, Code, etc.)
                             if (mounted) {
