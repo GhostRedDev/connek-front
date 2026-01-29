@@ -338,11 +338,18 @@ class ApiService {
       final errorBody = response.body;
       try {
         final decodedError = json.decode(errorBody);
-        final message =
+        String message =
             decodedError['error']?.toString() ??
             decodedError['message']?.toString() ??
             decodedError['detail']?.toString() ??
             'Error: ${response.statusCode}';
+        
+        // Sanitize backend Pydantic validation errors
+        if (message.contains('validation error') && message.contains('Field required')) {
+          message = 'Error de datos en el servidor (Negocio incompleto)';
+          print('⚠️ Backend Validation Error masked: $message');
+        }
+
         print('⚠️ API Error Message: $message');
         throw Exception(message);
       } catch (e) {
