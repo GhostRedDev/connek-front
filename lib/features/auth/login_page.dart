@@ -165,26 +165,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 20),
 
                     // Remember Me & Forgot Password
-                    Row(
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8, // horizontal gap
+                      runSpacing: 0, // vertical gap
                       children: [
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: _rememberMe,
-                            activeThumbColor: const Color(0xFF4F87C9),
-                            onChanged: (val) =>
-                                setState(() => _rememberMe = val),
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: _rememberMe,
+                                activeThumbColor: const Color(0xFF4F87C9),
+                                onChanged: (val) =>
+                                    setState(() => _rememberMe = val),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              t['remember_me'] ?? 'Remember me',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          t['remember_me'] ?? 'Remember me',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                        ),
-                        const Spacer(),
                         TextButton(
                           onPressed: () => context.push('/forgot-password'),
                           child: Text(

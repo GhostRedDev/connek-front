@@ -98,7 +98,7 @@ Future<void> showAuthSuccessDialog(BuildContext context, {required String messag
   );
   
   // Wait 3 seconds then close
-  await Future.delayed(const Duration(seconds: 3));
+  await Future.delayed(const Duration(seconds: 2));
   if (context.mounted) {
     Navigator.of(context, rootNavigator: true).pop(); // Close dialog
   }

@@ -101,33 +101,72 @@ class SearchResultGoogleCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.max,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Rating Badge (Hide for Google results if data missing, but let's assume we want consistency)
-                    if (!isGoogleResult || business.category != null) // Conditional check
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Color(0xFFFFF59D),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '5.0', // Placeholder, API doesn't seem to have rating yet
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 14,
+                    // Service Badge (NEW)
+                    if (business.category == 'Service Result') ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6C63FF), // Indigo/Purple for Services
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.spa, // Service/Wellness icon
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              t['search_badge_service'] ?? 'Servicio',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8), // Spacing if next badge exists
+                    ],
+
+                    // Rating Badge (Hide if it's a Service Result to avoid clutter, or keep if needed. Keeping for now but avoiding duplication if category implies specific handling)
+                    if ((!isGoogleResult || business.category != null) && business.category != 'Service Result')
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              color: Color(0xFFFFF59D),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '5.0', // Placeholder
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     const Spacer(),
+
                     // Google Badge or Website Badge
                     if (isGoogleResult)
                        Container(
