@@ -40,8 +40,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final gradientColors = isDark
         ? [const Color(0xCC222831), const Color(0x00222831)]
         : [
-            const Color(0xFFF5F5F5).withOpacity(0.95),
-            const Color(0xFFF5F5F5).withOpacity(0.0),
+            const Color(0xFFF5F5F5).withValues(alpha: 0.95),
+            const Color(0xFFF5F5F5).withValues(alpha: 0.0),
           ];
 
     final logoAsset = isDark
@@ -49,7 +49,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         : 'assets/images/conneck_logo_dark.png';
 
     final appBarColor = Theme.of(context).scaffoldBackgroundColor;
-    final backIconColor = isDark ? Colors.white : Colors.black;
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -65,13 +64,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               leading: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: CircleAvatar(
-                  backgroundColor: Theme.of(context).cardColor.withOpacity(0.4),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).cardColor.withValues(alpha: 0.4),
                   child: IconButton(
                     icon: Icon(
                       Icons.arrow_back_rounded,
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
-                    onPressed: () => context.go('/'),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/');
+                      }
+                    },
                   ),
                 ),
               ),
@@ -188,9 +195,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         Text(
                           t['remember_me'] ?? 'Remember me',
                           style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                            color: Theme.of(context).textTheme.bodyMedium?.color
+                                ?.withValues(alpha: 0.7),
                             fontSize: 14,
                           ),
                         ),
@@ -346,7 +352,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          (t['no_account'] ?? "Don't have an account?") + " ",
+                          "${t['no_account'] ?? "Don't have an account?"} ",
                           style: TextStyle(
                             color: Theme.of(context).disabledColor,
                           ),
@@ -397,7 +403,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ? Theme.of(context).cardColor
         : Colors.grey.shade100;
     final hintColor = isDark
-        ? Theme.of(context).hintColor.withOpacity(0.7)
+        ? Theme.of(context).hintColor.withValues(alpha: 0.7)
         : Colors.grey.shade500;
 
     return InputDecoration(
@@ -406,8 +412,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       filled: true,
       fillColor: fillColor,
       hoverColor: isDark
-          ? Colors.white.withOpacity(0.05)
-          : Colors.black.withOpacity(0.05),
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.black.withValues(alpha: 0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
@@ -421,7 +427,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(
-          color: Theme.of(context).primaryColor.withOpacity(0.5),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
           width: 1.0,
         ),
       ),

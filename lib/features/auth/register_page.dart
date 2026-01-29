@@ -71,7 +71,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           ];
 
     final appBarColor = Theme.of(context).scaffoldBackgroundColor;
-    final backIconColor = isDark ? Colors.white : Colors.black;
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -93,7 +92,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       Icons.arrow_back_rounded,
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
-                    onPressed: () => context.go('/'),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/');
+                      }
+                    },
                   ),
                 ),
               ),
