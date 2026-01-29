@@ -167,7 +167,6 @@ class BusinessOverviewWidget extends ConsumerWidget {
                             spacing: 10,
                             runSpacing: 10,
                             children: data.employees
-                            children: data.employees
                                 .map(
                                   (e) {
                                   debugPrint('🧐 Employee Data (Desktop): $e');
@@ -259,7 +258,6 @@ class BusinessOverviewWidget extends ConsumerWidget {
                     content: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: data.employees
                         children: data.employees
                             .map(
                               (e) {
