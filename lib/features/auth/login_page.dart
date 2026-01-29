@@ -180,7 +180,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 20),
 
                     // Remember Me & Forgot Password
-                    Row(
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8, // horizontal gap
+                      runSpacing: 0, // vertical gap
                       children: [
                         Transform.scale(
                           scale: 0.8,
@@ -238,7 +242,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 );
 
                             // Dismiss loading
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
                             if (response.user != null) {
                               if (mounted) {
@@ -255,7 +259,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } on AuthException catch (error) {
                             // Dismiss loading
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -270,7 +274,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } catch (e) {
                             // Dismiss loading
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

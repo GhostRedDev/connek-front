@@ -125,59 +125,42 @@ class _HomeSearchWidgetState extends ConsumerState<HomeSearchWidget>
             const SizedBox(height: 16),
 
             // Buttons Row
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => context.push('/search'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).cardColor, // Adaptive button
-                      foregroundColor: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.color,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                      side: BorderSide(color: Theme.of(context).dividerColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+            // Request Button
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D47A1), // Hardcoded Blue
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                    child: Text(
-                      t['home_button_search'] ?? 'Search',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        t['home_button_request'] ?? 'Solicitar',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.auto_awesome, size: 20),
-                    label: Text(
-                      t['home_button_request'] ?? 'Request',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(
-                        0xFF0D47A1,
-                      ), // Blue button applies to both
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),

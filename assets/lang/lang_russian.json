@@ -11,5 +11,6 @@
     "add_account": "Добавить аккаунт",
     "signed_in_as": "Вы вошли как",
     "settings": "Настройки",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "home_button_request": "Опубликовать задачу"
 }

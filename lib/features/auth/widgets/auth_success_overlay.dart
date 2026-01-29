@@ -97,9 +97,17 @@ Future<void> showAuthSuccessDialog(BuildContext context, {required String messag
     builder: (context) => AuthSuccessOverlay(message: message, isLogin: isLogin),
   );
   
-  // Wait 3 seconds then close
-  await Future.delayed(const Duration(seconds: 3));
-  if (context.mounted) {
-    Navigator.of(context, rootNavigator: true).pop(); // Close dialog
+  // Capture navigator before await to ensure we can pop even if context unmounts
+  final navigator = Navigator.of(context, rootNavigator: true);
+  
+  // Wait 2 seconds then close
+  await Future.delayed(const Duration(seconds: 2));
+  
+  try {
+    if (navigator.mounted) {
+      navigator.pop();
+    }
+  } catch (e) {
+    debugPrint('Error closing auth dialog: $e');
   }
 }

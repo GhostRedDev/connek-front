@@ -168,8 +168,16 @@ class BusinessOverviewWidget extends ConsumerWidget {
                             runSpacing: 10,
                             children: data.employees
                                 .map(
-                                  (e) => const GregCard(),
-                                ) // Simplified for wrap
+                                  (e) {
+                                  debugPrint('🧐 Employee Data (Desktop): $e');
+                                  final rawActive = e['active'] ?? e['is_active'];
+                                  final isActive = rawActive == true || rawActive == 1 || rawActive.toString().toLowerCase() == 'true';
+                                  
+                                  return GregCard(
+                                    isActive: isActive,
+                                  );
+                                  },
+                                )
                                 .toList(),
                           ),
                         ),
@@ -252,10 +260,18 @@ class BusinessOverviewWidget extends ConsumerWidget {
                       child: Row(
                         children: data.employees
                             .map(
-                              (e) => Padding(
-                                padding: const EdgeInsets.only(right: 10),
-                                child: const GregCard(),
-                              ),
+                              (e) {
+                                debugPrint('🧐 Employee Data (Mobile): $e');
+                                final rawActive = e['active'] ?? e['is_active'];
+                                final isActive = rawActive == true || rawActive == 1 || rawActive.toString().toLowerCase() == 'true';
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: GregCard(
+                                    isActive: isActive,
+                                  ),
+                                );
+                              },
                             )
                             .toList(),
                       ),

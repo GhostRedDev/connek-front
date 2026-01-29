@@ -90,9 +90,12 @@ class _SearchResultGoogleWidgetState
     final filteredResults = searchState.results.where((business) {
       if (selectedTab == 'Google') {
         return business.id < 0; // Negative ID for Google results
+      } else if (selectedTab == 'Servicios') {
+        // Show only specific Service Results
+        return business.id > 0 && business.category == 'Service Result';
       } else {
-        // 'Servicios' or 'Empresas' -> Local results (positive ID)
-        return business.id > 0;
+        // 'Empresas' -> Show local businesses that are NOT specific service results
+        return business.id > 0 && business.category != 'Service Result';
       }
     }).toList();
 
