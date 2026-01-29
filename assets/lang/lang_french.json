@@ -11,5 +11,6 @@
     "add_account": "Ajouter un compte",
     "signed_in_as": "Connecté en tant que",
     "settings": "Paramètres",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "home_button_request": "Publier un travail"
 }
