@@ -168,8 +168,11 @@ class BusinessOverviewWidget extends ConsumerWidget {
                             runSpacing: 10,
                             children: data.employees
                                 .map(
-                                  (e) => const GregCard(),
-                                ) // Simplified for wrap
+                                  (e) => GregCard(
+                                    isActive: e['active'] == true ||
+                                        e['is_active'] == true,
+                                  ),
+                                )
                                 .toList(),
                           ),
                         ),
@@ -254,7 +257,10 @@ class BusinessOverviewWidget extends ConsumerWidget {
                             .map(
                               (e) => Padding(
                                 padding: const EdgeInsets.only(right: 10),
-                                child: const GregCard(),
+                                child: GregCard(
+                                  isActive: e['active'] == true ||
+                                      e['is_active'] == true,
+                                ),
                               ),
                             )
                             .toList(),
