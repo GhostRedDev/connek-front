@@ -3,57 +3,43 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/business_provider.dart';
 
-class BusinessEmployeeSheet extends ConsumerStatefulWidget {
-  final Map<String, dynamic>? employeeToEdit;
+class BusinessResourceSheet extends ConsumerStatefulWidget {
+  final Map<String, dynamic>? resourceToEdit;
 
-  const BusinessEmployeeSheet({super.key, this.employeeToEdit});
+  const BusinessResourceSheet({super.key, this.resourceToEdit});
 
   @override
-  ConsumerState<BusinessEmployeeSheet> createState() =>
-      _BusinessEmployeeSheetState();
+  ConsumerState<BusinessResourceSheet> createState() =>
+      _BusinessResourceSheetState();
 }
 
-class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
+class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
   final _customCategoryController = TextEditingController();
   final _imageController = TextEditingController();
 
-  String _selectedCategory = 'Vendedor';
+  String _selectedType = 'Sala';
   bool _isActive = true;
 
-  final List<String> _categories = [
-    'Gerente',
-    'Vendedor',
-    'Técnico',
-    'Limpieza',
-    'Seguridad',
-    'Administración',
-    'Otro',
-  ];
+  final List<String> _types = ['Sala', 'Equipo', 'Vehículo', 'Puesto', 'Otro'];
 
   @override
   void initState() {
     super.initState();
-    if (widget.employeeToEdit != null) {
-      final e = widget.employeeToEdit!;
-      _nameController.text = e['name'] ?? '';
-      _imageController.text = e['image'] ?? '';
-      _isActive = e['status'] == 'Activo';
+    if (widget.resourceToEdit != null) {
+      final r = widget.resourceToEdit!;
+      _nameController.text = r['name'] ?? '';
+      _imageController.text = r['profile_image'] ?? '';
+      _isActive = r['active'] ?? true;
 
-      String role = e['role'] ?? 'Vendedor';
-      if (_categories.contains(role)) {
-        _selectedCategory = role;
+      String type = r['resource_type'] ?? 'Sala';
+      if (_types.contains(type)) {
+        _selectedType = type;
       } else {
-        _selectedCategory = 'Otro';
-        _customCategoryController.text = role;
-      }
-
-      // Handle custom category field if needed
-      if (e['custom_category'] != null) {
-        _selectedCategory = 'Otro';
-        _customCategoryController.text = e['custom_category'];
+        _selectedType = 'Otro';
+        _customCategoryController.text = type;
       }
     }
   }
@@ -116,9 +102,9 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
                     isDark: isDark,
                   ),
                   Text(
-                    widget.employeeToEdit != null
-                        ? 'Editar Empleado'
-                        : 'Añadir Empleado',
+                    widget.resourceToEdit != null
+                        ? 'Editar Recurso'
+                        : 'Añadir Recurso',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -127,7 +113,7 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
                   ),
                   _buildCircleButton(
                     icon: Icons.check,
-                    onTap: _saveEmployee,
+                    onTap: _saveResource,
                     isDark: isDark,
                     color: const Color(0xFF4285F4),
                     iconColor: Colors.white,
@@ -136,16 +122,16 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
               ),
               const SizedBox(height: 24),
 
-              _buildLabel('Nombre', context),
+              _buildLabel('Nombre del Recurso', context),
               _buildTextField(
                 controller: _nameController,
-                hint: 'Ej: Maria Sanchez',
+                hint: 'Ej: Sala de Juntas A',
                 fillColor: inputFillColor,
                 textColor: textColor,
               ),
               const SizedBox(height: 16),
 
-              _buildLabel('Categoría / Rol', context),
+              _buildLabel('Tipo de Recurso', context),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -154,30 +140,30 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _selectedCategory,
+                    value: _selectedType,
                     isExpanded: true,
                     dropdownColor: backgroundColor,
                     style: GoogleFonts.inter(color: textColor),
-                    items: _categories.map((String category) {
+                    items: _types.map((String type) {
                       return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
+                        value: type,
+                        child: Text(type),
                       );
                     }).toList(),
                     onChanged: (String? newValue) {
                       setState(() {
-                        _selectedCategory = newValue!;
+                        _selectedType = newValue!;
                       });
                     },
                   ),
                 ),
               ),
-              if (_selectedCategory == 'Otro') ...[
+              if (_selectedType == 'Otro') ...[
                 const SizedBox(height: 16),
-                _buildLabel('Especificar Categoría', context),
+                _buildLabel('Especificar Tipo', context),
                 _buildTextField(
                   controller: _customCategoryController,
-                  hint: 'Ej: Consultor Externo',
+                  hint: 'Ej: Proyector 4K',
                   fillColor: inputFillColor,
                   textColor: textColor,
                 ),
@@ -198,7 +184,7 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Estado Activo',
+                    'Disponible / Activo',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -290,7 +276,7 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
     );
   }
 
-  Future<void> _saveEmployee() async {
+  Future<void> _saveResource() async {
     if (!_formKey.currentState!.validate()) return;
 
     final repo = ref.read(businessRepositoryProvider);
@@ -299,26 +285,28 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
     if (businessData?.businessProfile == null) return;
     final businessId = businessData!.businessProfile!['id'];
 
-    final role = _selectedCategory == 'Otro'
+    final type = _selectedType == 'Otro'
         ? _customCategoryController.text.trim()
-        : _selectedCategory;
+        : _selectedType;
+
+    // Default service_time for backend compatibility (Mon-Fri 9-5)
+    final defaultServiceTime =
+        '{"1": ["09:00", "17:00"], "2": ["09:00", "17:00"], "3": ["09:00", "17:00"], "4": ["09:00", "17:00"], "5": ["09:00", "17:00"]}';
 
     final payload = {
       'name': _nameController.text.trim(),
-      'role': role,
-      'business_id': businessId,
-      'status': _isActive ? 'Activo' : 'Inactivo',
-      'type': 'human',
-      'image': _imageController.text.isNotEmpty
+      'resource_type': type,
+      'business_id': businessId.toString(),
+      'active': _isActive.toString(),
+      'service_time': defaultServiceTime, // Backend needs this
+      'profile_image': _imageController.text.isNotEmpty
           ? _imageController.text.trim()
           : null,
-      'custom_category': _selectedCategory == 'Otro' ? role : null,
-      'purpose': 'human', // Fix db not-null constraint
     };
 
-    if (widget.employeeToEdit != null) {
-      final res = await repo.updateEmployee(
-        widget.employeeToEdit!['id'],
+    if (widget.resourceToEdit != null) {
+      final res = await repo.updateResource(
+        widget.resourceToEdit!['id'],
         payload,
       );
       if (mounted) {
@@ -327,25 +315,25 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
           Navigator.pop(context);
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Empleado actualizado')));
+          ).showSnackBar(const SnackBar(content: Text('Recurso actualizado')));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error actualizando empleado')),
+            const SnackBar(content: Text('Error actualizando recurso')),
           );
         }
       }
     } else {
-      final res = await repo.createEmployee(payload);
+      final res = await repo.createResource(payload);
       if (mounted) {
         if (res != null) {
           ref.invalidate(businessProvider);
           Navigator.pop(context);
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Empleado creado')));
+          ).showSnackBar(const SnackBar(content: Text('Recurso creado')));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error creando empleado')),
+            const SnackBar(content: Text('Error creando recurso')),
           );
         }
       }

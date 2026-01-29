@@ -30,70 +30,85 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Light/Dark mode specific assets and colors
+    final bgImage = isDark
+        ? 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop'
+        : 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2670&auto=format&fit=crop'; // Bright office/abstract
+
+    final gradientColors = isDark
+        ? [const Color(0xCC222831), const Color(0x00222831)]
+        : [
+            const Color(0xFFF5F5F5).withValues(alpha: 0.95),
+            const Color(0xFFF5F5F5).withValues(alpha: 0.0),
+          ];
+
+    final logoAsset = isDark
+        ? 'assets/images/conneck_logo_white.png'
+        : 'assets/images/conneck_logo_dark.png';
+
+    final appBarColor = Theme.of(context).scaffoldBackgroundColor;
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        backgroundColor: Theme.of(
-          context,
-        ).scaffoldBackgroundColor, // Adaptive background
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
-              expandedHeight:
-                  MediaQuery.of(context).size.height *
-                  0.40, // Expanded height for effect
-              pinned: true, // Keep bar visible
-              backgroundColor: const Color(0xFF1A1D21),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: () => context.pop(),
+              expandedHeight: MediaQuery.of(context).size.height * 0.40,
+              pinned: true,
+              backgroundColor: appBarColor,
+              leading: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).cardColor.withValues(alpha: 0.4),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/');
+                      }
+                    },
+                  ),
+                ),
               ),
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
                   children: [
                     // Background Image
                     Positioned.fill(
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop',
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.network(bgImage, fit: BoxFit.cover),
                     ),
                     // Gradient Overlay
                     Positioned.fill(
                       child: Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xCC222831), Color(0x00222831)],
-                            stops: [0, 1],
-                            begin: AlignmentDirectional(-0.64, 1),
-                            end: AlignmentDirectional(0.64, -1),
+                            colors: gradientColors,
+                            stops: const [0, 1],
+                            begin: const AlignmentDirectional(-0.64, 1),
+                            end: const AlignmentDirectional(0.64, -1),
                           ),
                         ),
                       ),
                     ),
-                    // Logo
-                    Align(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 40),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            'assets/images/conneck_logo_white.png',
-                            width: 100,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Text(
-                                  'connek',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 30,
-                                  ),
-                                ),
-                          ),
-                        ),
+                    // Parallax Logo
+                    Center(
+                      child: Image.asset(
+                        logoAsset,
+                        width: 180,
+                        height: 80,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
@@ -171,28 +186,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       spacing: 8, // horizontal gap
                       runSpacing: 0, // vertical gap
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Transform.scale(
-                              scale: 0.8,
-                              child: Switch(
-                                value: _rememberMe,
-                                activeThumbColor: const Color(0xFF4F87C9),
-                                onChanged: (val) =>
-                                    setState(() => _rememberMe = val),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              t['remember_me'] ?? 'Remember me',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: _rememberMe,
+                            activeColor: const Color(0xFF4F87C9),
+                            onChanged: (val) =>
+                                setState(() => _rememberMe = val),
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t['remember_me'] ?? 'Remember me',
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyMedium?.color
+                                ?.withValues(alpha: 0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
                         TextButton(
                           onPressed: () => context.push('/forgot-password'),
                           child: Text(
@@ -238,7 +250,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 await showAuthSuccessDialog(
                                   context,
                                   message:
-                                      'Has sido logueado exitosamente.\nBienvenido a Comeet.', // Maybe translate too?
+                                      'Has sido logueado exitosamente.\nBienvenido a Comeet.',
                                   isLogin: true,
                                 );
 
@@ -249,13 +261,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             // Dismiss loading
                             if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
-                            // Specific Supabase Auth Errors (Wrong password, User not found, etc.)
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
                                     'Authentication Error: ${error.message}',
-                                  ), // e.g., "Invalid login credentials"
+                                  ),
                                   backgroundColor: Colors.orange,
                                   behavior: SnackBarBehavior.floating,
                                 ),
@@ -265,7 +276,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             // Dismiss loading
                             if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
-                            // General Errors (Network, Code, etc.)
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -302,15 +312,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     // OR Divider
                     Row(
                       children: [
-                        Expanded(child: Divider(color: Colors.grey[700])),
+                        Expanded(
+                          child: Divider(color: Theme.of(context).dividerColor),
+                        ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             t['or_divider'] ?? 'Or',
-                            style: TextStyle(color: Colors.grey[500]),
+                            style: TextStyle(
+                              color: Theme.of(context).disabledColor,
+                            ),
                           ),
                         ),
-                        Expanded(child: Divider(color: Colors.grey[700])),
+                        Expanded(
+                          child: Divider(color: Theme.of(context).dividerColor),
+                        ),
                       ],
                     ),
 
@@ -318,17 +334,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                     // Google Sign In
                     _buildSocialButton(
+                      context: context,
                       label: t['sign_in_google'] ?? 'Sign in with Google',
                       icon: Icons.g_mobiledata,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black,
                       onPressed: _googleSignIn,
                     ),
                     const SizedBox(height: 16),
                     // Apple Sign In
                     _buildSocialButton(
+                      context: context,
                       label: t['sign_in_apple'] ?? 'Sign in with Apple',
                       icon: Icons.apple,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
 
                     const SizedBox(height: 40),
@@ -339,7 +357,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       children: [
                         Text(
                           "${t['no_account'] ?? "Don't have an account?"} ",
-                          style: TextStyle(color: Colors.grey[400]),
+                          style: TextStyle(
+                            color: Theme.of(context).disabledColor,
+                          ),
                         ),
                         InkWell(
                           onTap: () => context.push('/register'),
@@ -381,25 +401,37 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     Widget? suffixIcon,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Light mode input styles
+    final fillColor = isDark
+        ? Theme.of(context).cardColor
+        : Colors.grey.shade100;
+    final hintColor = isDark
+        ? Theme.of(context).hintColor.withValues(alpha: 0.7)
+        : Colors.grey.shade500;
+
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(
-        color: Theme.of(context).hintColor.withOpacity(0.7),
-        fontSize: 14,
-      ),
+      hintStyle: TextStyle(color: hintColor, fontSize: 14),
       filled: true,
-      fillColor: Theme.of(context).cardColor,
+      fillColor: fillColor,
       hoverColor: isDark
-          ? Colors.white.withOpacity(0.05)
-          : Colors.black.withOpacity(0.05),
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.black.withValues(alpha: 0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: isDark
+            ? BorderSide.none
+            : BorderSide(color: Colors.grey.shade300),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(
-          color: Theme.of(context).primaryColor.withOpacity(0.5),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
           width: 1.0,
         ),
       ),
@@ -427,18 +459,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Widget _buildSocialButton({
+    required BuildContext context,
     required String label,
     required IconData icon,
     required Color color,
     VoidCallback? onPressed,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final btnBg = isDark ? const Color(0xFF31363F) : Colors.grey.shade100;
+    final btnFg = isDark ? Colors.white : Colors.black87;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF31363F),
-          foregroundColor: Colors.white,
+          backgroundColor: btnBg,
+          foregroundColor: btnFg,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,

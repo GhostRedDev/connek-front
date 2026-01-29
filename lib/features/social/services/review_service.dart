@@ -1,28 +1,31 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/services/api_service.dart';
 import '../models/review_model.dart';
+// Note: You might need to create CommentModel if it doesn't exist, or use dynamic for now.
+
+final reviewServiceProvider = Provider<ReviewService>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return ReviewService(apiService);
+});
 
 class ReviewService {
-  final SupabaseClient _supabase;
+  final ApiService _apiService;
 
-  ReviewService(this._supabase);
+  ReviewService(this._apiService);
 
   // Get Reviews for a Business
   Future<List<ReviewModel>> getReviews(String businessId) async {
     try {
-      final response = await _supabase
-          .from('reviews')
-          .select('*, client:client_id(*)') // Nested select for client data
-          .eq('business_id', businessId)
-          .order('created_at', ascending: false);
+      final response = await _apiService.get('/reviews/business/$businessId');
 
-      // Map to models
-      final List<ReviewModel> reviews = (response as List).map((json) {
-        // Just in case client comes as a list or different structure, handle it
-        // Supabase foreign table join usually returns a single object if 1:1 or N:1
-        return ReviewModel.fromJson(json);
-      }).toList();
-
-      return reviews;
+      if (response is List) {
+        return response.map((json) => ReviewModel.fromJson(json)).toList();
+      } else if (response is Map && response.containsKey('data')) {
+        // Handle if wrapped in response object
+        final list = response['data'] as List;
+        return list.map((json) => ReviewModel.fromJson(json)).toList();
+      }
+      return [];
     } catch (e) {
       throw Exception('Error fetching reviews: $e');
     }
@@ -31,69 +34,85 @@ class ReviewService {
   // Create a Review
   Future<ReviewModel> createReview({
     required int clientId,
-    required String businessId,
+    required int businessId,
     required int rating,
     required String content,
   }) async {
     try {
-      final response = await _supabase
-          .from('reviews')
-          .insert({
-            'client_id': clientId,
-            'business_id': int.parse(businessId),
-            'rating': rating,
-            'content': content,
-          })
-          .select()
-          .single();
+      final body = {
+        'client_id': clientId,
+        'business_id': businessId,
+        'rating': rating,
+        'content': content,
+      };
 
-      // We need to fetch the review AGAIN to get the nested client data
-      // OR we can optimistically return it if we have the client object.
-      // For simplicity, let's fetch it again properly or construct it.
-      // Fetching again to be safe:
-      final fullReviewResponse = await _supabase
-          .from('reviews')
-          .select('*, client:client_id(*)')
-          .eq('id', response['id'])
-          .single();
+      final response = await _apiService.post('/reviews/create', body: body);
 
-      return ReviewModel.fromJson(fullReviewResponse);
+      // Assuming backend returns the created object directly or in 'data'
+      if (response is Map && response.containsKey('data')) {
+        return ReviewModel.fromJson(response['data']);
+      }
+
+      return ReviewModel.fromJson(response);
     } catch (e) {
       throw Exception('Error creating review: $e');
     }
   }
 
-  // Toggle Like (Review)
-  Future<bool> toggleLike({
+  // Create a Comment (Reply to review)
+  Future<dynamic> createComment({
     required int clientId,
     required int reviewId,
+    required String content,
+    int? parentId,
   }) async {
     try {
-      // 1. Check if liked
-      final existingLike = await _supabase
-          .from('review_likes')
-          .select()
-          .eq('client_id', clientId)
-          .eq('review_id', reviewId)
-          .maybeSingle();
+      final body = {
+        'client_id': clientId,
+        'review_id': reviewId,
+        'content': content,
+        'parent_id': parentId,
+      };
 
-      if (existingLike != null) {
-        // Unlike
-        await _supabase
-            .from('review_likes')
-            .delete()
-            .eq('id', existingLike['id']);
-        return false; // Liked = false
-      } else {
-        // Like
-        await _supabase.from('review_likes').insert({
-          'client_id': clientId,
-          'review_id': reviewId,
-        });
-        return true; // Liked = true
-      }
+      final response = await _apiService.post('/comments/create', body: body);
+      return response;
+    } catch (e) {
+      throw Exception('Error creating comment: $e');
+    }
+  }
+
+  // Toggle Like (Review or Comment)
+  Future<dynamic> toggleLike({
+    required int clientId,
+    required int targetId,
+    required String targetType, // 'review' or 'comment'
+  }) async {
+    try {
+      final body = {
+        'client_id': clientId,
+        'target_id': targetId,
+        'target_type': targetType,
+      };
+
+      final response = await _apiService.post('/likes/toggle', body: body);
+      return response;
     } catch (e) {
       throw Exception('Error toggling like: $e');
+    }
+  }
+
+  // Get Comments for a Review
+  Future<List<dynamic>> getComments(int reviewId) async {
+    try {
+      final response = await _apiService.get('/comments/review/$reviewId');
+      if (response is List) {
+        return response; // Return list of comments
+      } else if (response is Map && response.containsKey('data')) {
+        return response['data'] as List;
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Error fetching comments: $e');
     }
   }
 }

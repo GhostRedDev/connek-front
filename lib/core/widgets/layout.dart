@@ -379,13 +379,11 @@ HeaderData getHeaderConfig(
 
   if (route == '/search') {
     return HeaderData(
-      title: t['header_search'] ?? 'Search',
-      bgTrans: false,
-      isCustom: false,
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      title: null,
+      bgTrans: true,
+      isCustom: true, // Hide global header to use custom internal one
+      height: 0,
+      actions: [],
     );
   }
 
@@ -436,7 +434,7 @@ HeaderData getHeaderConfig(
       route == '/reset-password' ||
       route == '/confirm-phone') {
     return HeaderData(
-      titleWidget: logoWidget,
+      titleWidget: null,
       bgTrans: true,
       showProfile: false, // No profile on auth pages
       actions: [], // No actions on auth pages
@@ -662,7 +660,9 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         // Hide BottomBar if on desktop OR if in Chat views (to avoid overlay)
         final bool isChatView =
             location.startsWith('/chats') || location.startsWith('/chat/');
-        final bool showBottomBar = isLoggedIn && !isDesktop && !isChatView;
+        final bool isSearchView = location == '/search';
+        final bool showBottomBar =
+            isLoggedIn && !isDesktop && !isChatView && !isSearchView;
 
         return DefaultTabController(
           // Key ensures controller is recreated if tabs configuration changes (e.g. different route)

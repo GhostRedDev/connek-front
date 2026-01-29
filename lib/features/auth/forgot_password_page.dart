@@ -51,7 +51,13 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               backgroundColor: const Color(0xFF1A1D21),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: () => context.go('/'), // Back to home
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/');
+                  }
+                }, // Back to home
               ),
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(

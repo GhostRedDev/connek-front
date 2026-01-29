@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/business_provider.dart';
-import 'business_employee_sheet.dart'; // Added Import
+import 'business_employee_sheet.dart';
+import 'business_resource_sheet.dart';
 
 class BusinessEmployeesWidget extends ConsumerStatefulWidget {
   const BusinessEmployeesWidget({super.key});
@@ -29,11 +30,9 @@ class _BusinessEmployeesWidgetState
       orElse: () => <Map<String, dynamic>>[],
     );
 
-    // User confirmed: "Copilotos" are the bots from the office.
-    // BusinessProvider fetches /employees/greg/... so these ARE the copilots.
-    final copilots = allEmployees;
-    // Staff (humans) not yet fetched separately.
-    final staff = <Map<String, dynamic>>[];
+    // Separate Copilots (Bots) and Staff (Humans)
+    final copilots = allEmployees.where((e) => e['type'] != 'human').toList();
+    final staff = allEmployees.where((e) => e['type'] == 'human').toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -139,31 +138,78 @@ class _BusinessEmployeesWidgetState
                     image:
                         e['image'] ??
                         'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80',
-                    isActive: true,
+                    isActive: e['status'] == 'Activo',
+                    id: e['id'], // Pass ID
                   );
                 },
               ),
             const SizedBox(height: 24),
 
-            // 4. Recursos Section
-            _buildSectionHeader(context, 'Recursos', onAdd: () {}),
+            // 4. Resources Section
+            _buildSectionHeader(
+              context,
+              'Recursos',
+              onAdd: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const BusinessResourceSheet(),
+                );
+              },
+            ),
             const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.0, // Square
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: 2, // Mock 2 resources
-              itemBuilder: (context, index) {
-                return _buildResourceCard(
-                  context,
-                  name: 'Nombre del recurso',
-                  image:
-                      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80',
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: ref
+                  .read(businessRepositoryProvider)
+                  .getResources(
+                    businessData.maybeWhen(
+                      data: (data) => data.businessProfile?['id'] ?? 0,
+                      orElse: () => 0,
+                    ),
+                  ),
+              builder: (context, snapshot) {
+                final resources = snapshot.data ?? [];
+
+                if (resources.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'No hay recursos registrados',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.85,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: resources.length,
+                  itemBuilder: (context, index) {
+                    final r = resources[index];
+                    return _buildResourceCard(
+                      context,
+                      name: r['name'] ?? 'Recurso',
+                      image:
+                          r['profile_image'] ??
+                          'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80',
+                      type: r['resource_type'] ?? 'Sala',
+                      isActive: r['active'] ?? true,
+                      id: r['id'],
+                      resource: r,
+                    );
+                  },
                 );
               },
             ),
@@ -409,6 +455,7 @@ class _BusinessEmployeesWidgetState
     required String role,
     required String image,
     required bool isActive,
+    dynamic id,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -549,87 +596,106 @@ class _BusinessEmployeesWidgetState
     BuildContext context, {
     required String name,
     required String image,
+    required String type,
+    required bool isActive,
+    required int id,
+    required Map<String, dynamic> resource,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: DecorationImage(
-          image: CachedNetworkImageProvider(image),
-          fit: BoxFit.cover,
+    // 1. Resolve ImageProvider
+    ImageProvider imageProvider;
+    if (image.startsWith('http')) {
+      imageProvider = CachedNetworkImageProvider(image);
+    } else {
+      imageProvider = AssetImage(image) as ImageProvider;
+    }
+
+    return InkWell(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => BusinessResourceSheet(resourceToEdit: resource),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
         ),
-      ),
-      child: Stack(
-        children: [
-          // Gradient
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
-                stops: const [0.6, 1.0],
-              ),
-            ),
-          ),
-
-          // Label
-          Positioned(
-            top: 10,
-            left: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Stack(
+          children: [
+            // Gradient
+            Container(
               decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Recurso',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                  stops: const [0.6, 1.0],
                 ),
               ),
             ),
-          ),
 
-          // Content using Stack for overlay button
-          Positioned(
-            bottom: 12,
-            left: 12,
-            right: 12,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Text(
-                    name,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    maxLines: 2,
-                  ),
+            // Label
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 16,
+                child: Text(
+                  'Recurso',
+                  style: GoogleFonts.inter(
                     color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+
+            // Content using Stack for overlay button
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      maxLines: 2,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

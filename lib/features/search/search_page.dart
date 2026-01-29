@@ -40,12 +40,13 @@ class _SearchPageState extends State<SearchPage> {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        backgroundColor: const Color(0xFF1A1D21), // bg1Sec
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor, // bg1Sec
         body: SizedBox(
           width: double.infinity,
           height: double.infinity,
           child: Padding(
-            padding: const EdgeInsets.only(top: 120), // Top padding for Glass AppBar, bottom handled by widget
+            padding:
+                EdgeInsets.zero, // Top padding handled by internal widget now
             child: const SearchResultGoogleWidget(),
           ),
         ),

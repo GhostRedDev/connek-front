@@ -59,4 +59,17 @@ class ClientRequestsService {
       return false;
     }
   }
+
+  Future<bool> createRequest(Map<String, dynamic> body) async {
+    try {
+      final response = await _apiService.postForm(
+        '/requests/create',
+        fields: body,
+      );
+      return response != null && response['success'] == true;
+    } catch (e) {
+      print('Error creating request: $e');
+      return false;
+    }
+  }
 }
