@@ -591,7 +591,7 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
           Switch(
             value: isSelected,
             onChanged: (val) {},
-            activeColor: Colors.grey[700],
+            activeThumbColor: Colors.grey[700],
             activeTrackColor: Colors.grey[300],
           ),
         ],

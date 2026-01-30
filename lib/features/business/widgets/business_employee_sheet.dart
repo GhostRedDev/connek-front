@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/business_provider.dart';
+import '../../../core/providers/locale_provider.dart';
 
 class BusinessEmployeeSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? employeeToEdit;
@@ -68,6 +69,8 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDark ? const Color(0xFF1A1D21) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
@@ -117,8 +120,10 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
                   ),
                   Text(
                     widget.employeeToEdit != null
-                        ? 'Editar Empleado'
-                        : 'Añadir Empleado',
+                        ? t['business_employee_sheet_edit_title'] ??
+                              'Editar Empleado'
+                        : t['business_employee_sheet_add_title'] ??
+                              'Añadir Empleado',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -136,16 +141,22 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
               ),
               const SizedBox(height: 24),
 
-              _buildLabel('Nombre', context),
+              _buildLabel(
+                t['business_employee_sheet_name_label'] ?? 'Nombre',
+                context,
+              ),
               _buildTextField(
                 controller: _nameController,
-                hint: 'Ej: Maria Sanchez',
+                hint: 'Ej: Maria Sanchez', // Name hint usually stays or simple
                 fillColor: inputFillColor,
                 textColor: textColor,
               ),
               const SizedBox(height: 16),
 
-              _buildLabel('Categoría / Rol', context),
+              _buildLabel(
+                t['business_employee_sheet_role_label'] ?? 'Categoría / Rol',
+                context,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -174,7 +185,11 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
               ),
               if (_selectedCategory == 'Otro') ...[
                 const SizedBox(height: 16),
-                _buildLabel('Especificar Categoría', context),
+                _buildLabel(
+                  t['business_employee_sheet_custom_role_label'] ??
+                      'Especificar Categoría',
+                  context,
+                ),
                 _buildTextField(
                   controller: _customCategoryController,
                   hint: 'Ej: Consultor Externo',
@@ -184,7 +199,10 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
               ],
 
               const SizedBox(height: 16),
-              _buildLabel('Imagen (URL)', context),
+              _buildLabel(
+                t['business_employee_sheet_image_label'] ?? 'Imagen (URL)',
+                context,
+              ),
               _buildTextField(
                 controller: _imageController,
                 hint: 'https://...',
@@ -198,7 +216,8 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Estado Activo',
+                    t['business_employee_sheet_active_label'] ??
+                        'Estado Activo',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -247,8 +266,16 @@ class _BusinessEmployeeSheetState extends ConsumerState<BusinessEmployeeSheet> {
     return TextFormField(
       controller: controller,
       style: GoogleFonts.inter(color: textColor),
-      validator: (val) =>
-          isRequired && (val == null || val.isEmpty) ? 'Requerido' : null,
+      validator: (val) => isRequired && (val == null || val.isEmpty)
+          ? (ref.read(translationProvider).value?['required_field'] ??
+                'Requerido')
+          : null, // Access provider via ref passed? No, widget param?
+      // Wait, _buildTextField is just a method. It can't access `ref` unless it's in State which it is.
+      // But `ref` property is available in `ConsumerState`.
+      // Accessing translationProvider here:
+      // We can use `ref.read(translationProvider).value?['required_field']` or pass `t` to this method.
+      // Passing `t` is cleaner to avoid read in build phase if possible, but validator is callback.
+      // In validator `ref.read` is fine.
       decoration: InputDecoration(
         filled: true,
         fillColor: fillColor,

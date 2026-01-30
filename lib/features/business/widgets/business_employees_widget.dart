@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/business_provider.dart';
+import '../../../core/providers/locale_provider.dart';
 import 'business_employee_sheet.dart';
 import 'business_resource_sheet.dart';
 
@@ -20,6 +21,8 @@ class _BusinessEmployeesWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final businessData = ref.watch(businessProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
@@ -43,7 +46,7 @@ class _BusinessEmployeesWidgetState
           children: [
             // Header
             Text(
-              'Empleados',
+              t['business_employees_title'] ?? 'Empleados',
               style: GoogleFonts.inter(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -52,7 +55,8 @@ class _BusinessEmployeesWidgetState
             ),
             const SizedBox(height: 4),
             Text(
-              'Ve y maneja a los empleados de tu negocio.',
+              t['business_employees_subtitle'] ??
+                  'Ve y maneja a los empleados de tu negocio.',
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -61,12 +65,21 @@ class _BusinessEmployeesWidgetState
             const SizedBox(height: 24),
 
             // 1. Copilotos Section
-            _buildSectionHeader(context, 'Copilotos', showFilter: true),
+            _buildSectionHeader(
+              context,
+              t['business_employees_copilots'] ?? 'Copilotos',
+              showFilter: true,
+            ),
             const SizedBox(height: 16),
             if (copilots.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: Text('No hay copilotos activos')),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    t['business_employees_empty_copilots'] ??
+                        'No hay copilotos activos',
+                  ),
+                ),
               )
             else
               SingleChildScrollView(
@@ -93,13 +106,13 @@ class _BusinessEmployeesWidgetState
             const SizedBox(height: 24),
 
             // 2. Promo Card
-            _buildPromoCard(context),
+            _buildPromoCard(context, t),
             const SizedBox(height: 24),
 
             // 3. Staff Section
             _buildSectionHeader(
               context,
-              'Staff',
+              t['business_employees_staff'] ?? 'Staff',
               onAdd: () {
                 showModalBottomSheet(
                   context: context,
@@ -114,7 +127,8 @@ class _BusinessEmployeesWidgetState
               Padding(
                 padding: const EdgeInsets.only(top: 10, bottom: 20),
                 child: Text(
-                  'Próximamente', // Placeholder for Staff
+                  t['business_employees_coming_soon'] ??
+                      'Próximamente', // Placeholder for Staff
                   style: GoogleFonts.inter(color: Colors.grey),
                 ),
               )
@@ -148,7 +162,7 @@ class _BusinessEmployeesWidgetState
             // 4. Resources Section
             _buildSectionHeader(
               context,
-              'Recursos',
+              t['business_employees_resources'] ?? 'Recursos',
               onAdd: () {
                 showModalBottomSheet(
                   context: context,
@@ -176,7 +190,8 @@ class _BusinessEmployeesWidgetState
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Text(
-                        'No hay recursos registrados',
+                        t['business_employees_empty_resources'] ??
+                            'No hay recursos registrados',
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           color: Colors.grey,
@@ -262,14 +277,33 @@ class _BusinessEmployeesWidgetState
         ),
         if (showFilter) ...[
           const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildFilterChip('Todos'),
-              const SizedBox(width: 8),
-              _buildFilterChip('Activos'),
-              const SizedBox(width: 8),
-              _buildFilterChip('Inactivos'),
-            ],
+          const SizedBox(height: 12),
+          // We need t here, but it's not passed.
+          // Option 1: Pass t to _buildSectionHeader.
+          // Option 2: Get ref again? No, not widget.
+          // Let's modify _buildSectionHeader to accept 't' or use ConsumerWidget logic?
+          // Easier: Pass t.
+          // CHECK: I didn't pass t in the call sites above. This will probably break or I need to handle it.
+          // Wait, I can't easily change the signature in this tool call without changing call sites in the same tool call if I change specific lines.
+          // I will use `ref.watch` inside if I convert to widget or just pass it.
+          // Actually, this method is inside State<ConsumerStatefulWidget>, so I can access `ref`.
+          // Ah, I can just use `ref.read(translationProvider).value` or access `t` if I define it locally.
+          // Accessing `ref` is possible.
+          Consumer(
+            builder: (context, ref, child) {
+              final t = ref.watch(translationProvider).value ?? {};
+              return Row(
+                children: [
+                  _buildFilterChip(t['business_filter_all'] ?? 'Todos'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(t['business_filter_active'] ?? 'Activos'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    t['business_filter_inactive'] ?? 'Inactivos',
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ],
@@ -700,7 +734,7 @@ class _BusinessEmployeesWidgetState
     );
   }
 
-  Widget _buildPromoCard(BuildContext context) {
+  Widget _buildPromoCard(BuildContext context, Map<String, dynamic> t) {
     return Container(
       width: double.infinity,
       height: 160,
@@ -725,7 +759,7 @@ class _BusinessEmployeesWidgetState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '¡Expandimos tu\nexperiencia!',
+                  t['business_promo_title'] ?? '¡Expandimos tu\nexperiencia!',
                   style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 20,
@@ -737,7 +771,8 @@ class _BusinessEmployeesWidgetState
                 SizedBox(
                   width: 200,
                   child: Text(
-                    'Ahora puedes controlar a tus bots con mas opciones en la oficina Connek.',
+                    t['business_promo_subtitle'] ??
+                        'Ahora puedes controlar a tus bots con mas opciones en la oficina Connek.',
                     style: GoogleFonts.inter(
                       color: Colors.white70,
                       fontSize: 10,
@@ -761,9 +796,9 @@ class _BusinessEmployeesWidgetState
                     ),
                     visualDensity: VisualDensity.compact,
                   ),
-                  child: const Text(
-                    'Ir a tu oficina',
-                    style: TextStyle(fontSize: 12),
+                  child: Text(
+                    t['business_promo_button'] ?? 'Ir a tu oficina',
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ],

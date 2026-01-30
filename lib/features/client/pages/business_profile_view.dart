@@ -56,8 +56,9 @@ class _BusinessProfileViewState extends ConsumerState<BusinessProfileView>
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => Center(child: Text('Error: $err')),
         data: (profile) {
-          if (profile == null)
+          if (profile == null) {
             return const Center(child: Text('Business not found'));
+          }
 
           return NestedScrollView(
             controller: _scrollController,

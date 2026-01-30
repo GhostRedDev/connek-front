@@ -251,7 +251,7 @@ class _BusinessServicesWidgetState
                   return _buildDetailedServiceCard(context, s);
                 }
                 return _buildCompactItemCard(context, s);
-              }).toList(),
+              }),
           ],
         ),
       ),
@@ -501,9 +501,9 @@ class _BusinessServicesWidgetState
       try {
         final date = DateTime.parse(event['event_date']);
         final diff = date.difference(DateTime.now()).inDays;
-        if (diff < 0)
+        if (diff < 0) {
           timeLeft = 'Finalizado';
-        else if (diff == 0)
+        } else if (diff == 0)
           timeLeft = 'Finaliza hoy';
         else
           timeLeft = 'Finaliza en $diff días';
@@ -790,7 +790,7 @@ class _BusinessServicesWidgetState
               Switch(
                 value: true, // Mock value
                 onChanged: (v) {},
-                activeColor: Colors.white,
+                activeThumbColor: Colors.white,
                 activeTrackColor: const Color(0xFF4285F4),
               ),
             ],

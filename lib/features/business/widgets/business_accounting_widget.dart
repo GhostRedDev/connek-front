@@ -6,6 +6,7 @@ import 'add_manual_transaction_dialog.dart';
 import 'business_financial_chart.dart';
 import 'business_wallet_widget.dart';
 import '../providers/business_provider.dart'; // Assuming we have a provider for current business ID
+import '../../../core/providers/locale_provider.dart';
 
 // Filter Provider
 final accountingPeriodProvider = StateProvider<String>((ref) => 'Ano');
@@ -55,6 +56,8 @@ class BusinessAccountingWidget extends ConsumerWidget {
       businessFinancialStatsProvider(selectedPeriod),
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -66,7 +69,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Resumen Financiero',
+                t['business_accounting_title'] ?? 'Resumen Financiero',
                 style: GoogleFonts.outfit(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -102,37 +105,37 @@ class BusinessAccountingWidget extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               children: [
                 _TimeFilterChip(
-                  label: 'Diario',
+                  label: t['business_period_daily'] ?? 'Diario',
                   value: 'Dia',
                   groupValue: selectedPeriod,
                 ),
                 _TimeFilterChip(
-                  label: '3 Días',
+                  label: t['business_period_3days'] ?? '3 Días',
                   value: '3D',
                   groupValue: selectedPeriod,
                 ),
                 _TimeFilterChip(
-                  label: 'Semanal',
+                  label: t['business_period_weekly'] ?? 'Semanal',
                   value: 'Sem',
                   groupValue: selectedPeriod,
                 ),
                 _TimeFilterChip(
-                  label: 'Mensual',
+                  label: t['business_period_monthly'] ?? 'Mensual',
                   value: 'Men',
                   groupValue: selectedPeriod,
                 ),
                 _TimeFilterChip(
-                  label: 'Trimestral',
+                  label: t['business_period_quarterly'] ?? 'Trimestral',
                   value: 'Tri',
                   groupValue: selectedPeriod,
                 ),
                 _TimeFilterChip(
-                  label: 'Semestral',
+                  label: t['business_period_biannual'] ?? 'Semestral',
                   value: '6M',
                   groupValue: selectedPeriod,
                 ),
                 _TimeFilterChip(
-                  label: 'Anual',
+                  label: t['business_period_annual'] ?? 'Anual',
                   value: 'Ano',
                   groupValue: selectedPeriod,
                 ),
@@ -169,12 +172,12 @@ class BusinessAccountingWidget extends ConsumerWidget {
                         children: [
                           _LegendItem(
                             color: const Color(0xFF02d39a),
-                            label: 'Ingresos',
+                            label: t['business_chart_income'] ?? 'Ingresos',
                           ),
                           const SizedBox(width: 16),
                           _LegendItem(
                             color: const Color(0xFFFF5252),
-                            label: 'Gastos',
+                            label: t['business_chart_expenses'] ?? 'Gastos',
                           ),
                         ],
                       ),
@@ -194,7 +197,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
                 // Income Categories
                 if (stats.incomeByCategory.isNotEmpty) ...[
                   Text(
-                    'Fuentes de Ingreso',
+                    t['business_income_sources_title'] ?? 'Fuentes de Ingreso',
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -246,7 +249,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
 
                 // Projections & Wallet
                 Text(
-                  'Proyecciones y Flujo',
+                  t['business_projections_title'] ?? 'Proyecciones y Flujo',
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -258,7 +261,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
                     Expanded(
                       child: _buildStatCard(
                         context,
-                        'Por Cerrar',
+                        t['business_projections_pending'] ?? 'Por Cerrar',
                         '\$${stats.stats.potentialRevenue.toStringAsFixed(2)}',
                         Icons.pending_actions,
                         Colors.orange,
@@ -268,7 +271,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
                     Expanded(
                       child: _buildStatCard(
                         context,
-                        'Dinero Perdido',
+                        t['business_projections_lost'] ?? 'Dinero Perdido',
                         '\$${stats.stats.lostRevenue.toStringAsFixed(2)}',
                         Icons.money_off,
                         Colors.red,
@@ -279,7 +282,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _buildStatCard(
                   context,
-                  'Ingresos a Wallet',
+                  t['business_stats_wallet_injections'] ?? 'Ingresos a Wallet',
                   '\$${stats.stats.walletInjections.toStringAsFixed(2)}',
                   Icons.account_balance_wallet,
                   Colors.blue,
@@ -298,7 +301,9 @@ class BusinessAccountingWidget extends ConsumerWidget {
                   childAspectRatio: 1.4,
                   children: [
                     _StatCard(
-                      title: 'Ingresos Totales',
+                      title:
+                          t['business_stats_total_income'] ??
+                          'Ingresos Totales',
                       value: '\$${stats.stats.totalIncome.toStringAsFixed(2)}',
                       trend:
                           '${stats.stats.incomeGrowth >= 0 ? "+" : ""}${stats.stats.incomeGrowth.toStringAsFixed(1)}%',
@@ -307,7 +312,7 @@ class BusinessAccountingWidget extends ConsumerWidget {
                       color: Colors.green,
                     ),
                     _StatCard(
-                      title: 'Gastos',
+                      title: t['business_stats_expenses'] ?? 'Gastos',
                       value: '\$${stats.stats.totalExpense.toStringAsFixed(2)}',
                       trend:
                           '${stats.stats.expenseGrowth >= 0 ? "+" : ""}${stats.stats.expenseGrowth.toStringAsFixed(1)}%',
@@ -320,15 +325,17 @@ class BusinessAccountingWidget extends ConsumerWidget {
                       color: Colors.redAccent,
                     ),
                     _StatCard(
-                      title: 'Ganancia Neta',
+                      title: t['business_stats_net_profit'] ?? 'Ganancia Neta',
                       value: '\$${stats.stats.profit.toStringAsFixed(2)}',
-                      trend: '${stats.stats.margin.toStringAsFixed(1)}% Margen',
+                      trend:
+                          '${stats.stats.margin.toStringAsFixed(1)}% ${(t['business_stats_margin'] ?? 'Margen')}',
                       isPositive: stats.stats.profit >= 0,
                       icon: Icons.pie_chart,
                       color: Colors.blueAccent,
                     ),
                     _StatCard(
-                      title: 'Ticket Promedio',
+                      title:
+                          t['business_stats_avg_ticket'] ?? 'Ticket Promedio',
                       value:
                           '\$${stats.stats.averageTicket.toStringAsFixed(2)}',
                       isPositive: true,
@@ -336,28 +343,32 @@ class BusinessAccountingWidget extends ConsumerWidget {
                       color: Colors.orangeAccent,
                     ),
                     _StatCard(
-                      title: 'Impuestos Est.',
+                      title: t['business_stats_taxes_est'] ?? 'Impuestos Est.',
                       value:
                           '\$${stats.stats.taxEstimation.toStringAsFixed(2)}',
                       isPositive: false,
                       icon: Icons.account_balance,
                       color: Colors.purpleAccent,
-                      trend: '15% Est.',
+                      trend:
+                          '15% ${(t['business_stats_est_suffix'] ?? 'Est.')}',
                     ),
                   ],
                 ),
               ],
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) =>
-                Center(child: Text('Error loading stats: $err')),
+            error: (err, stack) => Center(
+              child: Text(
+                '${(t['business_stats_error'] ?? 'Error loading stats')}: $err',
+              ),
+            ),
           ),
 
           const SizedBox(height: 32),
 
           // 4. WALLET PREVIEW
           Text(
-            'Billetera Virtual',
+            t['business_wallet_title'] ?? 'Billetera Virtual',
             style: GoogleFonts.outfit(
               fontSize: 20,
               fontWeight: FontWeight.bold,

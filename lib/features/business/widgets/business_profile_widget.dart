@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'event_card_widget.dart';
 import 'create_event_dialog.dart';
 import '../providers/business_provider.dart';
+import '../../../core/providers/locale_provider.dart';
 
 class BusinessProfileWidget extends ConsumerStatefulWidget {
   const BusinessProfileWidget({super.key});
@@ -35,6 +36,7 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
   void _showEditProfileSheet(
     BuildContext context,
     Map<String, dynamic>? profile,
+    Map<String, dynamic> t,
   ) {
     // Basic Edit Sheet
     final nameController = TextEditingController(text: profile?['name'] ?? '');
@@ -60,7 +62,7 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Editar Perfil',
+                  t['business_profile_edit_title'] ?? 'Editar Perfil',
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -75,14 +77,17 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
             const SizedBox(height: 20),
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del Negocio',
+              decoration: InputDecoration(
+                labelText:
+                    t['business_profile_name_label'] ?? 'Nombre del Negocio',
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descController,
-              decoration: const InputDecoration(labelText: 'Descripción'),
+              decoration: InputDecoration(
+                labelText: t['business_profile_desc_label'] ?? 'Descripción',
+              ),
               maxLines: 3,
             ),
             const Spacer(),
@@ -105,7 +110,9 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Guardar Cambios'),
+                child: Text(
+                  t['business_invoices_save_changes'] ?? 'Guardar Cambios',
+                ),
               ),
             ),
           ],
@@ -116,6 +123,8 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final businessData = ref.watch(businessProvider);
     final data = businessData.value;
     final profile = data?.businessProfile;
@@ -127,8 +136,12 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
     final reviews = data?.reviews ?? [];
 
     // Safe defaults
-    final name = profile?['name'] ?? 'Mi Negocio';
-    final description = profile?['description'] ?? 'Sin descripción';
+    final name =
+        profile?['name'] ??
+        (t['business_profile_default_name'] ?? 'Mi Negocio');
+    final description =
+        profile?['description'] ??
+        (t['business_profile_default_desc'] ?? 'Sin descripción');
     final coverImage =
         'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80';
     final profileImage =
@@ -166,7 +179,7 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.edit, color: Colors.white),
-                    onPressed: () => _showEditProfileSheet(context, profile),
+                    onPressed: () => _showEditProfileSheet(context, profile, t),
                   ),
                 ),
               ],
@@ -224,9 +237,11 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                         const Spacer(),
                         ElevatedButton.icon(
                           onPressed: () =>
-                              _showEditProfileSheet(context, profile),
+                              _showEditProfileSheet(context, profile, t),
                           icon: const Icon(Icons.edit_outlined, size: 16),
-                          label: const Text('Editar Perfil'),
+                          label: Text(
+                            t['business_profile_edit_title'] ?? 'Editar Perfil',
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4285F4),
                             foregroundColor: Colors.white,
@@ -276,9 +291,21 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStat('0', 'Seguidores', context), // Mock
-                        _buildStat('${services.length}', 'Servicios', context),
-                        _buildStat('${reviews.length}', 'Reseñas', context),
+                        _buildStat(
+                          '0',
+                          t['business_profile_stats_followers'] ?? 'Seguidores',
+                          context,
+                        ), // Mock
+                        _buildStat(
+                          '${services.length}',
+                          t['business_profile_stats_services'] ?? 'Servicios',
+                          context,
+                        ),
+                        _buildStat(
+                          '${reviews.length}',
+                          t['business_profile_stats_reviews'] ?? 'Reseñas',
+                          context,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -306,7 +333,8 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Información',
+                                    t['business_profile_info_title'] ??
+                                        'Información',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
@@ -333,24 +361,29 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                                   _buildInfoRow(
                                     Icons.location_on_outlined,
                                     profile?['address'] ??
-                                        'Ubicación no disponible',
+                                        (t['business_profile_location_error'] ??
+                                            'Ubicación no disponible'),
                                   ),
                                   _buildInfoRow(
                                     Icons.access_time,
-                                    profile?['hours'] ?? 'Horario no definido',
+                                    profile?['hours'] ??
+                                        (t['business_profile_hours_error'] ??
+                                            'Horario no definido'),
                                   ),
                                   _buildInfoRow(
                                     Icons.phone_outlined,
                                     (profile?['phone'] ??
                                             profile?['contact_phone'] ??
-                                            'Teléfono no definido')
+                                            (t['business_profile_phone_error'] ??
+                                                'Teléfono no definido'))
                                         .toString(),
                                   ),
                                   _buildInfoRow(
                                     Icons.email_outlined,
                                     profile?['email'] ??
                                         profile?['contact_email'] ??
-                                        'Email no definido',
+                                        (t['business_profile_email_error'] ??
+                                            'Email no definido'),
                                   ),
                                 ],
                               ),
@@ -375,11 +408,11 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
-                tabs: const [
-                  Tab(text: 'Servicios'),
-                  Tab(text: 'Fotos'),
-                  Tab(text: 'Eventos'),
-                  Tab(text: 'Reseñas'),
+                tabs: [
+                  Tab(text: t['business_profile_tab_services'] ?? 'Servicios'),
+                  Tab(text: t['business_profile_tab_photos'] ?? 'Fotos'),
+                  Tab(text: t['business_profile_tab_events'] ?? 'Eventos'),
+                  Tab(text: t['business_profile_tab_reviews'] ?? 'Reseñas'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -391,15 +424,15 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                   animation: _tabController,
                   builder: (context, _) {
                     if (_tabController.index == 0) {
-                      return _buildServicesList(services, isDark);
+                      return _buildServicesList(services, isDark, t);
                     }
                     if (_tabController.index == 1) {
-                      return _buildPhotosGrid(services, profile);
+                      return _buildPhotosGrid(services, profile, t, context);
                     }
                     if (_tabController.index == 2) {
-                      return _buildEventsList(data?.events ?? []);
+                      return _buildEventsList(data?.events ?? [], t);
                     }
-                    return _buildReviewsList(reviews, isDark);
+                    return _buildReviewsList(reviews, isDark, t);
                   },
                 ),
               ),
@@ -411,15 +444,25 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
     );
   }
 
-  Widget _buildServicesList(List<Map<String, dynamic>> services, bool isDark) {
-    if (services.isEmpty) return const Text('No hay servicios disponibles');
+  Widget _buildServicesList(
+    List<Map<String, dynamic>> services,
+    bool isDark,
+    Map<String, dynamic> t,
+  ) {
+    if (services.isEmpty)
+      return Text(
+        t['business_profile_services_empty'] ?? 'No hay servicios disponibles',
+      );
 
     return Column(
       children: services.map((s) => _buildServiceCard(s, isDark)).toList(),
     );
   }
 
-  Widget _buildEventsList(List<Map<String, dynamic>> events) {
+  Widget _buildEventsList(
+    List<Map<String, dynamic>> events,
+    Map<String, dynamic> t,
+  ) {
     return Column(
       children: [
         Padding(
@@ -433,8 +476,9 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
                   builder: (context) => const CreateEventDialog(),
                 );
               },
+
               icon: const Icon(Icons.add_circle_outline, size: 16),
-              label: const Text('Crear Evento'),
+              label: Text(t['business_profile_create_event'] ?? 'Crear Evento'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4285F4),
                 foregroundColor: Colors.white,
@@ -446,10 +490,12 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
           ),
         ),
         if (events.isEmpty)
-          const Center(
+          Center(
             child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Text('Sin eventos próximos'),
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                t['business_profile_events_empty'] ?? 'Sin eventos próximos',
+              ),
             ),
           )
         else
@@ -520,6 +566,8 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
   Widget _buildPhotosGrid(
     List<Map<String, dynamic>> services,
     Map<String, dynamic>? profile,
+    Map<String, dynamic> t,
+    BuildContext context,
   ) {
     // 1. Get Portfolio Images from Profile
     List<String> portfolioImages = [];
@@ -542,12 +590,16 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
       return Column(
         children: [
           const SizedBox(height: 20),
-          const Text('No hay fotos en el portafolio'),
+          const SizedBox(height: 20),
+          Text(
+            t['business_profile_photos_empty'] ??
+                'No hay fotos en el portafolio',
+          ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => context.push('/business/create-portfolio'),
             icon: const Icon(Icons.add_photo_alternate),
-            label: const Text('Agregar Fotos'),
+            label: Text(t['business_profile_add_photos'] ?? 'Agregar Fotos'),
           ),
         ],
       );
@@ -562,7 +614,7 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
             child: TextButton.icon(
               onPressed: () => context.push('/business/create-portfolio'),
               icon: const Icon(Icons.add_a_photo, size: 16),
-              label: const Text('Agregar'),
+              label: Text(t['business_profile_add'] ?? 'Agregar'),
             ),
           ),
         ),
@@ -593,16 +645,24 @@ class _BusinessProfileWidgetState extends ConsumerState<BusinessProfileWidget>
     );
   }
 
-  Widget _buildReviewsList(List<Map<String, dynamic>> reviews, bool isDark) {
+  Widget _buildReviewsList(
+    List<Map<String, dynamic>> reviews,
+    bool isDark,
+    Map<String, dynamic> t,
+  ) {
     if (reviews.isEmpty)
-      return const Center(child: Text('No hay reseÃ±as aÃºn'));
+      return Center(
+        child: Text(
+          t['business_profile_reviews_empty'] ?? 'No hay reseñas aún',
+        ),
+      );
 
     return Column(
       children: reviews.map((r) {
         final client = r['client'];
         final clientName = client != null
             ? '${client['first_name']} ${client['last_name']}'
-            : 'Cliente AnÃ³nimo';
+            : (t['business_profile_client_anonymous'] ?? 'Cliente Anónimo');
         final rating = r['rating'] ?? 5;
         final content = r['content'] ?? '';
         final clientImage = client != null

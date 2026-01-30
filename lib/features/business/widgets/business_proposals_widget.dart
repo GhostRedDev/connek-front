@@ -179,11 +179,9 @@ class _BusinessProposalsWidgetState
                       ),
                     )
                   else
-                    ...filteredQuotes
-                        .map(
-                          (prop) => _buildProposalCard(prop, isDark, cardColor),
-                        )
-                        .toList(),
+                    ...filteredQuotes.map(
+                      (prop) => _buildProposalCard(prop, isDark, cardColor),
+                    ),
 
                   // Extra space for bottom nav
                   const SizedBox(height: 80),

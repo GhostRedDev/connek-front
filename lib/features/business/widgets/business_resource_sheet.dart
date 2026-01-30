@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/business_provider.dart';
+import '../../../core/providers/locale_provider.dart';
 
 class BusinessResourceSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? resourceToEdit;
@@ -54,6 +55,8 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDark ? const Color(0xFF1A1D21) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
@@ -103,8 +106,10 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
                   ),
                   Text(
                     widget.resourceToEdit != null
-                        ? 'Editar Recurso'
-                        : 'Añadir Recurso',
+                        ? t['business_resource_sheet_edit_title'] ??
+                              'Editar Recurso'
+                        : t['business_resource_sheet_add_title'] ??
+                              'Añadir Recurso',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -122,7 +127,10 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
               ),
               const SizedBox(height: 24),
 
-              _buildLabel('Nombre del Recurso', context),
+              _buildLabel(
+                t['business_resource_sheet_name_label'] ?? 'Nombre del Recurso',
+                context,
+              ),
               _buildTextField(
                 controller: _nameController,
                 hint: 'Ej: Sala de Juntas A',
@@ -131,7 +139,10 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
               ),
               const SizedBox(height: 16),
 
-              _buildLabel('Tipo de Recurso', context),
+              _buildLabel(
+                t['business_resource_sheet_type_label'] ?? 'Tipo de Recurso',
+                context,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -160,7 +171,11 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
               ),
               if (_selectedType == 'Otro') ...[
                 const SizedBox(height: 16),
-                _buildLabel('Especificar Tipo', context),
+                _buildLabel(
+                  t['business_employee_sheet_custom_role_label'] ??
+                      'Especificar Tipo',
+                  context,
+                ),
                 _buildTextField(
                   controller: _customCategoryController,
                   hint: 'Ej: Proyector 4K',
@@ -170,7 +185,10 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
               ],
 
               const SizedBox(height: 16),
-              _buildLabel('Imagen (URL)', context),
+              _buildLabel(
+                t['business_employee_sheet_image_label'] ?? 'Imagen (URL)',
+                context,
+              ),
               _buildTextField(
                 controller: _imageController,
                 hint: 'https://...',
@@ -184,7 +202,8 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Disponible / Activo',
+                    t['business_resource_sheet_active_label'] ??
+                        'Disponible / Activo',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -233,8 +252,10 @@ class _BusinessResourceSheetState extends ConsumerState<BusinessResourceSheet> {
     return TextFormField(
       controller: controller,
       style: GoogleFonts.inter(color: textColor),
-      validator: (val) =>
-          isRequired && (val == null || val.isEmpty) ? 'Requerido' : null,
+      validator: (val) => isRequired && (val == null || val.isEmpty)
+          ? (ref.read(translationProvider).value?['required_field'] ??
+                'Requerido')
+          : null,
       decoration: InputDecoration(
         filled: true,
         fillColor: fillColor,

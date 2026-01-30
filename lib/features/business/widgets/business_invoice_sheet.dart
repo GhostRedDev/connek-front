@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../core/providers/locale_provider.dart';
 
 import '../providers/business_provider.dart';
 
@@ -81,16 +82,30 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
   Future<void> _saveInvoice() async {
     if (_selectedLeadId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor selecciona un cliente')),
+        SnackBar(
+          content: Text(
+            ref
+                    .read(translationProvider)
+                    .value?['business_invoice_select_client_error'] ??
+                'Por favor selecciona un cliente',
+          ),
+        ), // Access ref.read since it's a callback
       );
       return;
     }
 
     // Validate items
     if (_items.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Agrega al menos un ítem')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ref
+                    .read(translationProvider)
+                    .value?['business_invoice_add_item_error'] ??
+                'Agrega al menos un ítem',
+          ),
+        ),
+      );
       return;
     }
 
@@ -140,7 +155,13 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.initialData != null ? 'Guardado' : 'Factura creada',
+              widget.initialData != null
+                  ? (ref.read(translationProvider).value?['generic_saved'] ??
+                        'Guardado')
+                  : (ref
+                            .read(translationProvider)
+                            .value?['business_invoice_created_success'] ??
+                        'Factura creada'),
             ),
           ),
         );
@@ -158,6 +179,9 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
     final businessData = ref.watch(businessProvider).value;
     final leads = businessData?.recentLeads ?? [];
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -209,7 +233,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
           TextButton(
             onPressed: _saveInvoice,
             child: Text(
-              'Guardar',
+              t['business_invoices_save_changes'] ?? 'Guardar',
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.bold,
                 color: isDark ? Colors.white : Colors.black,
@@ -300,7 +324,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Factura $invoiceId',
+                                        '${t['business_invoice_title_prefix'] ?? 'Factura'} $invoiceId',
                                         style: GoogleFonts.inter(
                                           color: Colors.blueAccent,
                                           fontWeight: FontWeight.w600,
@@ -356,7 +380,8 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
 
                           // 2. Cliente Section
                           Text(
-                            'Cliente',
+                            t['business_invoice_sheet_client_label'] ??
+                                'Cliente',
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
@@ -385,7 +410,9 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                 ),
                                 dropdownColor: cardColor,
                                 decoration: InputDecoration(
-                                  hintText: 'Seleccionar cliente...',
+                                  hintText:
+                                      t['business_invoice_sheet_client_hint'] ??
+                                      'Seleccionar cliente...',
                                   hintStyle: GoogleFonts.inter(
                                     color: Colors.grey.shade400,
                                   ),
@@ -521,7 +548,8 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Conceptos',
+                                t['business_invoice_sheet_concepts_title'] ??
+                                    'Conceptos',
                                 style: GoogleFonts.outfit(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
@@ -535,7 +563,8 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                   size: 18,
                                 ),
                                 label: Text(
-                                  'Agregar ítem',
+                                  t['business_invoice_sheet_add_item'] ??
+                                      'Agregar ítem',
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -570,7 +599,8 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    'Buscar o crear nuevo concepto...',
+                                    t['business_invoice_sheet_item_hint'] ??
+                                        'Buscar o crear nuevo concepto...',
                                     style: GoogleFonts.inter(
                                       color: Colors.grey.shade500,
                                     ),
@@ -587,7 +617,8 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                               padding: const EdgeInsets.symmetric(vertical: 20),
                               child: Center(
                                 child: Text(
-                                  "No hay ítems en la factura",
+                                  t['business_invoice_sheet_no_items'] ??
+                                      "No hay ítems en la factura",
                                   style: GoogleFonts.inter(
                                     color: Colors.grey.shade400,
                                   ),
@@ -606,6 +637,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                 textColor,
                                 borderColor,
                                 inputFillColor,
+                                t,
                               );
                             }),
 
@@ -630,7 +662,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                             child: Column(
                               children: [
                                 _buildTotalRow(
-                                  'Subtotal',
+                                  t['business_invoice_subtotal'] ?? 'Subtotal',
                                   _subTotal,
                                   isDark: true,
                                 ),
@@ -655,7 +687,8 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Total a Pagar',
+                                      t['business_invoice_sheet_total_pay'] ??
+                                          'Total a Pagar',
                                       style: GoogleFonts.inter(
                                         color: Colors.white70,
                                         fontSize: 16,
@@ -710,7 +743,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                               ),
                             ),
                             child: Text(
-                              'Cancelar',
+                              t['business_invoices_cancel'] ?? 'Cancelar',
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.w600,
                                 color: isDark
@@ -744,8 +777,10 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
                                   )
                                 : Text(
                                     widget.initialData != null
-                                        ? 'Guardar Cambios'
-                                        : 'Crear Factura',
+                                        ? t['business_invoices_save_changes'] ??
+                                              'Guardar Cambios'
+                                        : t['business_invoice_create_button'] ??
+                                              'Crear Factura',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
@@ -773,6 +808,7 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
     Color textColor,
     Color borderColor,
     Color inputFillColor,
+    Map<String, dynamic> t,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -790,8 +826,10 @@ class _BusinessInvoiceSheetState extends ConsumerState<BusinessInvoiceSheet> {
               Expanded(
                 child: TextFormField(
                   initialValue: item.title,
-                  decoration: const InputDecoration(
-                    hintText: 'Nombre del ítem',
+                  decoration: InputDecoration(
+                    hintText:
+                        t['business_invoice_item_name_hint'] ??
+                        'Nombre del ítem',
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                   ),

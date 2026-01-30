@@ -242,7 +242,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 );
 
                             // Dismiss loading
-                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
+                            if (mounted)
+                              Navigator.of(context, rootNavigator: true).pop();
 
                             if (response.user != null) {
                               if (mounted) {
@@ -259,7 +260,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } on AuthException catch (error) {
                             // Dismiss loading
-                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
+                            if (mounted)
+                              Navigator.of(context, rootNavigator: true).pop();
 
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +276,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } catch (e) {
                             // Dismiss loading
-                            if (mounted) Navigator.of(context, rootNavigator: true).pop();
+                            if (mounted)
+                              Navigator.of(context, rootNavigator: true).pop();
 
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -338,7 +341,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       label: t['sign_in_google'] ?? 'Sign in with Google',
                       icon: Icons.g_mobiledata,
                       color: isDark ? Colors.white : Colors.black,
-                      onPressed: _googleSignIn,
+                      onPressed: () => _googleSignIn(t),
                     ),
                     const SizedBox(height: 16),
                     // Apple Sign In
@@ -440,7 +443,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  Future<void> _googleSignIn() async {
+  Future<void> _googleSignIn(Map<String, String> t) async {
     try {
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -450,7 +453,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Google Sign In Failed: $e'),
+            content: Text(
+              (t['auth_error_google_sign_in'] ??
+                      'Google Sign In Failed: {error}')
+                  .replaceAll('{error}', e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );

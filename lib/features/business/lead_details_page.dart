@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import '../../../core/providers/locale_provider.dart';
 import 'providers/business_provider.dart';
 import 'widgets/business_proposal_sheet.dart';
 
@@ -18,6 +19,8 @@ class LeadDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     print('DEBUG: LeadDetailsPage build. Lead ID: ${lead.id}');
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final businessData = ref.watch(businessProvider).value;
     // Try to find updated lead in provider, otherwise use passed lead
     final currentLead =
@@ -39,18 +42,18 @@ class LeadDetailsPage extends ConsumerWidget {
     final amount = (currentLead.requestBudgetMax ?? 0) / 100.0;
 
     // Status Logic
-    String statusText = 'Pendiente';
+    String statusText = t['lead_status_pending'] ?? 'Pendiente';
     Color statusColor = const Color(0xFFFB8C00);
     Color statusBgColor = const Color(0xFFFFF3E0);
 
     if (currentLead.status == 'completed' ||
         currentLead.status == 'converted') {
-      statusText = 'Completado';
+      statusText = t['lead_status_completed'] ?? 'Completado';
       statusColor = const Color(0xFF4285F4);
       statusBgColor = const Color(0xFFE3F2FD);
     } else if (currentLead.status == 'cancelled' ||
         currentLead.status == 'declined') {
-      statusText = 'Cancelado';
+      statusText = t['lead_status_cancelled'] ?? 'Cancelado';
       statusColor = const Color(0xFFFF5252);
       statusBgColor = const Color(0xFFFFEBEE);
     }
@@ -72,8 +75,8 @@ class LeadDetailsPage extends ConsumerWidget {
     }
 
     final serviceName = resolvedService != null
-        ? resolvedService['name'] ?? 'Servicio'
-        : 'Servicio';
+        ? resolvedService['name'] ?? (t['lead_label_service'] ?? 'Servicio')
+        : (t['lead_label_service'] ?? 'Servicio');
 
     String servicePrice = '\$--';
     if (resolvedService != null && resolvedService['price_cents'] != null) {
@@ -123,7 +126,7 @@ class LeadDetailsPage extends ConsumerWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      "Volver",
+                      t['lead_details_back'] ?? "Volver",
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -139,7 +142,7 @@ class LeadDetailsPage extends ConsumerWidget {
         leadingWidth: 100,
         centerTitle: true,
         title: Text(
-          'Detalles del cliente potencial',
+          t['lead_details_title'] ?? 'Detalles del cliente potencial',
           style: GoogleFonts.outfit(
             color: isDark ? Colors.white : Colors.black,
             fontSize: 18,
@@ -356,7 +359,9 @@ class LeadDetailsPage extends ConsumerWidget {
                                         Icons.message_outlined,
                                         size: 16,
                                       ),
-                                      label: const Text('Mensaje'),
+                                      label: Text(
+                                        t['lead_action_message'] ?? 'Mensaje',
+                                      ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: cardColor,
                                         foregroundColor: isDark
@@ -386,9 +391,10 @@ class LeadDetailsPage extends ConsumerWidget {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  "No se pudo iniciar la llamada",
+                                                  t['lead_error_call_failed'] ??
+                                                      "No se pudo iniciar la llamada",
                                                 ),
                                               ),
                                             );
@@ -396,7 +402,9 @@ class LeadDetailsPage extends ConsumerWidget {
                                         }
                                       },
                                       icon: const Icon(Icons.phone, size: 16),
-                                      label: const Text('Llamar'),
+                                      label: Text(
+                                        t['lead_action_call'] ?? 'Llamar',
+                                      ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.white,
                                         foregroundColor: Colors.black,
@@ -419,7 +427,10 @@ class LeadDetailsPage extends ConsumerWidget {
                                     child: ElevatedButton(
                                       onPressed: () =>
                                           context.push('/chats/${lead.id}'),
-                                      child: const Text('Enviar mensaje'),
+                                      child: Text(
+                                        t['lead_action_send_message'] ??
+                                            'Enviar mensaje',
+                                      ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color(
                                           0xFF111418,
@@ -457,7 +468,10 @@ class LeadDetailsPage extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
-                                      child: const Text('Ver perfil'),
+                                      child: Text(
+                                        t['lead_action_view_profile'] ??
+                                            'Ver perfil',
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -481,7 +495,7 @@ class LeadDetailsPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'About request',
+                                t['lead_section_about'] ?? 'About request',
                                 style: GoogleFonts.outfit(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -546,7 +560,8 @@ class LeadDetailsPage extends ConsumerWidget {
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                "Service",
+                                                t['lead_label_service'] ??
+                                                    "Service",
                                                 style: TextStyle(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
@@ -610,7 +625,10 @@ class LeadDetailsPage extends ConsumerWidget {
                                         color: Colors.grey,
                                       ),
                                       SizedBox(width: 8),
-                                      Text("No service info available"),
+                                      Text(
+                                        t['lead_error_no_service'] ??
+                                            "No service info available",
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -678,7 +696,9 @@ class LeadDetailsPage extends ConsumerWidget {
                                       vertical: 14,
                                     ),
                                   ),
-                                  child: const Text("Cotizar"),
+                                  child: Text(
+                                    t['lead_action_quote'] ?? "Cotizar",
+                                  ),
                                 ),
                               ),
                             ],
@@ -718,8 +738,8 @@ class LeadDetailsPage extends ConsumerWidget {
                               Icons.delete_outline,
                               color: Colors.red,
                             ),
-                            label: const Text(
-                              "Eliminar Lead",
+                            label: Text(
+                              t['lead_action_delete'] ?? "Eliminar Lead",
                               style: TextStyle(color: Colors.red),
                             ),
                             style: OutlinedButton.styleFrom(

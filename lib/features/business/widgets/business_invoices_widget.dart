@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../providers/business_provider.dart';
 import 'business_invoice_sheet.dart';
 import 'business_invoice_details_sheet.dart';
@@ -19,7 +20,11 @@ class BusinessInvoicesWidget extends ConsumerStatefulWidget {
 
 class _BusinessInvoicesWidgetState
     extends ConsumerState<BusinessInvoicesWidget> {
-  String _selectedFilter = 'Todos';
+  String _selectedFilter =
+      'Todos'; // We will map this to key later or use key as value? Better use internal key.
+  // Actually, filter logic compares this string. If we translate UI, we must keep logic consistent.
+  // We can keep '_selectedFilter' as the *displayed* string if we update it to use T, or use an Enum/Key.
+  // For simplicity, let's keep it as 'Todos' internally for now, but display T.
   final TextEditingController _searchController = TextEditingController();
 
   void _showInvoiceSheet({Map<String, dynamic>? initialData}) {
@@ -33,19 +38,26 @@ class _BusinessInvoicesWidgetState
   }
 
   Future<void> _deleteInvoice(int id) async {
+    final t = ref.read(translationProvider).value ?? {};
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar Factura'),
-        content: const Text('¿Estás seguro de eliminar esta factura?'),
+        title: Text(t['business_invoices_delete_title'] ?? 'Eliminar Factura'),
+        content: Text(
+          t['business_invoices_delete_content'] ??
+              '¿Estás seguro de eliminar esta factura?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: Text(t['business_invoices_cancel'] ?? 'Cancelar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: Text(
+              t['business_invoices_delete'] ?? 'Eliminar',
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -59,6 +71,8 @@ class _BusinessInvoicesWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final businessDataAsync = ref.watch(businessProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
@@ -89,24 +103,26 @@ class _BusinessInvoicesWidgetState
               switch (statusRaw.toString().toLowerCase()) {
                 case 'paid':
                 case 'pagada':
-                  status = 'Pagada';
+                  status = t['business_status_paid'] ?? 'Pagada';
                   break;
                 case 'accepted':
                 case 'aceptada':
-                  status = 'Por Cobrar'; // Accepted but not paid yet
+                  status =
+                      t['business_status_receivable'] ??
+                      'Por Cobrar'; // Accepted but not paid yet
                   break;
                 case 'sent':
                 case 'enviada':
-                  status = 'Enviada';
+                  status = t['business_status_sent'] ?? 'Enviada';
                   break;
                 case 'draft':
                 case 'borrador':
-                  status = 'Borrador';
+                  status = t['business_status_draft'] ?? 'Borrador';
                   break;
                 case 'overdue':
                 case 'vencida':
                 case 'retrasada':
-                  status = 'Vencida';
+                  status = t['business_status_overdue'] ?? 'Vencida';
                   break;
                 default:
                   // Capitalize first letter for others
@@ -227,7 +243,7 @@ class _BusinessInvoicesWidgetState
                 children: [
                   // Title
                   Text(
-                    'Facturas',
+                    t['business_invoices_title'] ?? 'Facturas',
                     style: GoogleFonts.outfit(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -236,7 +252,8 @@ class _BusinessInvoicesWidgetState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Encuentra a todos tus clientes activos.',
+                    t['business_invoices_subtitle'] ??
+                        'Encuentra a todos tus clientes activos.',
                     style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 20),
@@ -259,7 +276,9 @@ class _BusinessInvoicesWidgetState
                       controller: _searchController,
                       onChanged: (val) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: 'Buscar facturas',
+                        hintText:
+                            t['business_invoices_search_hint'] ??
+                            'Buscar facturas',
                         hintStyle: GoogleFonts.inter(color: Colors.grey),
                         prefixIcon: const Icon(
                           Icons.search,
@@ -311,7 +330,9 @@ class _BusinessInvoicesWidgetState
                     )
                   else
                     ...invoices
-                        .map((inv) => _buildInvoiceCard(inv, isDark, cardColor))
+                        .map(
+                          (inv) => _buildInvoiceCard(inv, isDark, cardColor, t),
+                        )
                         .toList(),
 
                   // Extra space
@@ -360,6 +381,9 @@ class _BusinessInvoicesWidgetState
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
+          // Here we should probably translate the label if it's dynamic
+          // But _selectedFilter matches these values.
+          // For now, let's just display it.
           uiLabel,
           style: GoogleFonts.inter(
             color: isSelected ? Colors.white : Colors.grey[700],
@@ -375,6 +399,7 @@ class _BusinessInvoicesWidgetState
     Map<String, dynamic> inv,
     bool isDark,
     Color cardColor,
+    Map<String, dynamic> t,
   ) {
     Color statusColor;
     Color statusBgColor;
@@ -500,15 +525,17 @@ class _BusinessInvoicesWidgetState
                   },
                   itemBuilder: (BuildContext context) =>
                       <PopupMenuEntry<String>>[
-                        const PopupMenuItem<String>(
+                        PopupMenuItem<String>(
                           value: 'edit',
-                          child: Text('Editar'),
+                          child: Text(
+                            t['business_invoices_action_edit'] ?? 'Editar',
+                          ),
                         ),
-                        const PopupMenuItem<String>(
+                        PopupMenuItem<String>(
                           value: 'delete',
                           child: Text(
-                            'Eliminar',
-                            style: TextStyle(color: Colors.red),
+                            t['business_invoices_action_delete'] ?? 'Eliminar',
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ),
                       ],

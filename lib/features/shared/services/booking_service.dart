@@ -214,11 +214,13 @@ class BookingService {
     // Status
     final statusStr = json['status'] ?? 'pending';
     BookingStatus status = BookingStatus.pending;
-    if (statusStr == 'accepted' || statusStr == 'converted')
+    if (statusStr == 'accepted' || statusStr == 'converted') {
       status = BookingStatus.confirmed;
+    }
     if (statusStr == 'completed') status = BookingStatus.completed;
-    if (statusStr == 'cancelled' || statusStr == 'declined')
+    if (statusStr == 'cancelled' || statusStr == 'declined') {
       status = BookingStatus.cancelled;
+    }
 
     // Check booking_made flag
     if (json['booking_made'] == true &&
@@ -308,8 +310,9 @@ class BookingService {
     // Status Mapping
     BookingStatus status = BookingStatus.pending;
     final statusStr = json['status']?.toString().toLowerCase() ?? 'pending';
-    if (statusStr == 'accepted' || statusStr == 'confirmed')
+    if (statusStr == 'accepted' || statusStr == 'confirmed') {
       status = BookingStatus.confirmed;
+    }
     if (statusStr == 'completed') status = BookingStatus.completed;
     if (statusStr == 'cancelled') status = BookingStatus.cancelled;
 

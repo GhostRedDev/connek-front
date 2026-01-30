@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart'; // Added
+import '../../../core/providers/locale_provider.dart';
 import '../../shared/models/booking_model.dart';
 import '../../shared/providers/booking_provider.dart';
 import '../providers/business_provider.dart'; // Added for Client/Service list
@@ -26,6 +27,8 @@ class _BusinessBookingsWidgetState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
     final bookingsAsync = ref.watch(bookingListProvider('business'));
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -37,7 +40,7 @@ class _BusinessBookingsWidgetState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Reservas',
+                t['business_bookings_title'] ?? 'Reservas',
                 style: GoogleFonts.outfit(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -47,7 +50,7 @@ class _BusinessBookingsWidgetState
               ElevatedButton.icon(
                 onPressed: () => _showCreateBookingSheet(context),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Registrar'),
+                label: Text(t['business_bookings_register'] ?? 'Registrar'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isDark
                       ? Colors.white
@@ -66,7 +69,8 @@ class _BusinessBookingsWidgetState
           ),
           const SizedBox(height: 20),
           Text(
-            'Encuentra a todos tus clientes activos.',
+            t['business_bookings_subtitle'] ??
+                'Encuentra a todos tus clientes activos.',
             style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 20),
@@ -88,7 +92,9 @@ class _BusinessBookingsWidgetState
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Buscar reservaciones',
+                hintText:
+                    t['business_bookings_search_hint'] ??
+                    'Buscar reservaciones',
                 hintStyle: GoogleFonts.inter(color: Colors.grey),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 border: InputBorder.none,
@@ -106,13 +112,19 @@ class _BusinessBookingsWidgetState
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildFilterChip('Todos'),
+                _buildFilterChip(t['business_status_all'] ?? 'Todos'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Próximas'), // Confirmed/Pending
+                _buildFilterChip(
+                  t['business_status_upcoming'] ?? 'Próximas',
+                ), // Confirmed/Pending
                 const SizedBox(width: 8),
-                _buildFilterChip('Completada'),
+                _buildFilterChip(
+                  t['business_status_completed'] ?? 'Completada',
+                ),
                 const SizedBox(width: 8),
-                _buildFilterChip('Canceladas'),
+                _buildFilterChip(
+                  t['business_status_cancelled'] ?? 'Canceladas',
+                ),
               ],
             ),
           ),
@@ -125,26 +137,33 @@ class _BusinessBookingsWidgetState
             data: (bookings) {
               // Filter Logic
               final filtered = bookings.where((bk) {
-                final statusLabel = bk.status.label;
-                if (_selectedFilter == 'Todos') return true;
-                if (_selectedFilter == 'Próximas') {
+                if (_selectedFilter == (t['business_status_all'] ?? 'Todos'))
+                  return true;
+                if (_selectedFilter ==
+                    (t['business_status_upcoming'] ?? 'Próximas')) {
                   return bk.status == BookingStatus.confirmed ||
                       bk.status == BookingStatus.pending;
                 }
-                if (_selectedFilter == 'Completada')
+                if (_selectedFilter ==
+                    (t['business_status_completed'] ?? 'Completada'))
                   return bk.status == BookingStatus.completed;
-                if (_selectedFilter == 'Canceladas')
+                if (_selectedFilter ==
+                    (t['business_status_cancelled'] ?? 'Canceladas'))
                   return bk.status == BookingStatus.cancelled;
                 return true;
               }).toList();
 
               if (filtered.isEmpty) {
-                return const Center(child: Text('No bookings found.'));
+                return Center(
+                  child: Text(
+                    t['business_bookings_empty'] ?? 'No bookings found.',
+                  ),
+                );
               }
 
               return Column(
                 children: filtered
-                    .map((bk) => _buildBookingCard(bk, isDark, cardColor))
+                    .map((bk) => _buildBookingCard(bk, isDark, cardColor, t))
                     .toList(),
               );
             },
@@ -183,7 +202,12 @@ class _BusinessBookingsWidgetState
     );
   }
 
-  Widget _buildBookingCard(BookingModel bk, bool isDark, Color cardColor) {
+  Widget _buildBookingCard(
+    BookingModel bk,
+    bool isDark,
+    Color cardColor,
+    Map<String, dynamic> t,
+  ) {
     final statusColor = bk.status.color;
     final statusBgColor = bk.status.color.withOpacity(
       0.15,
@@ -251,7 +275,7 @@ class _BusinessBookingsWidgetState
                     borderRadius: BorderRadius.circular(20), // Pill shape
                   ),
                   child: Text(
-                    bk.status.label,
+                    _getLocalizedStatus(bk.status, t),
                     style: GoogleFonts.inter(
                       color: statusColor,
                       fontSize: 11, // Small enough
@@ -435,6 +459,19 @@ class _BusinessBookingsWidgetState
     );
   }
 
+  String _getLocalizedStatus(BookingStatus status, Map<String, dynamic> t) {
+    switch (status) {
+      case BookingStatus.pending:
+        return t['booking_status_pending'] ?? 'Pendiente';
+      case BookingStatus.confirmed:
+        return t['booking_status_confirmed'] ?? 'Próxima';
+      case BookingStatus.completed:
+        return t['booking_status_completed'] ?? 'Completada';
+      case BookingStatus.cancelled:
+        return t['booking_status_cancelled'] ?? 'Cancelada';
+    }
+  }
+
   void _showCreateBookingSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -459,6 +496,8 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final businessData = ref.watch(businessProvider).value;
     final clients = businessData?.clients ?? [];
     final services = businessData?.services ?? [];
@@ -477,7 +516,7 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Nueva Reserva',
+                t['business_bookings_new_title'] ?? 'Nueva Reserva',
                 style: GoogleFonts.outfit(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -497,7 +536,7 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                 children: [
                   // Client Dropdown
                   Text(
-                    'Cliente',
+                    t['business_bookings_client_label'] ?? 'Cliente',
                     style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -519,13 +558,16 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                       );
                     }).toList(),
                     onChanged: (val) => setState(() => _selectedClientId = val),
-                    hint: const Text('Seleccionar Cliente'),
+                    hint: Text(
+                      t['business_bookings_client_hint'] ??
+                          'Seleccionar Cliente',
+                    ),
                   ),
                   const SizedBox(height: 20),
 
                   // Service Dropdown
                   Text(
-                    'Servicio',
+                    t['business_bookings_service_label'] ?? 'Servicio',
                     style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -546,7 +588,10 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                     }).toList(),
                     onChanged: (val) =>
                         setState(() => _selectedServiceId = val),
-                    hint: const Text('Seleccionar Servicio'),
+                    hint: Text(
+                      t['business_bookings_service_hint'] ??
+                          'Seleccionar Servicio',
+                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -558,7 +603,7 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Fecha',
+                              t['business_bookings_date_label'] ?? 'Fecha',
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -592,7 +637,8 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                                     const SizedBox(width: 8),
                                     Text(
                                       _selectedDate == null
-                                          ? 'Seleccionar'
+                                          ? (t['business_bookings_select'] ??
+                                                'Seleccionar')
                                           : DateFormat(
                                               'dd/MM/yyyy',
                                             ).format(_selectedDate!),
@@ -610,7 +656,7 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hora',
+                              t['business_bookings_time_label'] ?? 'Hora',
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -640,7 +686,8 @@ class _CreateBookingSheetState extends ConsumerState<_CreateBookingSheet> {
                                     const SizedBox(width: 8),
                                     Text(
                                       _selectedTime == null
-                                          ? 'Seleccionar'
+                                          ? (t['business_bookings_select'] ??
+                                                'Seleccionar')
                                           : _selectedTime!.format(context),
                                     ),
                                   ],

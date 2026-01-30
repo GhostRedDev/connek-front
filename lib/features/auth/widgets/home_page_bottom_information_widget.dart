@@ -28,6 +28,7 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
                   context,
                   title: t['footer_terms'] ?? 'Terms of Use',
                   content:
+                      t['footer_terms_content'] ??
                       "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\n(Placeholder for Terms of Use)",
                 ),
               ),
@@ -38,6 +39,7 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
                   context,
                   title: t['footer_privacy'] ?? 'Privacy Policy',
                   content:
+                      t['footer_privacy_content'] ??
                       "Your privacy is important to us. It is Connek's policy to respect your privacy regarding any information we may collect from you across our website and other sites we own and operate.\n\n(Placeholder for Privacy Policy)",
                 ),
               ),
@@ -48,6 +50,7 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
                   context,
                   title: t['footer_cookies'] ?? 'Cookies',
                   content:
+                      t['footer_cookies_content'] ??
                       "We use cookies to improve your experience on our website. By browsing this website, you agree to our use of cookies.\n\n(Placeholder for Cookies Policy)",
                 ),
               ),
@@ -66,6 +69,7 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
                   context,
                   title: t['footer_how_it_works'] ?? 'How it works',
                   content:
+                      t['footer_how_it_works_content'] ??
                       "1. Search for a service.\n2. Book or Request.\n3. Get it done!\n\nConnek connects you with the best professionals in your area.",
                 ),
               ),
@@ -76,6 +80,7 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
                   context,
                   title: t['footer_about'] ?? 'About',
                   content:
+                      t['footer_about_content'] ??
                       "Connek is a leading platform for connecting clients with service providers. Our mission is to make service discovery seamless and reliable.",
                 ),
               ),
@@ -86,6 +91,7 @@ class HomePageBottomInformationWidget extends ConsumerWidget {
                   context,
                   title: t['footer_contact'] ?? 'Contact Us',
                   content:
+                      t['footer_contact_content'] ??
                       "Have questions? Reach out to us at:\n\nEmail: support@connek.com\nPhone: +1 234 567 890\n\nWe are here to help!",
                 ),
               ),

@@ -572,8 +572,8 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   ) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: _tabBar,
       padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: _tabBar,
     );
   }
 

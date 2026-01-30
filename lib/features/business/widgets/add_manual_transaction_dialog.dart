@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../services/business_analytics_service.dart';
 import '../providers/business_provider.dart';
 
@@ -26,26 +27,26 @@ class _AddManualTransactionDialogState
   final TextEditingController _referenceController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
-  String _selectedCategory = 'Servicios';
+  String _selectedCategory = 'transaction_cat_services'; // Default key
   bool _isLoading = false;
 
   final List<String> _incomeCategories = [
-    'Servicios',
-    'Productos',
-    'Eventos',
-    'Alquiler',
-    'Propinas',
-    'Otros',
+    'transaction_cat_services',
+    'transaction_cat_products',
+    'transaction_cat_events',
+    'transaction_cat_rent',
+    'transaction_cat_tips',
+    'transaction_cat_other',
   ];
 
   final List<String> _expenseCategories = [
-    'Suministros',
-    'Salarios',
-    'Marketing',
-    'Alquiler',
-    'Impuestos',
-    'Mantenimiento',
-    'Otros',
+    'transaction_cat_supplies',
+    'transaction_cat_salaries',
+    'transaction_cat_marketing',
+    'transaction_cat_rent', // Reused
+    'transaction_cat_taxes',
+    'transaction_cat_maintenance',
+    'transaction_cat_other',
   ];
 
   @override
@@ -78,6 +79,9 @@ class _AddManualTransactionDialogState
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Get translation for category resolution
+    final t = ref.read(translationProvider).value ?? {};
+
     setState(() => _isLoading = true);
 
     try {
@@ -89,8 +93,8 @@ class _AddManualTransactionDialogState
 
       final service = ref.read(businessAnalyticsServiceProvider);
 
-      String finalCategory = _selectedCategory;
-      if (_selectedCategory == 'Otros' &&
+      String finalCategory = t[_selectedCategory] ?? _selectedCategory;
+      if (_selectedCategory == 'transaction_cat_other' &&
           _customCategoryController.text.isNotEmpty) {
         finalCategory = _customCategoryController.text;
       }
@@ -126,6 +130,8 @@ class _AddManualTransactionDialogState
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Determine categories based on type
@@ -146,7 +152,7 @@ class _AddManualTransactionDialogState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Registrar Movimiento',
+                  t['transaction_title'] ?? 'Registrar Movimiento',
                   style: GoogleFonts.outfit(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -181,7 +187,7 @@ class _AddManualTransactionDialogState
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              'Ingreso (+)',
+                              t['transaction_type_income'] ?? 'Ingreso (+)',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: !_isExpense ? Colors.white : Colors.grey,
@@ -208,7 +214,7 @@ class _AddManualTransactionDialogState
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              'Gasto (-)',
+                              t['transaction_type_expense'] ?? 'Gasto (-)',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: _isExpense ? Colors.white : Colors.grey,
@@ -230,14 +236,15 @@ class _AddManualTransactionDialogState
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'Monto (\$)',
+                    labelText: t['transaction_label_amount'] ?? 'Monto (\$)',
                     prefixIcon: const Icon(Icons.attach_money),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   validator: (val) {
-                    if (val == null || val.isEmpty) return 'Requerido';
+                    if (val == null || val.isEmpty)
+                      return t['required_field'] ?? 'Requerido';
                     if (double.tryParse(val) == null) return 'Inválido';
                     return null;
                   },
@@ -257,7 +264,7 @@ class _AddManualTransactionDialogState
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Fecha',
+                      labelText: t['transaction_label_date'] ?? 'Fecha',
                       prefixIcon: const Icon(Icons.calendar_today),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -274,23 +281,28 @@ class _AddManualTransactionDialogState
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   decoration: InputDecoration(
-                    labelText: 'Categoría',
+                    labelText: t['transaction_label_category'] ?? 'Categoría',
                     prefixIcon: const Icon(Icons.category),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   items: categories
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .map(
+                        (c) =>
+                            DropdownMenuItem(value: c, child: Text(t[c] ?? c)),
+                      )
                       .toList(),
                   onChanged: (val) => setState(() => _selectedCategory = val!),
                 ),
-                if (_selectedCategory == 'Otros') ...[
+                if (_selectedCategory == 'transaction_cat_other') ...[
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _customCategoryController,
                     decoration: InputDecoration(
-                      labelText: 'Especifique Categoría',
+                      labelText:
+                          t['transaction_label_custom_category'] ??
+                          'Especifique Categoría',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -303,7 +315,9 @@ class _AddManualTransactionDialogState
                 TextFormField(
                   controller: _referenceController,
                   decoration: InputDecoration(
-                    labelText: 'No. Referencia / Ticket (Opcional)',
+                    labelText:
+                        t['transaction_label_reference'] ??
+                        'No. Referencia / Ticket (Opcional)',
                     prefixIcon: const Icon(Icons.receipt),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -316,7 +330,9 @@ class _AddManualTransactionDialogState
                 TextFormField(
                   controller: _descriptionController,
                   decoration: InputDecoration(
-                    labelText: 'Descripción / Notas',
+                    labelText:
+                        t['transaction_label_description'] ??
+                        'Descripción / Notas',
                     prefixIcon: const Icon(Icons.description),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -348,7 +364,11 @@ class _AddManualTransactionDialogState
                           ),
                         )
                       : Text(
-                          'Guardar ${_isExpense ? "Gasto" : "Ingreso"}',
+                          _isExpense
+                              ? (t['transaction_save_expense'] ??
+                                    'Guardar Gasto')
+                              : (t['transaction_save_income'] ??
+                                    'Guardar Ingreso'),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

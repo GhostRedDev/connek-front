@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../providers/business_provider.dart';
 import '../../leads/models/lead_model.dart';
 
@@ -65,6 +66,10 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
     final backgroundColor = isDark ? const Color(0xFF1A1D21) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final inputFillColor = isDark
@@ -145,7 +150,9 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                   isDark: isDark,
                 ),
                 Text(
-                  isEditing ? 'Editar Propuesta' : 'Nueva Propuesta',
+                  isEditing
+                      ? (t['proposal_edit_title'] ?? 'Editar Propuesta')
+                      : (t['proposal_new_title'] ?? 'Nueva Propuesta'),
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -170,7 +177,11 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                   children: [
                     if (!isEditing) ...[
                       // Select Lead
-                      _buildLabel('Seleccionar Cliente (Lead)', context),
+                      _buildLabel(
+                        t['proposal_select_lead_label'] ??
+                            'Seleccionar Cliente (Lead)',
+                        context,
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
@@ -181,7 +192,8 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                           child: DropdownButton<Lead>(
                             value: _selectedLead,
                             hint: Text(
-                              'Seleccione un lead',
+                              t['proposal_select_lead_hint'] ??
+                                  'Seleccione un lead',
                               style: GoogleFonts.inter(color: Colors.grey),
                             ),
                             isExpanded: true,
@@ -236,7 +248,10 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
 
                       // Select Service (Visible if not auto-selected or user wants to change?)
                       // For now allow changing it
-                      _buildLabel('Servicio', context),
+                      _buildLabel(
+                        t['proposal_service_label'] ?? 'Servicio',
+                        context,
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
@@ -247,7 +262,8 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                           child: DropdownButton<Map<String, dynamic>>(
                             value: _selectedService,
                             hint: Text(
-                              'Seleccione un servicio',
+                              t['proposal_select_service_hint'] ??
+                                  'Seleccione un servicio',
                               style: GoogleFonts.inter(color: Colors.grey),
                             ),
                             isExpanded: true,
@@ -288,7 +304,10 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                     ],
 
                     // Amount
-                    _buildLabel('Monto (\$)', context),
+                    _buildLabel(
+                      t['proposal_amount_label'] ?? 'Monto (\$)',
+                      context,
+                    ),
                     _buildTextField(
                       controller: _amountController,
                       hint: '0.00',
@@ -301,10 +320,15 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                     const SizedBox(height: 16),
 
                     // Description
-                    _buildLabel('Descripción', context),
+                    _buildLabel(
+                      t['proposal_description_label'] ?? 'Descripción',
+                      context,
+                    ),
                     _buildTextField(
                       controller: _descController,
-                      hint: 'Detalles de la propuesta...',
+                      hint:
+                          t['proposal_description_hint'] ??
+                          'Detalles de la propuesta...',
                       fillColor: inputFillColor,
                       textColor: textColor,
                       maxLines: 3,
@@ -312,7 +336,10 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                     const SizedBox(height: 16),
 
                     // Expiration Date
-                    _buildLabel('Fecha de Expiración', context),
+                    _buildLabel(
+                      t['proposal_expiration_label'] ?? 'Fecha de Expiración',
+                      context,
+                    ),
                     GestureDetector(
                       onTap: () async {
                         final now = DateTime.now();
@@ -341,7 +368,8 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                                   ? DateFormat(
                                       'dd MMM yyyy',
                                     ).format(_selectedDate!)
-                                  : 'Seleccionar fecha',
+                                  : (t['proposal_select_date'] ??
+                                        'Seleccionar fecha'),
                               style: GoogleFonts.inter(
                                 color: _selectedDate != null
                                     ? textColor
@@ -441,6 +469,8 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
   Future<void> _saveProposal() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final t = ref.read(translationProvider).value ?? {};
+
     // Parse Amount
     final amountDouble = double.tryParse(_amountController.text) ?? 0.0;
     final amountCents = (amountDouble * 100).toInt();
@@ -466,13 +496,23 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
       // Create
       if (_selectedLead == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor seleccione un cliente/lead')),
+          SnackBar(
+            content: Text(
+              t['proposal_error_select_lead'] ??
+                  'Por favor seleccione un cliente/lead',
+            ),
+          ),
         );
         return;
       }
       if (_selectedService == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor seleccione un servicio')),
+          SnackBar(
+            content: Text(
+              t['proposal_error_select_service'] ??
+                  'Por favor seleccione un servicio',
+            ),
+          ),
         );
         return;
       }
@@ -491,14 +531,18 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
           SnackBar(
             content: Text(
               widget.quoteToEdit != null
-                  ? 'Propuesta actualizada'
-                  : 'Propuesta creada',
+                  ? (t['proposal_updated_success'] ?? 'Propuesta actualizada')
+                  : (t['proposal_created_success'] ?? 'Propuesta creada'),
             ),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar la propuesta')),
+          SnackBar(
+            content: Text(
+              t['proposal_save_error'] ?? 'Error al guardar la propuesta',
+            ),
+          ),
         );
       }
     }

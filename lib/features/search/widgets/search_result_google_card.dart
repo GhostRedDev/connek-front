@@ -62,9 +62,15 @@ class SearchResultGoogleCard extends ConsumerWidget {
     }
   }
 
-  Future<void> _showInviteDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showInviteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> t,
+  ) async {
     final messageController = TextEditingController(
-      text: 'Hola, me interesa saber más sobre sus servicios.',
+      text:
+          t['contact_interest_message'] ??
+          'Hola, me interesa saber más sobre sus servicios.',
     );
     final isLoading = ValueNotifier<bool>(false);
 
@@ -72,7 +78,8 @@ class SearchResultGoogleCard extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Contactar a ${business.name}',
+          (t['contact_business_title'] ?? 'Contactar a {businessName}')
+              .replaceAll('{businessName}', business.name),
           style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         content: Column(
@@ -80,7 +87,8 @@ class SearchResultGoogleCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Envía un mensaje para conectar con este negocio.',
+              t['contact_business_subtitle'] ??
+                  'Envía un mensaje para conectar con este negocio.',
               style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 15),
@@ -88,7 +96,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
               controller: messageController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'Escribe tu mensaje...',
+                hintText: t['contact_message_hint'] ?? 'Escribe tu mensaje...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -101,7 +109,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(t['cancel'] ?? 'Cancelar'),
           ),
           ValueListenableBuilder<bool>(
             valueListenable: isLoading,
@@ -117,9 +125,10 @@ class SearchResultGoogleCard extends ConsumerWidget {
                           if (user == null) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Debes iniciar sesión para conectar.',
+                                    t['contact_login_required'] ??
+                                        'Debes iniciar sesión para conectar.',
                                   ),
                                 ),
                               );
@@ -148,9 +157,10 @@ class SearchResultGoogleCard extends ConsumerWidget {
                           if (clientId == null) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Error: No se encontró perfil de cliente.',
+                                    t['contact_error_no_profile'] ??
+                                        'Error: No se encontró perfil de cliente.',
                                   ),
                                 ),
                               );
@@ -167,7 +177,8 @@ class SearchResultGoogleCard extends ConsumerWidget {
                                 'description':
                                     messageController.text.trim().isNotEmpty
                                     ? messageController.text.trim()
-                                    : 'Solicitud de contacto',
+                                    : (t['contact_default_description'] ??
+                                          'Solicitud de contacto'),
                                 'is_direct': true,
                               });
 
@@ -175,9 +186,10 @@ class SearchResultGoogleCard extends ConsumerWidget {
                             Navigator.pop(context);
                             if (success) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    '¡Solicitud enviada con éxito!',
+                                    t['contact_success'] ??
+                                        '¡Solicitud enviada con éxito!',
                                   ),
                                   backgroundColor: Colors.green,
                                 ),
@@ -185,9 +197,10 @@ class SearchResultGoogleCard extends ConsumerWidget {
                               // We could navigate to requests tab or chat here
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Error al enviar solicitud. Intenta de nuevo.',
+                                    t['contact_error_send'] ??
+                                        'Error al enviar solicitud. Intenta de nuevo.',
                                   ),
                                   backgroundColor: Colors.red,
                                 ),
@@ -213,9 +226,9 @@ class SearchResultGoogleCard extends ConsumerWidget {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Enviar',
-                        style: TextStyle(color: Colors.white),
+                    : Text(
+                        t['send'] ?? 'Enviar',
+                        style: const TextStyle(color: Colors.white),
                       ),
               );
             },
@@ -295,9 +308,14 @@ class SearchResultGoogleCard extends ConsumerWidget {
                     // Service Badge (NEW)
                     if (business.category == 'Service Result') ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6C63FF), // Indigo/Purple for Services
+                          color: const Color(
+                            0xFF6C63FF,
+                          ), // Indigo/Purple for Services
                           borderRadius: BorderRadius.circular(50),
                           boxShadow: [
                             BoxShadow(
@@ -335,7 +353,8 @@ class SearchResultGoogleCard extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Rating Badge (Hide if it's a Service Result to avoid clutter)
-                        if ((!isGoogleResult || business.category != null) && business.category != 'Service Result')
+                        if ((!isGoogleResult || business.category != null) &&
+                            business.category != 'Service Result')
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
@@ -360,9 +379,8 @@ class SearchResultGoogleCard extends ConsumerWidget {
                               ],
                             ),
                           )
-                        else 
+                        else
                           const Spacer(), // Spacer to push right badges if left badge is missing
-
                         // Google Badge or Website Badge
                         if (isGoogleResult)
                           Container(
@@ -494,77 +512,86 @@ class SearchResultGoogleCard extends ConsumerWidget {
                                     _launchMap(context, business.description);
                                   } else {
                                     // Use new dialog logic
-                                    _showInviteDialog(context, ref);
+                                    _showInviteDialog(context, ref, t);
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: isGoogleResult
                                       ? Colors.white
-                                      : const Color(
-                                          0xFF4F87C9,
-                                        ), // White for Google, Blue for Connek
+                                      : const Color(0xFF4F87C9),
+                                  side: isGoogleResult
+                                      ? const BorderSide(
+                                          color: Color(0xFFE0E3E7),
+                                        )
+                                      : null,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(50),
+                                    borderRadius: BorderRadius.circular(25),
                                   ),
-                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 0,
+                                  ),
+                                  elevation: isGoogleResult ? 0 : 2,
                                 ),
                                 child: Text(
                                   isGoogleResult
                                       ? (t['search_view_map'] ?? 'Ver en Mapa')
                                       : (t['search_invite_connek'] ??
-                                            'Solicitar / Invitar'), // Changed to 'Ver Perfil' as we are navigating to it
+                                            'Solicitar / Invitar'),
                                   style: GoogleFonts.outfit(
                                     color: isGoogleResult
-                                        ? Colors.black
+                                        ? const Color(0xFF14181B)
                                         : Colors.white,
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 5),
-                            if (isGoogleResult)
+                            if (isGoogleResult) ...[
+                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.info_outline,
-                                    color: Color(0xFF9FC7FF),
-                                    size: 21,
+                                    size: 14,
+                                    color: Colors.grey[400],
                                   ),
-                                  const SizedBox(width: 5),
+                                  const SizedBox(width: 4),
                                   Text(
                                     t['search_google_source'] ??
                                         'Resultado de Google Places',
                                     style: GoogleFonts.inter(
-                                      color: const Color(0xFF9F9F9F),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons
-                                        .verified, // Changed to verified icon for Connek
-                                    color: Color(0xFF4F87C9),
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    t['search_verified_connek'] ??
-                                        'Verificado por Connek', // Positive msg
-                                    style: GoogleFonts.inter(
-                                      color: const Color(0xFF9F9F9F),
-                                      fontSize: 12,
+                                      fontSize: 11,
+                                      color: Colors.grey[400],
+                                      fontStyle: FontStyle.italic,
                                     ),
                                   ),
                                 ],
                               ),
+                            ] else ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.verified,
+                                    size: 14,
+                                    color: Color(0xFF4F87C9),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    t['search_verified_connek'] ??
+                                        'Verificado por Connek',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: const Color(0xFF4F87C9),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ],

@@ -45,8 +45,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     if (_formKey.currentState?.validate() ?? false) {
       // Placeholder for registration logic
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration functionality to be implemented'),
+        SnackBar(
+          content: Text(
+            ref.watch(translationProvider).value?['register_not_implemented'] ??
+                'Registration functionality to be implemented',
+          ),
         ),
       );
     }

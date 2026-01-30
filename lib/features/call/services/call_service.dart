@@ -116,7 +116,7 @@ class CallService {
           },
         );
 
-    await _signalingChannel!.subscribe();
+    _signalingChannel!.subscribe();
   }
 
   void sendOffer(String callId, Map<String, dynamic> offer) {

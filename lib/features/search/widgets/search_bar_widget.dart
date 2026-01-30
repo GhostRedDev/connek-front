@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/widgets/layout.dart';
+import '../../../core/providers/locale_provider.dart';
 
 class SearchBarWidget extends ConsumerStatefulWidget {
   final Function(String) onSubmitted;
@@ -52,6 +53,8 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
         Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
@@ -86,7 +89,10 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
           cursorColor: textColor,
           decoration: InputDecoration(
             isDense: true,
-            hintText: widget.hintText ?? 'Search for a service or business',
+            hintText:
+                widget.hintText ??
+                t['search_placeholder'] ??
+                'Search for a service or business',
             hintStyle: GoogleFonts.inter(
               color: hintColor,
               fontWeight: FontWeight.w400,

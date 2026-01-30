@@ -17,7 +17,7 @@ class BusinessSheetCreatePortfolio extends ConsumerStatefulWidget {
 class _BusinessSheetCreatePortfolioState
     extends ConsumerState<BusinessSheetCreatePortfolio> {
   final ImagePicker _picker = ImagePicker();
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   bool _isUploading = false;
   String? _error;
 

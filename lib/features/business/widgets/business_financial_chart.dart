@@ -111,8 +111,12 @@ class _BusinessFinancialChartState extends State<BusinessFinancialChart> {
 
     // Calculate Max Y for scaling
     double maxY = 0;
-    for (var s in flIncome) if (s.y > maxY) maxY = s.y;
-    for (var s in flExpense) if (s.y > maxY) maxY = s.y;
+    for (var s in flIncome) {
+      if (s.y > maxY) maxY = s.y;
+    }
+    for (var s in flExpense) {
+      if (s.y > maxY) maxY = s.y;
+    }
     maxY = (maxY * 1.2).ceilToDouble(); // Add 20% padding
     if (maxY == 0) maxY = 10;
 

@@ -12,8 +12,9 @@ final businessPaymentMethodsProvider =
 
       if (business == null ||
           business.businessProfile == null ||
-          profile == null)
+          profile == null) {
         return [];
+      }
 
       final repo = ref.read(businessRepositoryProvider);
       // Assuming profile.id is the client_id required.
