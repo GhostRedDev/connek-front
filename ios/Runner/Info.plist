@@ -48,9 +48,17 @@
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>We need access to your camera for video calls.</string>
+		<string>In order to take a picture or video, this app requires permission to access the camera.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>We need access to your photo library to share images in chat.</string>
+		<string>In order to upload data, this app requires permission to access the photo library.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>In order to search nearby, this app requires access to your current location.</string>
+		<key>NSMotionUsageDescription</key>
+		<string>This app requires access to the barometer to provide altitude information.</string>
+		<key>PermissionGroupNotification</key>
+		<string>Let me send ya notifications</string>
+		<key>FirebaseAppDelegateProxyEnabled</key>
+		<true/>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>We need access to your microphone for voice and video calls.</string>
 		<!-- Deep Linking for Supabase Auth -->
