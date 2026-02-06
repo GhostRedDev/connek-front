@@ -5,21 +5,28 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Added
 import 'package:google_fonts/google_fonts.dart'; // Added
+import 'package:shadcn_ui/shadcn_ui.dart'; // Added for Shadcn UI components
 
 import '../../core/providers/theme_provider.dart'; // Added
 import '../../features/settings/providers/profile_provider.dart'; // Added
 import '../../features/auth/widgets/auth_success_overlay.dart'; // Added
-import '../../features/notifications/providers/notification_provider.dart'; // Added
+import '../../features/notifications/presentation/providers/notification_provider.dart'; // Added
+import '../../features/notifications/presentation/widgets/notification_badge.dart'; // Added
 import '../../features/call/services/call_service.dart'; // Added
-import '../../features/call/widgets/incoming_call_overlay.dart'; // Added
+import '../../features/call/presentation/widgets/incoming_call_overlay.dart'; // Added
 import '../../core/providers/user_mode_provider.dart'; // Added
-import '../../features/business/providers/business_provider.dart'; // Added
+import '../../features/business/presentation/providers/business_provider.dart'; // Added
 
 import '../../core/providers/locale_provider.dart'; // Added for Localization
 
 final navbarVisibilityProvider = StateProvider<bool>(
   (ref) => true,
 ); // Added Provider
+
+// Sidebar Collapsed State Provider
+final sidebarCollapsedProvider = StateProvider<bool>(
+  (ref) => true, // Default: collapsed for hover-based expansion
+);
 
 // ==============================================================================
 // 1. MODERN GLASS IMPLEMENTATION
@@ -300,6 +307,10 @@ HeaderData getHeaderConfig(
         HeaderAction(icon: Icons.notifications_none),
       ],
     );
+  }
+
+  if (route.contains('/client/business/')) {
+    return HeaderData(bgTrans: true, isCustom: true, height: 0, actions: []);
   }
 
   if (cleanRoute == '/client' || cleanRoute.startsWith('/client')) {
@@ -661,8 +672,13 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         final bool isChatView =
             location.startsWith('/chats') || location.startsWith('/chat/');
         final bool isSearchView = location == '/search';
+        final bool isBusinessProfile = location.contains('/client/business/');
         final bool showBottomBar =
-            isLoggedIn && !isDesktop && !isChatView && !isSearchView;
+            isLoggedIn &&
+            !isDesktop &&
+            !isChatView &&
+            !isSearchView &&
+            !isBusinessProfile;
 
         return DefaultTabController(
           // Key ensures controller is recreated if tabs configuration changes (e.g. different route)
@@ -739,80 +755,128 @@ class _ModernSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Watch Translations for sidebar
-    // Since this is Stateless, we need to convert to ConsumerWidget OR Consumer
-    // Or just pass 't' but this widget is called from LayoutBuilder which is inside ConsumerState
-    // Actually, AppLayout is ConsumerStateful, BUT _ModernSidebar is stateless.
-    // Let's use Consumer here.
     return Consumer(
       builder: (context, ref, _) {
         final tAsync = ref.watch(translationProvider);
         final t = tAsync.value ?? {};
-
-        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final theme = ShadTheme.of(context);
+        final colorScheme = theme.colorScheme;
+        final isDark = theme.brightness == Brightness.dark;
+        final isCollapsed = ref.watch(sidebarCollapsedProvider);
 
         // Check active
         bool isActive(String route) => activeRoute.startsWith(route);
 
-        return Container(
-          width: 250,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF131619) : Colors.white,
-            border: Border(
-              right: BorderSide(
-                color: isDark
-                    ? Colors.white10
-                    : (Colors.grey[200] ?? Colors.grey),
-                width: 1,
-              ),
-            ),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 32),
-              // Logo Area in Sidebar?
-              Image.asset(
-                isDark
-                    ? 'assets/images/conneck_logo_white.png'
-                    : 'assets/images/conneck_logo_dark.png',
-                height: 40,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 40),
-
-              // Nav Items
-              _SidebarItem(
-                icon: Icons.shopping_bag_outlined,
-                label: t['header_buy'] ?? 'Buy (Client)',
-                isActive: isActive('/client'),
-                onTap: () => context.go('/client'),
-              ),
-              _SidebarItem(
-                icon: Icons.receipt_long_outlined,
-                label: t['header_sell'] ?? 'Sell (Business)',
-                isActive: isActive('/business'),
-                onTap: () => context.go('/business'),
-              ),
-              _SidebarItem(
-                icon: Icons.cleaning_services_outlined,
-                label: t['header_office'] ?? 'Backoffice',
-                isActive: isActive('/office'),
-                onTap: () => context.go('/office'),
-              ),
-
-              const Spacer(),
-
-              // Bottom items (Messages, Settings) could go here too
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: _SidebarItem(
-                  icon: Icons.settings_outlined,
-                  label: t['header_settings'] ?? 'Settings',
-                  isActive: isActive('/settings'),
-                  onTap: () => context.push('/settings'),
+        return MouseRegion(
+          onEnter: (_) {
+            // Expand on hover
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(sidebarCollapsedProvider.notifier).state = false;
+            });
+          },
+          onExit: (_) {
+            // Collapse when mouse leaves
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(sidebarCollapsedProvider.notifier).state = true;
+            });
+          },
+          child: ShadCard(
+            padding: EdgeInsets.zero,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              width: isCollapsed ? 80 : 250,
+              decoration: BoxDecoration(
+                color: colorScheme.background,
+                border: Border(
+                  right: BorderSide(color: colorScheme.border, width: 1),
                 ),
               ),
-            ],
+              child: Column(
+                children: [
+                  const SizedBox(height: 32),
+
+                  // Logo Area - Animated
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: isCollapsed
+                        ? Container(
+                            key: const ValueKey('collapsed_logo'),
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4285F4),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'C',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Image.asset(
+                            key: const ValueKey('expanded_logo'),
+                            isDark
+                                ? 'assets/images/conneck_logo_white.png'
+                                : 'assets/images/conneck_logo_dark.png',
+                            height: 40,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Text(
+                              'connek',
+                              style: GoogleFonts.inter(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Nav Items
+                  _SidebarItem(
+                    icon: Icons.shopping_bag_outlined,
+                    label: t['header_buy'] ?? 'Buy (Client)',
+                    isActive: isActive('/client'),
+                    isCollapsed: isCollapsed,
+                    onTap: () => context.go('/client'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.receipt_long_outlined,
+                    label: t['header_sell'] ?? 'Sell (Business)',
+                    isActive: isActive('/business'),
+                    isCollapsed: isCollapsed,
+                    onTap: () => context.go('/business'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.cleaning_services_outlined,
+                    label: t['header_office'] ?? 'Backoffice',
+                    isActive: isActive('/office'),
+                    isCollapsed: isCollapsed,
+                    onTap: () => context.go('/office'),
+                  ),
+
+                  const Spacer(),
+
+                  // Settings
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: _SidebarItem(
+                      icon: Icons.settings_outlined,
+                      label: t['header_settings'] ?? 'Settings',
+                      isActive: isActive('/settings'),
+                      isCollapsed: isCollapsed,
+                      onTap: () => context.push('/settings'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -824,51 +888,92 @@ class _SidebarItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isActive;
+  final bool isCollapsed;
   final VoidCallback onTap;
 
   const _SidebarItem({
     required this.icon,
     required this.label,
     required this.isActive,
+    required this.isCollapsed,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isActive
-        ? const Color(0xFF4285F4)
-        : (isDark ? Colors.white70 : Colors.black54);
+    final theme = ShadTheme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    final color = isActive
+        ? colorScheme.primary
+        : colorScheme.foreground.withOpacity(0.7);
+
+    final item = Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: isCollapsed ? 12 : 16,
+        vertical: 4,
+      ),
       child: Material(
         color: isActive
-            ? (isDark ? const Color(0xFF1E2530) : const Color(0xFFE8F0FE))
+            ? colorScheme.accent.withOpacity(0.15)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          child: Pooling(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 22),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    color: color,
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  ),
-                ),
-              ],
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 300),
+            padding: EdgeInsets.symmetric(
+              horizontal: isCollapsed ? 8 : 16,
+              vertical: 12,
+            ),
+            child: ClipRect(
+              child: Row(
+                mainAxisAlignment: isCollapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  Icon(icon, color: color, size: 22),
+                  if (!isCollapsed) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isCollapsed ? 0 : 1,
+                        child: Text(
+                          label,
+                          style: GoogleFonts.inter(
+                            color: color,
+                            fontWeight: isActive
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+
+    // Wrap with tooltip when collapsed
+    if (isCollapsed) {
+      return Tooltip(
+        message: label,
+        preferBelow: false,
+        verticalOffset: 0,
+        waitDuration: const Duration(milliseconds: 500),
+        child: item,
+      );
+    }
+
+    return item;
   }
 }
 
@@ -891,7 +996,9 @@ class _ModernGlassAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = ShadTheme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
 
     // Watch Notifications
@@ -1062,6 +1169,9 @@ class _ModernGlassAppBar extends ConsumerWidget {
                           ),
                         ),
                       ),
+
+                      // Notification Badge
+                      const NotificationBadge(),
 
                       // Profile
                       if (config.showProfile)
@@ -1747,7 +1857,14 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
     final themeMode = ref.watch(themeProvider);
     // Watch Profile Data
     final profileState = ref.watch(profileProvider);
-    final profile = profileState.value;
+
+    // Handle Error State explicitly to prevent crashes
+    if (profileState.hasError) {
+      // Log error or show fallback?
+      // print('Profile Error: ${profileState.error}');
+    }
+
+    final profile = profileState.valueOrNull;
 
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
@@ -2079,12 +2196,8 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
                 await Supabase.instance.client.auth.signOut();
                 if (context.mounted) {
                   context.pop();
-                  await showAuthSuccessDialog(
-                    context,
-                    message: 'Gracias por visitar Connek.\\nAdiosss.',
-                    isLogin: false,
-                  );
-                  if (context.mounted) context.go('/');
+                  // Redirect directly without showing success dialog
+                  context.go('/');
                 }
               },
             ),

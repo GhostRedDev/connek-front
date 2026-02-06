@@ -162,6 +162,64 @@ class ApiService {
     }
   }
 
+  Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      print('🚀 API PATCH: $url');
+      if (body != null) print('📦 Body: $body');
+
+      final response = await http.patch(
+        url,
+        headers: headers,
+        body: body != null ? json.encode(body) : null,
+      );
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API PATCH Error: $e');
+      throw Exception('API PATCH Error: $e');
+    }
+  }
+
+  Future<dynamic> patchForm(
+    String endpoint, {
+    Map<String, dynamic>? fields,
+    List<http.MultipartFile>? files,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final request = http.MultipartRequest('PATCH', url);
+      print('🚀 API PATCH Form: $url');
+      if (fields != null) print('📝 Fields: $fields');
+
+      final headers = await _getHeaders(isMultipart: true);
+      request.headers.addAll(headers);
+
+      if (fields != null) {
+        fields.forEach((key, value) {
+          if (value is List) {
+            for (var item in value) {
+              request.fields[key] = item.toString();
+            }
+          } else {
+            request.fields[key] = value.toString();
+          }
+        });
+      }
+
+      if (files != null) {
+        request.files.addAll(files);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } catch (e) {
+      print('❌ API PATCH Form Error: $e');
+      throw Exception('API PATCH Form Error: $e');
+    }
+  }
+
   Future<dynamic> delete(String endpoint, {Map<String, dynamic>? body}) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
@@ -288,12 +346,12 @@ class ApiService {
       print('🚀 API GET BYTES: $url');
 
       final response = await http.get(url, headers: headers);
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response.bodyBytes;
       } else {
-         _processResponse(response); // Will throw exception
-         throw Exception('Failed to load bytes');
+        _processResponse(response); // Will throw exception
+        throw Exception('Failed to load bytes');
       }
     } catch (e) {
       print('❌ API GET BYTES Error: $e');
@@ -304,10 +362,12 @@ class ApiService {
   // Helper to process response
   dynamic _processResponse(http.Response response) {
     print('📥 Response [${response.statusCode}]: ${response.body}');
-    
+
     // Handle 503 Service Unavailable globally
     if (response.statusCode == 503) {
-      throw Exception('Servicio no disponible momentáneamente. Por favor intenta más tarde.');
+      throw Exception(
+        'Servicio no disponible momentáneamente. Por favor intenta más tarde.',
+      );
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -343,9 +403,10 @@ class ApiService {
             decodedError['message']?.toString() ??
             decodedError['detail']?.toString() ??
             'Error: ${response.statusCode}';
-        
+
         // Sanitize backend Pydantic validation errors
-        if (message.contains('validation error') && message.contains('Field required')) {
+        if (message.contains('validation error') &&
+            message.contains('Field required')) {
           message = 'Error de datos en el servidor (Negocio incompleto)';
           print('⚠️ Backend Validation Error masked: $message');
         }

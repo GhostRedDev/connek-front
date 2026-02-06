@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +40,15 @@ Future<void> _startApp() async {
 
   try {
     debugPrint("Initializing app...");
-    await dotenv.load(fileName: "assets/env");
+    try {
+      await dotenv.load(fileName: "assets/env");
+    } catch (e1) {
+      try {
+        await dotenv.load(fileName: ".env");
+      } catch (e2) {
+        debugPrint("Failed to load env from assets/env or .env: $e1, $e2");
+      }
+    }
 
     final supabaseUrl = dotenv.env['SUPABASE_URL'];
     final supabaseKey = dotenv.env['SUPABASE_KEY'];
@@ -77,14 +86,21 @@ class MyApp extends ConsumerWidget {
     // Watch the theme provider for changes
     final themeMode = ref.watch(themeProvider);
 
-    return MaterialApp.router(
+    return ShadApp.router(
       title: 'Connek',
       debugShowCheckedModeBanner: false,
 
       // Theme Configuration
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode, // Dynamic Theme Mode (System/Light/Dark)
+      theme: AppTheme.shadThemeLight,
+      darkTheme: AppTheme.shadThemeDark,
+      themeMode: themeMode,
+
+      // Bridge to Material Theme
+      materialThemeBuilder: (context, theme) {
+        return theme.brightness == Brightness.dark
+            ? AppTheme.darkTheme
+            : AppTheme.lightTheme;
+      },
 
       routerConfig: ref.watch(routerProvider),
 

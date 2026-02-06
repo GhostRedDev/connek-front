@@ -33,7 +33,7 @@ class AuthSuccessOverlay extends StatelessWidget {
                   color: Colors.blue.withOpacity(0.3),
                   blurRadius: 30,
                   spreadRadius: 2,
-                )
+                ),
               ],
             ),
             child: Column(
@@ -41,25 +41,27 @@ class AuthSuccessOverlay extends StatelessWidget {
               children: [
                 // Icon with glow
                 Container(
-                   padding: const EdgeInsets.all(20),
-                   decoration: BoxDecoration(
-                     color: Colors.green.withOpacity(0.1),
-                     shape: BoxShape.circle,
-                     boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.2),
-                          blurRadius: 20,
-                        )
-                     ],
-                   ),
-                   child: Icon(
-                     isLogin ? Icons.check_circle_rounded : Icons.verified_user_rounded,
-                     color: Colors.greenAccent,
-                     size: 60,
-                   ),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.2),
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    isLogin
+                        ? Icons.check_circle_rounded
+                        : Icons.verified_user_rounded,
+                    color: Colors.greenAccent,
+                    size: 60,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Message
                 Text(
                   isLogin ? 'Login Successful' : 'Logout Successful',
@@ -89,25 +91,29 @@ class AuthSuccessOverlay extends StatelessWidget {
 }
 
 // Helper to show the overlay
-Future<void> showAuthSuccessDialog(BuildContext context, {required String message, required bool isLogin}) async {
+Future<void> showAuthSuccessDialog(
+  BuildContext context, {
+  required String message,
+  required bool isLogin,
+  VoidCallback? onSuccess,
+}) async {
   showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.8), // Darken background heavily
-    builder: (context) => AuthSuccessOverlay(message: message, isLogin: isLogin),
+    barrierColor: Colors.black.withOpacity(0.8),
+    builder: (context) =>
+        AuthSuccessOverlay(message: message, isLogin: isLogin),
   );
-  
-  // Capture navigator before await to ensure we can pop even if context unmounts
-  final navigator = Navigator.of(context, rootNavigator: true);
-  
-  // Wait 2 seconds then close
+
   await Future.delayed(const Duration(seconds: 2));
-  
-  try {
-    if (navigator.mounted) {
-      navigator.pop();
-    }
-  } catch (e) {
-    debugPrint('Error closing auth dialog: $e');
+
+  if (onSuccess != null) {
+    onSuccess();
+    return;
+  }
+
+  // Default: Pop if no callback provided
+  if (context.mounted) {
+    Navigator.of(context, rootNavigator: true).pop();
   }
 }

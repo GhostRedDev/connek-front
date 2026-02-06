@@ -48,7 +48,7 @@ class SearchNotifier extends Notifier<SearchState> {
 
   void onQueryChanged(String query) {
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-    
+
     state = state.copyWith(query: query);
 
     // Check for minimum length (e.g. 3 characters) to avoid "Prompt too short" error
@@ -64,7 +64,7 @@ class SearchNotifier extends Notifier<SearchState> {
 
   Future<void> _performSearch(String query) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     // In Notifier, we can read other providers using ref.read
     final repository = ref.read(searchRepositoryProvider);
     final profileState = ref.read(profileProvider);
@@ -72,7 +72,7 @@ class SearchNotifier extends Notifier<SearchState> {
 
     try {
       final response = await repository.search(query, clientId: clientId);
-      
+
       // If results are empty and there is a message, treat it as an error to display in UI
       String? displayError;
       if (response.results.isEmpty && response.message != null) {
@@ -80,7 +80,7 @@ class SearchNotifier extends Notifier<SearchState> {
       }
 
       state = state.copyWith(
-        isLoading: false, 
+        isLoading: false,
         results: response.results,
         error: displayError,
       );
@@ -92,4 +92,6 @@ class SearchNotifier extends Notifier<SearchState> {
 }
 
 // Global Provider
-final searchProvider = NotifierProvider<SearchNotifier, SearchState>(SearchNotifier.new);
+final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
+  SearchNotifier.new,
+);

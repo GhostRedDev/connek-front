@@ -9,15 +9,15 @@ import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
 import '../../features/auth/reset_password_page.dart';
 import '../../features/auth/confirm_phone_page.dart';
-import '../../features/home/home_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/search/search_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/settings/profile_page.dart';
-import '../../features/chat/chat_chats.dart';
-import '../../features/chat/chat_page.dart'; // Restore this
-import '../../features/notifications/notification_page.dart'; // Added
-import '../../features/chat/new_chat_page.dart';
-import '../../features/call/pages/call_page.dart'; // Corrected CallPage import
+import '../../features/chat/presentation/pages/chat_chats.dart';
+import '../../features/chat/presentation/pages/chat_page.dart'; // Restore this
+import '../../features/notifications/presentation/pages/notification_page.dart'; // Added
+import '../../features/chat/presentation/pages/new_chat_page.dart';
+import '../../features/call/presentation/pages/call_page.dart'; // Corrected CallPage import
 
 import '../../features/client/client_page.dart';
 import '../../features/client/create_request_page.dart';
@@ -32,16 +32,16 @@ import '../../features/client/client_dashboard_booking.dart';
 import '../../features/client/checkout_resume.dart';
 import '../../features/client/pages/client_request_details_page.dart';
 import '../../features/client/models/service_request_model.dart';
-import '../../features/business/business_page.dart';
-import '../../features/business/payment_method_list.dart';
-import '../../features/business/business_profile_page.dart';
-import '../../features/business/business_sheet_create_service.dart';
-import '../../features/business/business_sheet_create_portfolio.dart';
-import '../../features/business/business_dashboard_employees.dart';
-import '../../features/business/business_dashboard_services.dart';
-import '../../features/business/business_dashboard_add_services.dart';
-import '../../features/business/business_dashboard_leads.dart'; // Added
-import '../../features/business/create_business_d_cover.dart';
+import '../../features/business/presentation/pages/business_page.dart';
+import '../../features/business/presentation/views/shared/payment_method_list.dart';
+import '../../features/business/presentation/pages/business_profile_page.dart';
+import '../../features/business/presentation/sheets/business_sheet_create_service.dart';
+import '../../features/business/presentation/sheets/business_sheet_create_portfolio.dart';
+import '../../features/business/presentation/views/dashboard/business_dashboard_employees.dart';
+import '../../features/business/presentation/views/dashboard/business_dashboard_services.dart';
+import '../../features/business/presentation/views/dashboard/business_dashboard_add_services.dart';
+import '../../features/business/presentation/views/dashboard/business_dashboard_leads.dart'; // Added
+import '../../features/business/presentation/views/shared/create_business_d_cover.dart';
 import '../../features/business/wizard/create_business_step_1.dart';
 import '../../features/business/wizard/create_business_step_2.dart';
 import '../../features/business/wizard/create_business_step_3.dart';
@@ -60,7 +60,7 @@ import '../../features/office/widgets/stripe_success_page.dart';
 // Providers for Redirection Logic
 import '../providers/user_mode_provider.dart';
 import '../../features/settings/providers/profile_provider.dart';
-import '../../features/shared/pages/booking_details_page.dart';
+import '../../shared/pages/booking_details_page.dart';
 import '../../features/client/pages/business_public_profile_page.dart';
 
 // Global Key for Root Navigator (to cover shell)

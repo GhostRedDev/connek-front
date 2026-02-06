@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:go_router/go_router.dart';
 import 'widgets/search_result_google_widget.dart';
 
 class SearchPage extends StatefulWidget {
@@ -47,7 +48,11 @@ class _SearchPageState extends State<SearchPage> {
           child: Padding(
             padding:
                 EdgeInsets.zero, // Top padding handled by internal widget now
-            child: const SearchResultGoogleWidget(),
+            child: SearchResultGoogleWidget(
+              autofocus:
+                  (GoRouterState.of(context).extra as Map?)?['autofocus'] ??
+                  false,
+            ),
           ),
         ),
       ),

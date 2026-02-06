@@ -26,7 +26,14 @@ final selectedTabProvider = NotifierProvider<SelectedTabNotifier, String>(
 );
 
 class SearchResultGoogleWidget extends ConsumerStatefulWidget {
-  const SearchResultGoogleWidget({super.key});
+  final bool autofocus;
+  final VoidCallback? onClose; // Added callback
+
+  const SearchResultGoogleWidget({
+    super.key,
+    this.autofocus = false,
+    this.onClose,
+  });
 
   @override
   ConsumerState<SearchResultGoogleWidget> createState() =>
@@ -90,12 +97,9 @@ class _SearchResultGoogleWidgetState
     final filteredResults = searchState.results.where((business) {
       if (selectedTab == 'Google') {
         return business.id < 0; // Negative ID for Google results
-      } else if (selectedTab == 'Servicios') {
-        // Show only specific Service Results
-        return business.id > 0 && business.category == 'Service Result';
       } else {
-        // 'Empresas' -> Show local businesses that are NOT specific service results
-        return business.id > 0 && business.category != 'Service Result';
+        // 'Servicios' or 'Empresas' -> Show all local businesses
+        return business.id > 0;
       }
     }).toList();
 
@@ -280,6 +284,7 @@ class _SearchResultGoogleWidgetState
           left: 16,
           right: 16,
           child: SearchBarWidget(
+            autofocus: widget.autofocus,
             hintText:
                 t['search_placeholder'] ?? 'Search for a service or business',
             initialValue: searchState.query,
@@ -340,12 +345,40 @@ class _SearchResultGoogleWidgetState
                         // Let's just use Stack or Row with specific alignment.
 
                         // Left: Logo
-                        Image.asset(
-                          isDark
-                              ? 'assets/images/conneck_logo_white.png'
-                              : 'assets/images/conneck_logo_dark.png',
-                          height: 38,
-                          fit: BoxFit.contain,
+                        // Left: Logo with Back Button
+                        Row(
+                          children: [
+                            if (widget.onClose != null ||
+                                Navigator.of(context).canPop()) ...[
+                              IconButton(
+                                icon: Icon(
+                                  Icons.arrow_back,
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
+                                onPressed:
+                                    widget.onClose ?? () => context.pop(),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            GestureDetector(
+                              onTap:
+                                  widget.onClose ??
+                                  () {
+                                    if (Navigator.of(context).canPop()) {
+                                      context.pop();
+                                    } else {
+                                      context.go('/');
+                                    }
+                                  },
+                              child: Image.asset(
+                                isDark
+                                    ? 'assets/images/conneck_logo_white.png'
+                                    : 'assets/images/conneck_logo_dark.png',
+                                height: 38,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ],
                         ),
 
                         // Right: Actions

@@ -253,7 +253,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
             _launchMap(context, business.description);
           }
         } else {
-          context.push('/business/${business.id}');
+          context.push('/client/business/${business.id}');
         }
       },
       child: Stack(
@@ -503,50 +503,106 @@ class SearchResultGoogleCard extends ConsumerWidget {
                         // Action Button & Warning
                         Column(
                           children: [
-                            SizedBox(
-                              width: double.infinity,
-                              height: 47,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  if (isGoogleResult) {
+                            if (isGoogleResult)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 47,
+                                child: ElevatedButton(
+                                  onPressed: () {
                                     _launchMap(context, business.description);
-                                  } else {
-                                    // Use new dialog logic
-                                    _showInviteDialog(context, ref, t);
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isGoogleResult
-                                      ? Colors.white
-                                      : const Color(0xFF4F87C9),
-                                  side: isGoogleResult
-                                      ? const BorderSide(
-                                          color: Color(0xFFE0E3E7),
-                                        )
-                                      : null,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    side: const BorderSide(
+                                      color: Color(0xFFE0E3E7),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                    elevation: 0,
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 0,
-                                  ),
-                                  elevation: isGoogleResult ? 0 : 2,
-                                ),
-                                child: Text(
-                                  isGoogleResult
-                                      ? (t['search_view_map'] ?? 'Ver en Mapa')
-                                      : (t['search_invite_connek'] ??
-                                            'Solicitar / Invitar'),
-                                  style: GoogleFonts.outfit(
-                                    color: isGoogleResult
-                                        ? const Color(0xFF14181B)
-                                        : Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                  child: Text(
+                                    t['search_view_map'] ?? 'Ver en Mapa',
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFF14181B),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
+                              )
+                            else
+                              Row(
+                                children: [
+                                  // Conversar Button
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 45,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          _showInviteDialog(context, ref, t);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFF4F87C9,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              25,
+                                            ),
+                                          ),
+                                          elevation: 2,
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        child: Text(
+                                          'Conversar',
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Ver Perfil Button
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 45,
+                                      child: OutlinedButton(
+                                        onPressed: () {
+                                          context.push(
+                                            '/client/business/${business.id}',
+                                          );
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(
+                                            color: const Color(
+                                              0xFF4F87C9,
+                                            ).withOpacity(0.5),
+                                            width: 1.5,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              25,
+                                            ),
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        child: Text(
+                                          'Ver Perfil',
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFF4F87C9),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
                             if (isGoogleResult) ...[
                               const SizedBox(height: 8),
                               Row(

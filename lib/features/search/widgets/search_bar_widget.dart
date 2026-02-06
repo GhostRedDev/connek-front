@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/widgets/layout.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/constants/connek_icons.dart';
 
 class SearchBarWidget extends ConsumerStatefulWidget {
   final Function(String) onSubmitted;
   final Function(String)? onChanged;
   final String? initialValue;
   final String? hintText;
+  final bool autofocus;
 
   const SearchBarWidget({
     super.key,
@@ -16,6 +18,7 @@ class SearchBarWidget extends ConsumerStatefulWidget {
     this.onChanged,
     this.initialValue,
     this.hintText,
+    this.autofocus = false,
   });
 
   @override
@@ -79,7 +82,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
           onChanged: (val) {
             if (widget.onChanged != null) widget.onChanged!(val);
           },
-          autofocus: false,
+          autofocus: widget.autofocus,
           enabled: true,
           obscureText: false,
           style: GoogleFonts.inter(
@@ -116,7 +119,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
               borderSide: const BorderSide(color: Colors.red, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
-            prefixIcon: Icon(Icons.search, color: iconColor),
+            prefixIcon: Icon(ConnekIcons.search, color: iconColor),
             filled: true,
             fillColor: fillColor,
             contentPadding: const EdgeInsets.symmetric(

@@ -34,7 +34,7 @@ class OfficeMenuWidget extends ConsumerWidget {
       // Center horizontally
       child: Container(
         height: 50,
-        width: 300, // Fixed width for the pill look (or remove for full width)
+        width: 380, // Increased width to fit 3 tabs
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: containerColor,
@@ -71,6 +71,22 @@ class OfficeMenuWidget extends ConsumerWidget {
                 icon: Icons.storefront_outlined,
                 label: t['office_tab_marketplace'] ?? 'Marketplace',
                 isActive: selectedIndex == 1,
+                activeBg: activeTabColor,
+                activeText: activeTextColor,
+                inactiveText: inactiveTextColor,
+              ),
+            ),
+
+            const SizedBox(width: 4),
+
+            // Tab 3: Staff
+            Expanded(
+              child: _buildMenuOption(
+                context,
+                index: 2,
+                icon: Icons.people_outline,
+                label: t['office_tab_staff'] ?? 'Staff',
+                isActive: selectedIndex == 2,
                 activeBg: activeTabColor,
                 activeText: activeTextColor,
                 inactiveText: inactiveTextColor,

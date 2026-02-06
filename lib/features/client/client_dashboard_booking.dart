@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
-import '../shared/models/booking_model.dart';
-import '../shared/providers/booking_provider.dart';
+import '../../shared/models/booking_model.dart';
+import '../../shared/providers/booking_provider.dart';
 import 'widgets/client_booking_card.dart';
 
 class ClientDashboardBooking extends ConsumerWidget {

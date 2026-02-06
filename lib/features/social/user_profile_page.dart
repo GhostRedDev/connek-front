@@ -6,8 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'models/contact_model.dart';
 import '../../core/providers/locale_provider.dart';
 import '../../core/providers/user_mode_provider.dart';
-import '../../features/chat/providers/chat_provider.dart';
+import '../chat/presentation/providers/chat_provider.dart';
 import '../../features/settings/providers/profile_provider.dart';
+import '../../core/widgets/category_badge.dart';
 
 class UserProfilePage extends ConsumerWidget {
   // Accepts either a full contact model or just basic info if fetching
@@ -173,6 +174,12 @@ class UserProfilePage extends ConsumerWidget {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                              )
+                            else
+                              // Show "Cliente" badge if not a business
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                child: const ClientBadge(),
                               ),
                           ],
                         ),

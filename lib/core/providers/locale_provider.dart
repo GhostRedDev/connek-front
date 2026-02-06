@@ -34,30 +34,35 @@ final translationProvider = FutureProvider<Map<String, String>>((ref) async {
   final locale = ref.watch(localeProvider);
   String jsonString;
 
-  try {
-    // Map locale code to filename
-    String filename;
-    switch (locale) {
-      case 'es':
-        filename = 'lang_spanish.json';
-        break;
-      case 'ru':
-        filename = 'lang_russian.json';
-        break;
-      case 'fr':
-        filename = 'lang_french.json';
-        break;
-      case 'en':
-      default:
-        filename = 'lang_english.json';
-        break;
-    }
+  // Map locale code to filename
+  String filename;
+  switch (locale) {
+    case 'es':
+      filename = 'lang_spanish.json';
+      break;
+    case 'ru':
+      filename = 'lang_russian.json';
+      break;
+    case 'fr':
+      filename = 'lang_french.json';
+      break;
+    case 'en':
+    default:
+      filename = 'lang_english.json';
+      break;
+  }
 
+  try {
     jsonString = await rootBundle.loadString('assets/lang/$filename');
   } catch (e) {
-    // Fallback to English if file not found or error
-    print('Error loading locale $locale: $e');
-    jsonString = await rootBundle.loadString('assets/lang/lang_english.json');
+    // Fallback to just lang/ if assets/ prefix fails
+    try {
+      jsonString = await rootBundle.loadString('lang/$filename');
+    } catch (e2) {
+      print('Error loading locale $locale: $e, $e2');
+      // Final fallback to English
+      jsonString = await rootBundle.loadString('assets/lang/lang_english.json');
+    }
   }
 
   final Map<String, dynamic> jsonMap = json.decode(jsonString);
