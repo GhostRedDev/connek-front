@@ -65,9 +65,7 @@ class SearchResultReelCard extends StatelessWidget {
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A1D21).withOpacity(
-                            0.5,
-                          ), // Validated neutralAlpha50 approximation
+                          color: const Color(0xFF1A1D21).withAlpha(128),
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Padding(

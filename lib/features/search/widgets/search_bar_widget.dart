@@ -63,7 +63,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
         Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final hintColor = Theme.of(context).hintColor;
     final fillColor = isDark
-        ? const Color(0xFF22262B).withOpacity(0.5)
+        ? const Color(0xFF22262B).withAlpha(128)
         : Colors.grey.shade200;
     final iconColor = isDark ? Colors.white70 : Colors.grey.shade600;
 

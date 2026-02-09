@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/greg_provider.dart';
 import 'marketplace_bot_card.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../system_ui/data_display/cards.dart';
 
 class OfficeMarketplaceWidget extends ConsumerStatefulWidget {
   const OfficeMarketplaceWidget({super.key});
@@ -18,7 +19,6 @@ class _OfficeMarketplaceWidgetState
     extends ConsumerState<OfficeMarketplaceWidget> {
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
@@ -29,75 +29,40 @@ class _OfficeMarketplaceWidgetState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Banner Section
-          Container(
+          SizedBox(
             height: 240,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1D21) : const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark
-                    ? const Color(0xFF1E293B)
-                    : Colors.black12, // Subtle Blue-Grey Border
-              ),
-              // Premium Deep Dark Gradient
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter, // Top to Bottom for depth
-                colors: isDark
-                    ? [
-                        const Color(0xFF0A1016), // Almost Black
-                        const Color(0xFF0F2027), // Deep Blue
-                        const Color(
-                          0xFF152735,
-                        ), // Slightly lighter Blue-Grey at bottom
-                      ]
-                    : [
-                        const Color(0xFFE0E7FF),
-                        const Color(0xFFF0F4FF),
-                        const Color(0xFFE8F5E9),
-                      ],
-              ),
-              boxShadow: isDark
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+            child: AppCard(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        t['office_marketplace_title'] ?? 'Marketplace',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
-                    ]
-                  : [],
-              // TODO: Add Image.asset('assets/images/Marketplace_BG.png') when available
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    t['office_marketplace_title'] ?? 'Marketplace',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? Colors.white
-                          : const Color(
-                              0xFF1A1D21,
-                            ), // Keep explicit dark for banner contrast
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        t['office_marketplace_subtitle'] ??
+                            'Explora nuestra colección de bots especializados diseñados para transformar tu negocio',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color:
+                              Theme.of(context).textTheme.bodySmall?.color ??
+                              Colors.grey,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    t['office_marketplace_subtitle'] ??
-                        'Explora nuestra colección de bots especializados diseñados para transformar tu negocio',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      height: 1.5,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

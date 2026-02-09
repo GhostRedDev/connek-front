@@ -7,6 +7,7 @@ import '../settings/providers/profile_provider.dart';
 import 'widgets/office_menu_widget.dart';
 import 'widgets/office_my_bots_widget.dart';
 import 'widgets/office_marketplace_widget.dart';
+import 'widgets/office_resources_widget.dart';
 import 'staff/staff_management_page.dart';
 
 class OfficePage extends ConsumerStatefulWidget {
@@ -78,18 +79,24 @@ class _OfficePageState extends ConsumerState<OfficePage> {
 
               // CONTENT AREA
               Expanded(
-                child: IndexedStack(
-                  index: selectedIndex,
-                  children: [
-                    // Index 0: My Bots
-                    const OfficeMyBotsWidget(),
-
-                    // Index 1: Marketplace
-                    const OfficeMarketplaceWidget(),
-
-                    // Index 2: Staff Management
-                    _buildStaffManagement(),
-                  ],
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  switchInCurve: Curves.easeOutQuad,
+                  switchOutCurve: Curves.easeInQuad,
+                  transitionBuilder: (child, animation) {
+                    final offsetAnimation = Tween<Offset>(
+                      begin: const Offset(0.03, 0.0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildOfficeView(selectedIndex),
                 ),
               ),
             ],
@@ -189,5 +196,24 @@ class _OfficePageState extends ConsumerState<OfficePage> {
       'businessId': businessData['id'] as int,
       'employeeId': employeeData['id'] as int,
     };
+  }
+
+  // Helper to build current Office tab view for AnimatedSwitcher
+  Widget _buildOfficeView(int index) {
+    switch (index) {
+      case 0:
+        return const OfficeMyBotsWidget(key: ValueKey('office-0'));
+      case 1:
+        return const OfficeMarketplaceWidget(key: ValueKey('office-1'));
+      case 2:
+        return KeyedSubtree(
+          key: const ValueKey('office-2'),
+          child: _buildStaffManagement(),
+        );
+      case 3:
+        return OfficeResourcesWidget(key: const ValueKey('office-3'));
+      default:
+        return const SizedBox.shrink(key: ValueKey('office-default'));
+    }
   }
 }

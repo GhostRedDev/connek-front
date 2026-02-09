@@ -9,6 +9,9 @@ DateTime _parseDate(dynamic value) {
 }
 
 int _parseInt(dynamic value, {int fallback = 0}) {
+  if (value is num) {
+    return value.toInt();
+  }
   if (value is int) {
     return value;
   }
@@ -43,7 +46,7 @@ class TeamMember {
       id: _parseInt(json['id']),
       teamId: _parseInt(json['team_id']),
       employeeId: _parseInt(json['employee_id']),
-      role: json['role'] as String,
+      role: (json['role'] as String?) ?? 'member',
       joinedAt: _parseDate(json['joined_at']),
       employee: json['employees'] != null
           ? EmployeeInfo.fromJson(json['employees'] as Map<String, dynamic>)

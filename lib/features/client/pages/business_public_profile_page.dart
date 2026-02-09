@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../business/presentation/providers/business_provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../client/services/client_requests_service.dart';
+import '../widgets/send_job_request_dialog.dart';
 import '../../../core/widgets/category_badge.dart';
 
 // Providers for Data Fetching
@@ -27,6 +27,18 @@ final publicReviewsProvider =
     FutureProvider.family<List<Map<String, dynamic>>, int>((ref, id) async {
       final repo = ref.read(businessRepositoryProvider);
       return repo.getReviews(id);
+    });
+
+final publicServiceReviewsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, serviceId) {
+      final repo = ref.read(businessRepositoryProvider);
+      return repo.getServiceReviews(serviceId);
+    });
+
+final publicEventReviewsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, eventId) {
+      final repo = ref.read(businessRepositoryProvider);
+      return repo.getEventReviews(eventId);
     });
 
 final publicEventsProvider =
@@ -77,16 +89,18 @@ class _BusinessPublicProfilePageState
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri)) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Could not launch $url')));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final businessAsync = ref.watch(publicBusinessProvider(_id));
+    final reviewsAsync = ref.watch(publicReviewsProvider(_id));
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -100,6 +114,18 @@ class _BusinessPublicProfilePageState
           final avatarUrl = _getImageUrl(business['profile_image']);
           final name = business['name'] ?? 'Negocio';
           final description = business['description'] ?? '';
+          final ratingText = reviewsAsync.when(
+            data: (reviews) {
+              if (reviews.isEmpty) return '—';
+              final sum = reviews
+                  .map((r) => (r['rating'] as num?)?.toDouble() ?? 0)
+                  .fold<double>(0, (a, b) => a + b);
+              final avg = sum / reviews.length;
+              return avg.toStringAsFixed(1);
+            },
+            loading: () => '…',
+            error: (e, s) => '—',
+          );
 
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -255,7 +281,7 @@ class _BusinessPublicProfilePageState
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             // We don't have these counts in `getBusinessById` yet
-                            _buildStat("5.0", "Rating"),
+                            _buildStat(ratingText, 'Rating'),
                             // _buildStat("?", "Seguidores"),
                             _buildStat("Verified", "Status"),
                           ],
@@ -408,94 +434,14 @@ class _BusinessPublicProfilePageState
                 onPressed: loading
                     ? null
                     : () async {
-                        isLoading.value = true;
-                        try {
-                          final user = ref.read(currentUserProvider);
-
-                          if (user == null) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Debes iniciar sesión para conectar.',
-                                  ),
-                                ),
-                              );
-                              Navigator.pop(context);
-                            }
-                            return;
-                          }
-
-                          int? clientId;
-                          try {
-                            final clientRes = await Supabase.instance.client
-                                .from('clients')
-                                .select('id')
-                                .eq('user_id', user.id)
-                                .maybeSingle();
-
-                            if (clientRes != null) {
-                              clientId = clientRes['id'];
-                            }
-                          } catch (e) {
-                            print('Error fetching client: $e');
-                          }
-
-                          if (clientId == null) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Error: No se encontró perfil de cliente.',
-                                  ),
-                                ),
-                              );
-                              Navigator.pop(context);
-                            }
-                            return;
-                          }
-
-                          final success = await ref
-                              .read(clientRequestsServiceProvider)
-                              .createRequest({
-                                'client_id': clientId,
-                                'business_id': business['id'],
-                                'description':
-                                    messageController.text.trim().isNotEmpty
-                                    ? messageController.text.trim()
-                                    : 'Solicitud de contacto',
-                                'is_direct': true,
-                              });
-
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Solicitud enviada con éxito'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Error al enviar solicitud'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          print('Error sending invite: $e');
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                            Navigator.pop(context);
-                          }
-                        } finally {
-                          isLoading.value = false;
-                        }
+                        // Close the simple invite dialog and open the detailed request dialog.
+                        if (context.mounted) Navigator.pop(context);
+                        await SendJobRequestDialog.show(
+                          context,
+                          businessId: (business['id'] as num).toInt(),
+                          businessServices:
+                              (business['services'] as List?) ?? const [],
+                        );
                       },
                 child: loading
                     ? const SizedBox(
@@ -519,7 +465,7 @@ class _BusinessPublicProfilePageState
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+          border: Border.all(color: Colors.grey.withAlpha(77)),
         ),
         child: Icon(icon, size: 20, color: Colors.grey),
       ),
@@ -607,7 +553,7 @@ class _ServicesTab extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha(26),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -633,7 +579,7 @@ class _ServicesTab extends ConsumerWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.8),
+                          Colors.black.withAlpha(204),
                         ],
                       ),
                     ),
@@ -648,7 +594,7 @@ class _ServicesTab extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withAlpha(128),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.white24),
                       ),
@@ -751,8 +697,9 @@ class _PortfolioTab extends ConsumerWidget {
 
     return businessAsync.when(
       data: (business) {
-        if (business == null)
+        if (business == null) {
           return const Center(child: Text("Error cargando portfolio"));
+        }
 
         final images = business['images'];
 
@@ -824,14 +771,18 @@ class _EventsTab extends ConsumerWidget {
     final eventsAsync = ref.watch(publicEventsProvider(businessId));
     return eventsAsync.when(
       data: (events) {
-        if (events.isEmpty)
+        if (events.isEmpty) {
           return const Center(child: Text("No hay eventos próximos"));
+        }
         return ListView.builder(
           itemCount: events.length,
-          itemBuilder: (context, index) => ListTile(
-            title: Text(events[index]['title'] ?? 'Evento'),
-            subtitle: Text(events[index]['description'] ?? ''),
-          ),
+          itemBuilder: (context, index) {
+            final event = events[index];
+            return ListTile(
+              title: Text(event['title'] ?? 'Evento'),
+              subtitle: Text(event['description'] ?? ''),
+            );
+          },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -840,85 +791,398 @@ class _EventsTab extends ConsumerWidget {
   }
 }
 
-class _ReviewsTab extends ConsumerWidget {
+class _ReviewsTab extends ConsumerStatefulWidget {
   final int businessId;
   const _ReviewsTab({required this.businessId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final reviewsAsync = ref.watch(publicReviewsProvider(businessId));
-    return reviewsAsync.when(
-      data: (reviews) {
-        if (reviews.isEmpty)
-          return const Center(child: Text("No hay reseñas aún"));
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: reviews.length,
-          itemBuilder: (context, index) {
-            final review = reviews[index];
-            final client = review['client'];
-            final rating = review['rating'] ?? 5;
-            final content = review['comment'] ?? '';
+  ConsumerState<_ReviewsTab> createState() => _ReviewsTabState();
+}
 
-            // Handle optional client data if join failed or simple object
-            final clientName = (client != null && client is Map)
-                ? (client['first_name'] ?? 'Cliente')
-                : 'Cliente';
+class _ReviewsTabState extends ConsumerState<_ReviewsTab> {
+  final _contentController = TextEditingController();
+  bool _isSaving = false;
+  int _rating = 5;
+  String _target = 'business'; // business | service | event
+  int? _selectedServiceId;
+  int? _selectedEventId;
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+  @override
+  void dispose() {
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  Future<int?> _getClientId() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return null;
+
+    try {
+      final clientRes = await Supabase.instance.client
+          .from('clients')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      return (clientRes?['id'] as num?)?.toInt();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _submitReview() async {
+    final content = _contentController.text.trim();
+    if (content.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Escribe un comentario para tu reseña.')),
+      );
+      return;
+    }
+
+    final clientId = await _getClientId();
+    if (clientId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes iniciar sesión para reseñar.')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final repo = ref.read(businessRepositoryProvider);
+      Map<String, dynamic>? created;
+
+      if (_target == 'business') {
+        created = await repo.createBusinessReview(
+          clientId: clientId,
+          businessId: widget.businessId,
+          rating: _rating,
+          content: content,
+        );
+        ref.invalidate(publicReviewsProvider(widget.businessId));
+      } else if (_target == 'service') {
+        final serviceId = _selectedServiceId;
+        if (serviceId == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selecciona un servicio.')),
+          );
+          return;
+        }
+        created = await repo.createServiceReview(
+          clientId: clientId,
+          serviceId: serviceId,
+          rating: _rating,
+          content: content,
+        );
+        ref.invalidate(publicServiceReviewsProvider(serviceId));
+      } else if (_target == 'event') {
+        final eventId = _selectedEventId;
+        if (eventId == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selecciona un evento.')),
+          );
+          return;
+        }
+        created = await repo.createEventReview(
+          clientId: clientId,
+          eventId: eventId,
+          rating: _rating,
+          content: content,
+        );
+        ref.invalidate(publicEventReviewsProvider(eventId));
+      }
+
+      if (!mounted) return;
+      if (created == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo publicar la reseña.')),
+        );
+      } else {
+        _contentController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reseña publicada.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final servicesAsync = ref.watch(publicServicesProvider(widget.businessId));
+    final eventsAsync = ref.watch(publicEventsProvider(widget.businessId));
+
+    AsyncValue<List<Map<String, dynamic>>> reviewsAsync;
+    if (_target == 'business') {
+      reviewsAsync = ref.watch(publicReviewsProvider(widget.businessId));
+    } else if (_target == 'service' && _selectedServiceId != null) {
+      reviewsAsync = ref.watch(
+        publicServiceReviewsProvider(_selectedServiceId!),
+      );
+    } else if (_target == 'event' && _selectedEventId != null) {
+      reviewsAsync = ref.watch(publicEventReviewsProvider(_selectedEventId!));
+    } else {
+      reviewsAsync = const AsyncValue.data([]);
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withAlpha(26)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Escribe una reseña',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.blue,
-                        child: Text(
-                          clientName[0].toUpperCase(),
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                  DropdownButton<String>(
+                    value: _target,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'business',
+                        child: Text('Empresa'),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            clientName, // Need fetch client name
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          // Date
-                        ],
+                      DropdownMenuItem(
+                        value: 'service',
+                        child: Text('Servicio'),
                       ),
-                      const Spacer(),
-                      Row(
-                        children: List.generate(
-                          5,
-                          (i) => Icon(
-                            Icons.star,
-                            size: 14,
-                            color: i < rating ? Colors.amber : Colors.grey,
-                          ),
-                        ),
-                      ),
+                      DropdownMenuItem(value: 'event', child: Text('Evento')),
                     ],
+                    onChanged: _isSaving
+                        ? null
+                        : (val) {
+                            if (val == null) return;
+                            setState(() {
+                              _target = val;
+                              _selectedServiceId = null;
+                              _selectedEventId = null;
+                            });
+                          },
                   ),
-                  const SizedBox(height: 12),
-                  Text(content),
+                  const Spacer(),
+                  Row(
+                    children: List.generate(5, (i) {
+                      final star = i + 1;
+                      return IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _isSaving
+                            ? null
+                            : () => setState(() => _rating = star),
+                        icon: Icon(
+                          Icons.star,
+                          size: 18,
+                          color: star <= _rating ? Colors.amber : Colors.grey,
+                        ),
+                      );
+                    }),
+                  ),
                 ],
               ),
+              if (_target == 'service')
+                servicesAsync.when(
+                  data: (services) {
+                    if (services.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text('Este negocio no tiene servicios.'),
+                      );
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: _selectedServiceId,
+                        hint: const Text('Selecciona un servicio'),
+                        items: services
+                            .map(
+                              (s) => DropdownMenuItem<int>(
+                                value: (s['id'] as num?)?.toInt(),
+                                child: Text(
+                                  (s['name'] ?? 'Servicio').toString(),
+                                ),
+                              ),
+                            )
+                            .where((i) => i.value != null)
+                            .toList(),
+                        onChanged: _isSaving
+                            ? null
+                            : (val) => setState(() => _selectedServiceId = val),
+                      ),
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                  error: (e, s) => Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('Error cargando servicios: $e'),
+                  ),
+                ),
+              if (_target == 'event')
+                eventsAsync.when(
+                  data: (events) {
+                    if (events.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text('Este negocio no tiene eventos.'),
+                      );
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: _selectedEventId,
+                        hint: const Text('Selecciona un evento'),
+                        items: events
+                            .map(
+                              (e) => DropdownMenuItem<int>(
+                                value: (e['id'] as num?)?.toInt(),
+                                child: Text(
+                                  (e['title'] ?? 'Evento').toString(),
+                                ),
+                              ),
+                            )
+                            .where((i) => i.value != null)
+                            .toList(),
+                        onChanged: _isSaving
+                            ? null
+                            : (val) => setState(() => _selectedEventId = val),
+                      ),
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                  error: (e, s) => Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('Error cargando eventos: $e'),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _contentController,
+                minLines: 2,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Escribe tu comentario...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _submitReview,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Publicar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        reviewsAsync.when(
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Center(child: Text('No hay reseñas aún')),
+              );
+            }
+
+            return Column(
+              children: reviews.map((review) {
+                final client = review['client'];
+                final rating = (review['rating'] as num?)?.toInt() ?? 5;
+                final content = (review['content'] ?? '').toString();
+                final clientName = (client != null && client is Map)
+                    ? (client['first_name'] ?? 'Cliente')
+                    : 'Cliente';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.withAlpha(26)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.blue,
+                            child: Text(
+                              clientName.toString().isNotEmpty
+                                  ? clientName.toString()[0].toUpperCase()
+                                  : 'C',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              clientName.toString(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: List.generate(
+                              5,
+                              (i) => Icon(
+                                Icons.star,
+                                size: 14,
+                                color: i < rating ? Colors.amber : Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(content),
+                    ],
+                  ),
+                );
+              }).toList(),
             );
           },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Center(child: Text("Error: $e")),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) => Center(child: Text('Error: $e')),
+        ),
+      ],
     );
   }
 }
@@ -934,7 +1198,7 @@ class AboutSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey.withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

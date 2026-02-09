@@ -36,9 +36,9 @@ class ClientRequestsService {
 
   Future<bool> acceptProposal(int quoteId, int leadId) async {
     try {
-      final response = await _apiService.post(
+      final response = await _apiService.postForm(
         '/quotes/accept',
-        body: {'quote_id': quoteId, 'lead_id': leadId},
+        fields: {'quote_id': quoteId, 'lead_id': leadId},
       );
       return response != null && response['success'] == true;
     } catch (e) {
@@ -49,14 +49,35 @@ class ClientRequestsService {
 
   Future<bool> declineProposal(int quoteId, int leadId) async {
     try {
-      final response = await _apiService.post(
+      final response = await _apiService.postForm(
         '/quotes/decline',
-        body: {'quote_id': quoteId, 'lead_id': leadId},
+        fields: {'quote_id': quoteId, 'lead_id': leadId},
       );
       return response != null && response['success'] == true;
     } catch (e) {
       print('Error declining proposal: $e');
       return false;
+    }
+  }
+
+  Future<ServiceRequest?> fetchRequestDetails(int requestId) async {
+    try {
+      final response = await _apiService.get(
+        '/requests/client/full/$requestId',
+      );
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return ServiceRequest.fromJson(data);
+        }
+        if (data is Map) {
+          return ServiceRequest.fromJson(Map<String, dynamic>.from(data));
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching request details: $e');
+      return null;
     }
   }
 

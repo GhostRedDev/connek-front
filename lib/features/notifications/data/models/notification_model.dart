@@ -68,16 +68,18 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      body: json['body'] ?? json['message'] ?? '',
-      type: _parseNotificationType(json['type'] as String),
-      priority: _parsePriority(json['priority'] as String?),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      isRead: json['is_read'] as bool? ?? false,
-      actionUrl: json['action_url'] as String?,
+      id: json['id'].toString(), // Safely convert int ID to String
+      title: (json['title'] ?? 'Notification').toString(),
+      body: (json['body'] ?? json['message'] ?? '').toString(),
+      type: _parseNotificationType((json['type'] ?? 'info').toString()),
+      priority: _parsePriority((json['priority'])?.toString()),
+      createdAt:
+          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      isRead: json['is_read'] ?? false, // Safe bool access
+      actionUrl: json['action_url']?.toString(),
       data: json['data'] as Map<String, dynamic>?,
-      userId: json['user_id'] as String?,
+      userId: json['user_id']?.toString(),
     );
   }
 

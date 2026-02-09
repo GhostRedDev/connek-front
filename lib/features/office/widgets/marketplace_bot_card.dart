@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../../../system_ui/data_display/badges.dart';
+import '../../../system_ui/data_display/cards.dart';
+import '../../../system_ui/layout/buttons.dart';
 
 class MarketplaceBotCard extends StatelessWidget {
   final String name;
@@ -29,43 +34,13 @@ class MarketplaceBotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF131619)
-        : Colors.white; // Darker bg for card
+    final shadTheme = ShadTheme.of(context);
     final textColor = Theme.of(context).colorScheme.onSurface;
     final subTextColor =
         Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
 
-    return Container(
-      width: double.infinity,
+    return AppCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        // Dark Blue Gradient for Card
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF161B22), const Color(0xFF0D1117)]
-              : [
-                  Theme.of(context).cardColor,
-                  Theme.of(context).cardColor,
-                ], // Use card color for light mode
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF4285F4).withOpacity(0.1)
-              : Theme.of(context).dividerColor.withOpacity(0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -81,15 +56,6 @@ class MarketplaceBotCard extends StatelessWidget {
                     image: AssetImage('assets/images/GREG_CARD_1.png'),
                     fit: BoxFit.cover,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFF4285F4,
-                      ).withOpacity(0.4), // Blue glow
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
               ),
               const SizedBox(width: 16),
@@ -120,11 +86,16 @@ class MarketplaceBotCard extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: tags.map((tag) => _buildTag(context, tag)).toList(),
+            children: tags
+                .map(
+                  (tag) =>
+                      AppBadge.secondary(tag, icon: Icons.flash_on_rounded),
+                )
+                .toList(),
           ),
 
           const SizedBox(height: 24),
-          Divider(color: isDark ? Colors.white10 : Colors.black12),
+          Divider(color: shadTheme.colorScheme.border),
           const SizedBox(height: 16),
 
           // Footer: Stats & Price & Button
@@ -139,7 +110,7 @@ class MarketplaceBotCard extends StatelessWidget {
                       Icon(
                         Icons.people_outline,
                         size: 16,
-                        color: const Color(0xFF4285F4),
+                        color: shadTheme.colorScheme.primary,
                       ), // Blue
                       const SizedBox(width: 4),
                       Text(
@@ -154,7 +125,7 @@ class MarketplaceBotCard extends StatelessWidget {
                       Icon(
                         Icons.star_rounded,
                         size: 16,
-                        color: const Color(0xFFFFC107),
+                        color: shadTheme.colorScheme.secondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -176,7 +147,7 @@ class MarketplaceBotCard extends StatelessWidget {
                           style: GoogleFonts.outfit(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF4285F4), // Blue Price
+                            color: shadTheme.colorScheme.primary,
                           ),
                         ),
                         TextSpan(
@@ -194,63 +165,8 @@ class MarketplaceBotCard extends StatelessWidget {
               const Spacer(),
 
               // Action Button
-              ElevatedButton(
-                onPressed: onAction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4285F4), // Light Blue
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  shadowColor: const Color(0xFF4285F4).withOpacity(0.5),
-                  elevation: 4,
-                ),
-                child: Text(
-                  actionLabel,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              AppButton.primary(text: actionLabel, onPressed: onAction),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTag(BuildContext context, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF39D2C0).withOpacity(0.1), // Green tint
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF39D2C0).withOpacity(0.5), // Green border
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.flash_on_rounded,
-            size: 12,
-            color: Color(0xFF39D2C0), // Green Icon
-          ),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: GoogleFonts.inter(
-              color: const Color(0xFF39D2C0), // Green Text
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ],
       ),

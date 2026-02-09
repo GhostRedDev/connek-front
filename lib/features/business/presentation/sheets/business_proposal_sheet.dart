@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../providers/business_provider.dart';
 import '../../../leads/models/lead_model.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:connek_frontend/system_ui/form/inputs.dart';
+import 'package:connek_frontend/system_ui/layout/buttons.dart';
 
 class BusinessProposalSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? quoteToEdit;
@@ -70,11 +73,9 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
-    final backgroundColor = isDark ? const Color(0xFF1A1D21) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final inputFillColor = isDark
-        ? const Color(0xFF2C3036)
-        : const Color(0xFFF5F5F5);
+    final shad = ShadTheme.of(context);
+    final backgroundColor = shad.colorScheme.card;
+    final textColor = shad.colorScheme.foreground;
 
     final businessData = ref.watch(businessProvider).value;
     final leads = businessData?.recentLeads ?? [];
@@ -142,13 +143,13 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
 
             // Header
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildCircleButton(
+                AppButton.ghost(
+                  text: '',
                   icon: Icons.close,
-                  onTap: () => Navigator.pop(context),
-                  isDark: isDark,
+                  onPressed: () => Navigator.pop(context),
                 ),
+                const Spacer(),
                 Text(
                   isEditing
                       ? (t['proposal_edit_title'] ?? 'Editar Propuesta')
@@ -159,12 +160,11 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                     color: textColor,
                   ),
                 ),
-                _buildCircleButton(
+                const Spacer(),
+                AppButton.primary(
+                  text: '',
                   icon: Icons.check,
-                  onTap: _saveProposal,
-                  isDark: isDark,
-                  color: const Color(0xFF4285F4),
-                  iconColor: Colors.white,
+                  onPressed: _saveProposal,
                 ),
               ],
             ),
@@ -183,10 +183,14 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                         context,
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: inputFillColor,
+                          color: shad.colorScheme.input,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: shad.colorScheme.border),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Lead>(
@@ -194,7 +198,9 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                             hint: Text(
                               t['proposal_select_lead_hint'] ??
                                   'Seleccione un lead',
-                              style: GoogleFonts.inter(color: Colors.grey),
+                              style: GoogleFonts.inter(
+                                color: shad.colorScheme.mutedForeground,
+                              ),
                             ),
                             isExpanded: true,
                             dropdownColor: backgroundColor,
@@ -253,10 +259,14 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                         context,
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: inputFillColor,
+                          color: shad.colorScheme.input,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: shad.colorScheme.border),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Map<String, dynamic>>(
@@ -264,7 +274,9 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                             hint: Text(
                               t['proposal_select_service_hint'] ??
                                   'Seleccione un servicio',
-                              style: GoogleFonts.inter(color: Colors.grey),
+                              style: GoogleFonts.inter(
+                                color: shad.colorScheme.mutedForeground,
+                              ),
                             ),
                             isExpanded: true,
                             dropdownColor: backgroundColor,
@@ -308,11 +320,9 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                       t['proposal_amount_label'] ?? 'Monto (\$)',
                       context,
                     ),
-                    _buildTextField(
+                    AppInput.text(
                       controller: _amountController,
-                      hint: '0.00',
-                      fillColor: inputFillColor,
-                      textColor: textColor,
+                      placeholder: '0.00',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -324,14 +334,13 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                       t['proposal_description_label'] ?? 'Descripción',
                       context,
                     ),
-                    _buildTextField(
+                    AppInput.area(
                       controller: _descController,
-                      hint:
+                      placeholder:
                           t['proposal_description_hint'] ??
                           'Detalles de la propuesta...',
-                      fillColor: inputFillColor,
-                      textColor: textColor,
-                      maxLines: 3,
+                      minLines: 3,
+                      maxLines: 6,
                     ),
                     const SizedBox(height: 16),
 
@@ -357,8 +366,9 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: inputFillColor,
+                          color: shad.colorScheme.input,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: shad.colorScheme.border),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -373,7 +383,7 @@ class _BusinessProposalSheetState extends ConsumerState<BusinessProposalSheet> {
                               style: GoogleFonts.inter(
                                 color: _selectedDate != null
                                     ? textColor
-                                    : Colors.grey,
+                                    : shad.colorScheme.mutedForeground,
                               ),
                             ),
                             Icon(

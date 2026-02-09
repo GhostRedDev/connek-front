@@ -21,6 +21,8 @@ class _ClientDashboardRequestsState
   String _selectedFilter =
       'all'; // Internal ID: all, pending, completed, cancelled
 
+  String _selectedTab = 'requests'; // requests | offers
+
   @override
   Widget build(BuildContext context) {
     // 1. Fetch Requests
@@ -43,13 +45,26 @@ class _ClientDashboardRequestsState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t['client_requests_title'] ?? 'Solicitudes',
-                  style: GoogleFonts.inter(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        t['client_requests_title'] ?? 'Solicitudes',
+                        style: GoogleFonts.inter(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => context.push('/client/request'),
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        t['client_publish_job'] ?? 'Publicar trabajo',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -64,28 +79,51 @@ class _ClientDashboardRequestsState
             ),
           ),
 
-          // Filters
+          // Tabs: Solicitudes | Ofertas
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             child: Row(
               children: [
-                _buildFilterChip(t['filter_all'] ?? 'Todos', 'all'),
-                const SizedBox(width: 8),
-                _buildFilterChip(t['filter_pending'] ?? 'Pendiente', 'pending'),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  t['filter_completed'] ?? 'Completado',
-                  'completed',
+                _buildMainTabChip(
+                  t['client_tab_requests'] ?? 'Solicitudes',
+                  'requests',
                 ),
                 const SizedBox(width: 8),
-                _buildFilterChip(
-                  t['filter_cancelled'] ?? 'Cancelado',
-                  'cancelled',
+                _buildMainTabChip(
+                  t['client_tab_offers'] ?? 'Ofertas',
+                  'offers',
                 ),
               ],
             ),
           ),
+
+          // Filters (only for Solicitudes tab)
+          if (_selectedTab == 'requests')
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Row(
+                children: [
+                  _buildFilterChip(t['filter_all'] ?? 'Todos', 'all'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    t['filter_pending'] ?? 'Pendiente',
+                    'pending',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    t['filter_completed'] ?? 'Completado',
+                    'completed',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    t['filter_cancelled'] ?? 'Cancelado',
+                    'cancelled',
+                  ),
+                ],
+              ),
+            ),
 
           const SizedBox(height: 10),
 
@@ -93,9 +131,36 @@ class _ClientDashboardRequestsState
           Expanded(
             child: requestsAsync.when(
               data: (allRequests) {
-                // Filter logic
-                final requests = _filterRequests(allRequests);
+                if (_selectedTab == 'offers') {
+                  final offers = _flattenOffers(allRequests);
+                  if (offers.isEmpty) {
+                    return _buildEmptyState(
+                      t['no_offers'] ?? 'Aún no tienes ofertas.',
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    itemCount: offers.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final offer = offers[index];
+                      return _OfferCard(
+                        request: offer.request,
+                        quote: offer.quote,
+                        onTap: () => context.push(
+                          '/client/request-details',
+                          extra: offer.request,
+                        ),
+                      );
+                    },
+                  );
+                }
 
+                // Requests tab
+                final requests = _filterRequests(allRequests);
                 if (requests.isEmpty) {
                   return _buildEmptyState(
                     t['no_requests'] ?? 'No requests found',
@@ -125,6 +190,43 @@ class _ClientDashboardRequestsState
         ],
       ),
     );
+  }
+
+  Widget _buildMainTabChip(String label, String value) {
+    final isSelected = _selectedTab == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedTab = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF4285F4) : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isSelected ? Colors.white : Colors.grey[700],
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<_OfferRow> _flattenOffers(List<ServiceRequest> requests) {
+    final rows = <_OfferRow>[];
+    for (final r in requests) {
+      for (final q in r.proposals) {
+        rows.add(_OfferRow(request: r, quote: q));
+      }
+    }
+    rows.sort((a, b) => a.quote.amount.compareTo(b.quote.amount));
+    return rows;
   }
 
   Widget _buildFilterChip(String label, String value) {
@@ -223,5 +325,93 @@ class _ClientDashboardRequestsState
       'dic',
     ];
     return months[month - 1];
+  }
+}
+
+class _OfferRow {
+  final ServiceRequest request;
+  final Quote quote;
+
+  _OfferRow({required this.request, required this.quote});
+}
+
+class _OfferCard extends StatelessWidget {
+  final ServiceRequest request;
+  final Quote quote;
+  final VoidCallback onTap;
+
+  const _OfferCard({
+    required this.request,
+    required this.quote,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[900] : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    quote.businessName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '\$${quote.amount.toStringAsFixed(0)}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              request.title.isNotEmpty ? request.title : 'Trabajo',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            if (quote.description.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                quote.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Ver detalles',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF4285F4),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

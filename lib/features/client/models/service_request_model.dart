@@ -36,17 +36,19 @@ class ServiceRequest {
   });
 
   factory ServiceRequest.fromJson(Map<String, dynamic> json) {
-    // Customize parsing based on actual API response structure
-    // Assuming structure similar to:
-    // { "id": 1, "description": "Limpieza profunda", "service": { "name": "Limpieza" }, "budget_max": 15000, "photos": [...] }
-
-    // For now, I'll map standard fields and handle potential backend variations safely
+    // Helper to safely parse double
+    double safeDouble(dynamic val) {
+      if (val is int) return val.toDouble();
+      if (val is double) return val;
+      if (val is String) return double.tryParse(val) ?? 0.0;
+      return 0.0;
+    }
 
     return ServiceRequest(
       id: json['id'] ?? 0,
       title: json['title'] ?? json['description'] ?? 'Service Request',
       role: json['service']?['name'] ?? 'Service',
-      amount: (json['amount'] ?? json['budget_max'] ?? 0).toDouble(),
+      amount: safeDouble(json['amount'] ?? json['budget_max']),
       imageUrl:
           json['image_url'] ??
           'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?ixlib=rb-4.0.3',
@@ -54,7 +56,7 @@ class ServiceRequest {
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       clientName: json['client_name'] ?? 'Client Name',
       clientIndustry: json['client_industry'] ?? 'Industry',
-      rating: (json['rating'] ?? 5.0).toDouble(),
+      rating: safeDouble(json['rating'] ?? 5.0),
       message: json['message'] ?? '',
       serviceTitle: json['service_title'] ?? '',
       servicePriceRange: json['service_price_range'] ?? '',
@@ -71,10 +73,31 @@ class ServiceRequest {
     if (leadsJson == null || leadsJson is! List) return [];
     List<Quote> quotes = [];
     for (var lead in leadsJson) {
-      if (lead['quotes'] != null && lead['quotes'] is List) {
-        for (var quote in lead['quotes']) {
-          quotes.add(Quote.fromJson(quote, lead));
+      if (lead is! Map) continue;
+
+      final dynamic quotesJson = lead['quotes'] ?? lead['quote'];
+      if (quotesJson == null) continue;
+
+      if (quotesJson is List) {
+        for (final q in quotesJson) {
+          if (q is Map<String, dynamic>) {
+            quotes.add(Quote.fromJson(q, Map<String, dynamic>.from(lead)));
+          } else if (q is Map) {
+            quotes.add(
+              Quote.fromJson(
+                Map<String, dynamic>.from(q),
+                Map<String, dynamic>.from(lead),
+              ),
+            );
+          }
         }
+      } else if (quotesJson is Map) {
+        quotes.add(
+          Quote.fromJson(
+            Map<String, dynamic>.from(quotesJson),
+            Map<String, dynamic>.from(lead),
+          ),
+        );
       }
     }
     return quotes;
@@ -102,10 +125,22 @@ class Quote {
 
   factory Quote.fromJson(Map<String, dynamic> json, Map<String, dynamic> lead) {
     final business = lead['business'] ?? {};
+
+    // Safely parse double from cents
+    double safeAmount(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is int) return val / 100.0;
+      if (val is double) return val / 100.0;
+      if (val is String) {
+        return (double.tryParse(val) ?? 0.0) / 100.0;
+      }
+      return 0.0;
+    }
+
     return Quote(
       id: json['id'] ?? 0,
       leadId: lead['id'] ?? 0,
-      amount: (json['amount_cents'] ?? 0) / 100.0,
+      amount: safeAmount(json['amount_cents']),
       description: json['description'] ?? '',
       status: json['status'] ?? 'pending',
       businessName: business['name'] ?? 'Unknown Business',

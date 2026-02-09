@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import 'package:connek_frontend/system_ui/system_ui.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../providers/teams_provider.dart';
 import '../models/team_model.dart';
 
@@ -39,65 +42,65 @@ class _CreateTeamDialogState extends State<CreateTeamDialog> {
   Widget build(BuildContext context) {
     final isEditing = widget.team != null;
 
-    return AlertDialog(
-      title: Text(isEditing ? 'Edit Team' : 'Create Team'),
-      content: Form(
+    return ShadDialog.alert(
+      title: Text(isEditing ? 'Editar equipo' : 'Crear equipo'),
+      description: Form(
         key: _formKey,
         child: SizedBox(
-          width: 400,
+          width: 420,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Team Name',
-                  hintText: 'e.g., Sales Team',
-                  border: OutlineInputBorder(),
+              AppLabel(
+                text: 'Nombre del equipo',
+                isRequired: true,
+                child: AppInput.text(
+                  controller: _nameController,
+                  placeholder: 'Ej. Equipo de ventas',
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a team name';
-                  }
-                  return null;
-                },
-                autofocus: true,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (Optional)',
-                  hintText: 'What does this team do?',
-                  border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              AppLabel(
+                text: 'Descripción (opcional)',
+                child: AppInput.area(
+                  controller: _descriptionController,
+                  placeholder: '¿Qué hace este equipo?',
+                  minLines: 3,
+                  maxLines: 6,
                 ),
-                maxLines: 3,
               ),
+              if (_isLoading) ...[
+                const SizedBox(height: 12),
+                const LinearProgressIndicator(minHeight: 2),
+              ],
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+        ShadButton.outline(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
         ),
-        ElevatedButton(
+        ShadButton(
           onPressed: _isLoading ? null : _handleSubmit,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(isEditing ? 'Update' : 'Create'),
+          child: Text(isEditing ? 'Guardar' : 'Crear'),
         ),
       ],
     );
   }
 
   Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      await AppDialog.alert(
+        context,
+        title: 'Falta información',
+        description: 'Ingresa un nombre para el equipo.',
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -108,7 +111,7 @@ class _CreateTeamDialogState extends State<CreateTeamDialog> {
       if (widget.team != null) {
         success = await provider.updateTeam(
           widget.team!.id,
-          _nameController.text.trim(),
+          name,
           _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
@@ -116,7 +119,7 @@ class _CreateTeamDialogState extends State<CreateTeamDialog> {
       } else {
         success = await provider.createTeam(
           widget.businessId,
-          _nameController.text.trim(),
+          name,
           _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
@@ -126,54 +129,27 @@ class _CreateTeamDialogState extends State<CreateTeamDialog> {
       if (!mounted) return;
 
       if (success) {
-        Navigator.pop(context);
-
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Éxito'),
-            content: Text(
-              widget.team != null
-                  ? 'Equipo actualizado correctamente'
-                  : 'Equipo creado correctamente',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        Navigator.of(context).pop();
+        await AppDialog.alert(
+          context,
+          title: 'Listo',
+          description: widget.team != null
+              ? 'Equipo actualizado correctamente.'
+              : 'Equipo creado correctamente.',
         );
       } else {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(provider.error ?? 'No se pudo guardar el equipo'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        await AppDialog.alert(
+          context,
+          title: 'Error',
+          description: provider.error ?? 'No se pudo guardar el equipo.',
         );
       }
     } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error'),
-            content: Text('No se pudo guardar el equipo: $e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        await AppDialog.alert(
+          context,
+          title: 'Error',
+          description: 'No se pudo guardar el equipo: $e',
         );
       }
     } finally {

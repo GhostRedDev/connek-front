@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:connek_frontend/system_ui/system_ui.dart';
 import '../providers/teams_provider.dart';
 
 class AddMemberDialog extends StatefulWidget {
@@ -38,12 +41,31 @@ class _AddMemberDialogState extends State<AddMemberDialog> {
     });
 
     try {
-      final response = await Supabase.instance.client
-          .from('employees')
-          .select()
-          .eq('business_id', widget.businessId)
-          .eq('status', 'Activo')
-          .order('name', ascending: true);
+      final client = Supabase.instance.client;
+
+      // Some environments store status as 'Activo', others as 'Active'/'active',
+      // and sometimes the column might be missing or unreliable. Prefer showing
+      // employees over blocking the flow.
+      dynamic response;
+
+      try {
+        response = await client
+            .from('employees')
+            .select()
+            .eq('business_id', widget.businessId)
+            .inFilter('status', const ['Activo', 'Active', 'active'])
+            .order('name', ascending: true);
+      } catch (_) {
+        response = [];
+      }
+
+      if (response is! List || response.isEmpty) {
+        response = await client
+            .from('employees')
+            .select()
+            .eq('business_id', widget.businessId)
+            .order('name', ascending: true);
+      }
 
       setState(() {
         _employees = List<Map<String, dynamic>>.from(response);
@@ -59,153 +81,193 @@ class _AddMemberDialogState extends State<AddMemberDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Agregar Miembro al Equipo'),
-      content: SizedBox(
-        width: 400,
-        child: _isLoading
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            : _error != null
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
-                  const SizedBox(height: 16),
-                  Text('Error: $_error'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadEmployees,
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              )
-            : _employees.isEmpty
-            ? const Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.people_outline, size: 48),
-                  SizedBox(height: 16),
-                  Text('No hay empleados activos disponibles'),
-                ],
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<int>(
-                    value: _selectedEmployeeId,
-                    decoration: const InputDecoration(
-                      labelText: 'Seleccionar Empleado',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _employees.map((employee) {
-                      return DropdownMenuItem<int>(
-                        value: employee['id'] as int,
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundImage: employee['image'] != null
-                                  ? NetworkImage(employee['image'])
-                                  : null,
-                              child: employee['image'] == null
-                                  ? Icon(
-                                      employee['type'] == 'bot'
-                                          ? Icons.smart_toy
-                                          : Icons.person,
-                                      size: 16,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 200),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    employee['name'] ?? 'Unknown',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    Widget content;
+
+    if (_isLoading) {
+      content = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (_error != null) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 40, color: colorScheme.error),
+          const SizedBox(height: 12),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          AppButton.outline(
+            text: 'Reintentar',
+            icon: Icons.refresh,
+            onPressed: _loadEmployees,
+          ),
+        ],
+      );
+    } else if (_employees.isEmpty) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 40,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No hay empleados activos disponibles',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      );
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppLabel(
+            text: 'Empleado',
+            isRequired: true,
+            child: ShadSelect<int>(
+              placeholder: const Text('Seleccionar empleado'),
+              initialValue: _selectedEmployeeId,
+              onChanged: (value) => setState(() => _selectedEmployeeId = value),
+              options: _employees
+                  .where((e) => e['id'] is num && (e['id'] as num).toInt() > 0)
+                  .map((employee) {
+                    final id = (employee['id'] as num).toInt();
+                    final name = (employee['name'] ?? 'Unknown').toString();
+                    final role = (employee['role'] ?? '').toString();
+                    final image = employee['image']?.toString();
+                    final isBot = employee['type'] == 'bot';
+
+                    return ShadOption<int>(
+                      value: id,
+                      child: Row(
+                        children: [
+                          AppAvatar(
+                            src: image,
+                            alt: name,
+                            size: 28,
+                            backgroundColor: ShadTheme.of(
+                              context,
+                            ).colorScheme.muted,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                ),
+                                if (role.isNotEmpty)
                                   Text(
-                                    employee['role'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
+                                    role,
                                     overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    isBot ? 'Bot' : 'Empleado',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
-                                ],
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedEmployeeId = value);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Rol en el Equipo',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'member',
-                        child: Row(
-                          children: [
-                            Icon(Icons.person, size: 20),
-                            SizedBox(width: 8),
-                            Text('Miembro'),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      DropdownMenuItem(
-                        value: 'leader',
-                        child: Row(
-                          children: [
-                            Icon(Icons.star, size: 20),
-                            SizedBox(width: 8),
-                            Text('Líder'),
-                          ],
-                        ),
-                      ),
+                    );
+                  })
+                  .toList(),
+              selectedOptionBuilder: (context, value) {
+                final selected = _employees
+                    .cast<Map<String, dynamic>>()
+                    .where(
+                      (e) =>
+                          e['id'] is num && (e['id'] as num).toInt() == value,
+                    )
+                    .toList();
+                final name = selected.isNotEmpty
+                    ? (selected.first['name'] ?? 'Unknown').toString()
+                    : 'Seleccionar empleado';
+                return Text(name);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          AppLabel(
+            text: 'Rol en el equipo',
+            child: ShadSelect<String>(
+              placeholder: const Text('Seleccionar rol'),
+              initialValue: _selectedRole,
+              onChanged: (value) =>
+                  setState(() => _selectedRole = value ?? 'member'),
+              options: const [
+                ShadOption<String>(
+                  value: 'member',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person, size: 16),
+                      SizedBox(width: 8),
+                      Text('Miembro'),
                     ],
-                    onChanged: (value) {
-                      setState(() => _selectedRole = value!);
-                    },
                   ),
-                ],
-              ),
-      ),
+                ),
+                ShadOption<String>(
+                  value: 'leader',
+                  child: Row(
+                    children: [
+                      Icon(Icons.star, size: 16),
+                      SizedBox(width: 8),
+                      Text('Líder'),
+                    ],
+                  ),
+                ),
+              ],
+              selectedOptionBuilder: (context, value) {
+                return Text(value == 'leader' ? 'Líder' : 'Miembro');
+              },
+            ),
+          ),
+          if (_isSaving) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(minHeight: 2),
+          ],
+        ],
+      );
+    }
+
+    return ShadDialog.alert(
+      title: const Text('Agregar miembro al equipo'),
+      description: SizedBox(width: 420, child: content),
       actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.pop(context),
+        ShadButton.outline(
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
+        ShadButton(
           onPressed: _isSaving || _selectedEmployeeId == null
               ? null
               : _handleAddMember,
-          child: _isSaving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Agregar'),
+          child: const Text('Agregar'),
         ),
       ],
     );
@@ -224,49 +286,25 @@ class _AddMemberDialogState extends State<AddMemberDialog> {
       );
 
       if (success && mounted) {
-        Navigator.pop(context);
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Éxito'),
-            content: const Text('Miembro agregado exitosamente'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        Navigator.of(context).pop();
+        await AppDialog.alert(
+          context,
+          title: 'Listo',
+          description: 'Miembro agregado exitosamente.',
         );
       } else if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error'),
-            content: const Text('Error al agregar miembro'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        await AppDialog.alert(
+          context,
+          title: 'Error',
+          description: 'Error al agregar miembro.',
         );
       }
     } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error'),
-            content: Text('Error: $e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        await AppDialog.alert(
+          context,
+          title: 'Error',
+          description: 'Error: $e',
         );
       }
     } finally {

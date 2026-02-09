@@ -246,6 +246,22 @@ class BusinessRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getTeams(int businessId) async {
+    try {
+      final response = await _apiService.get('/teams?business_id=$businessId');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching teams: $e');
+      return [];
+    }
+  }
+
   Future<Map<String, dynamic>?> createEmployee(
     Map<String, dynamic> payload,
   ) async {
@@ -380,6 +396,116 @@ class BusinessRepository {
         print('❌ Direct DB fetch failed for reviews: $dbError');
         return [];
       }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getServiceReviews(int serviceId) async {
+    try {
+      final response = await _apiService.get('/reviews/service/$serviceId');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching service reviews: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getEventReviews(int eventId) async {
+    try {
+      final response = await _apiService.get('/reviews/event/$eventId');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching event reviews: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> createBusinessReview({
+    required int clientId,
+    required int businessId,
+    required int rating,
+    required String content,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        '/reviews/create',
+        body: {
+          'client_id': clientId,
+          'business_id': businessId,
+          'rating': rating,
+          'content': content,
+        },
+      );
+      if (response != null && response is Map && response['success'] == true) {
+        return Map<String, dynamic>.from(response['data']);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating business review: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> createServiceReview({
+    required int clientId,
+    required int serviceId,
+    required int rating,
+    required String content,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        '/reviews/service/create',
+        body: {
+          'client_id': clientId,
+          'service_id': serviceId,
+          'rating': rating,
+          'content': content,
+        },
+      );
+      if (response != null && response is Map && response['success'] == true) {
+        return Map<String, dynamic>.from(response['data']);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating service review: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> createEventReview({
+    required int clientId,
+    required int eventId,
+    required int rating,
+    required String content,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        '/reviews/event/create',
+        body: {
+          'client_id': clientId,
+          'event_id': eventId,
+          'rating': rating,
+          'content': content,
+        },
+      );
+      if (response != null && response is Map && response['success'] == true) {
+        return Map<String, dynamic>.from(response['data']);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating event review: $e');
+      return null;
     }
   }
 
@@ -716,6 +842,95 @@ class BusinessRepository {
       return [];
     } catch (e) {
       print('Error fetching resources: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getActiveResourceAssignment(
+    int resourceId,
+  ) async {
+    try {
+      final response = await _apiService.get(
+        '/resources/$resourceId/assignment/active',
+      );
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data == null) return null;
+        return Map<String, dynamic>.from(data);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching active resource assignment: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> assignResource({
+    required int businessId,
+    required int resourceId,
+    required String assigneeType,
+    required int assigneeId,
+    int? assignedBy,
+    String? notes,
+  }) async {
+    try {
+      final response = await _apiService.postForm(
+        '/resources/$resourceId/assign',
+        fields: {
+          'business_id': businessId,
+          'assignee_type': assigneeType,
+          'assignee_id': assigneeId,
+          if (assignedBy != null) 'assigned_by': assignedBy,
+          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+        },
+      );
+
+      if (response != null && response['success'] == true) {
+        return Map<String, dynamic>.from(response['data']);
+      }
+      return null;
+    } catch (e) {
+      print('Error assigning resource: $e');
+      return null;
+    }
+  }
+
+  Future<bool> unassignResource({
+    required int businessId,
+    required int resourceId,
+    int? unassignedBy,
+    String? notes,
+  }) async {
+    try {
+      final response = await _apiService.postForm(
+        '/resources/$resourceId/unassign',
+        fields: {
+          'business_id': businessId,
+          if (unassignedBy != null) 'unassigned_by': unassignedBy,
+          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+        },
+      );
+      return response != null && response['success'] == true;
+    } catch (e) {
+      print('Error unassigning resource: $e');
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getResourceUsageLogs(
+    int resourceId,
+  ) async {
+    try {
+      final response = await _apiService.get('/resources/$resourceId/usage');
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching resource usage logs: $e');
       return [];
     }
   }

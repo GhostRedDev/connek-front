@@ -186,14 +186,20 @@ HeaderData getHeaderConfig(
         : 'assets/images/conneck_logo_dark.png',
     height: 38, // Increased from 32
     fit: BoxFit.contain,
-    errorBuilder: (_, __, ___) => Text(
-      'connek',
-      style: TextStyle(
-        color: isDark ? Colors.white : const Color(0xFF1A1D21),
-        fontSize: 28, // Increased font size
-        fontWeight: FontWeight.bold,
-        fontFamily: 'Roboto',
-      ),
+    errorBuilder: (_, __, ___) => Row(
+      children: [
+        Icon(Icons.error_outline, color: Colors.red, size: 28),
+        const SizedBox(width: 8),
+        Text(
+          'connek',
+          style: TextStyle(
+            color: isDark ? Colors.white : const Color(0xFF1A1D21),
+            fontSize: 28, // Increased font size
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Roboto',
+          ),
+        ),
+      ],
     ),
   );
 
@@ -223,70 +229,27 @@ HeaderData getHeaderConfig(
   }
 
   final cleanRoute = route.trim();
+
+  // Removed old Business Tabs logic as they are now handled locally in BusinessPageSorted
   if (cleanRoute.startsWith('/business') || cleanRoute.startsWith('business')) {
     return HeaderData(
       titleWidget: logoWidget,
-      bgTrans: false,
-      height: 200, // Increased to 200 to clear safe area overflow
-      tabs: [
-        {
-          'label': t['tab_overview'] ?? 'Overview',
-          'icon': Icons.dashboard_outlined,
-        },
-        {
-          'label': t['tab_leads'] ?? 'Leads',
-          'icon': Icons.person_search_outlined,
-        },
-        {'label': t['tab_clients'] ?? 'Clientes', 'icon': Icons.people_outline},
-        // REPLACED SALES TAB WITH DROPDOWN CONFIG
-        {
-          'label': (ref != null)
-              ? _getSalesLabel(ref.watch(selectedSalesViewProvider), t)
-              : (t['tab_sales'] ?? 'Ventas'),
-          'icon': (ref != null)
-              ? _getSalesIcon(ref.watch(selectedSalesViewProvider))
-              : Icons.receipt,
-          'type': 'dropdown',
-          'items': [
-            {'label': 'Facturas', 'value': 'invoices', 'icon': Icons.receipt},
-            {
-              'label': 'Cotizaciones',
-              'value': 'proposals',
-              'icon': Icons.monetization_on_outlined,
-            },
-            {
-              'label': 'Bookings',
-              'value': 'bookings',
-              'icon': Icons.calendar_today_outlined,
-            },
-          ],
-          'onSelected': (value) {
-            if (ref != null) {
-              ref.read(selectedSalesViewProvider.notifier).state = value;
-            }
-          },
-        },
-        // NEW TABS: Services, Employees, Profile, Settings
-        {
-          'label': t['tab_services'] ?? 'Servicios',
-          'icon': Icons.design_services_outlined,
-        },
-        {
-          'label': t['tab_employees'] ?? 'Empleados',
-          'icon': Icons.badge_outlined,
-        },
-        {'label': t['tab_profile'] ?? 'Perfil', 'icon': Icons.person_outline},
-        {
-          'label': t['tab_settings'] ?? 'Ajustes',
-          'icon': Icons.settings_outlined,
-        },
-        // NEW TAB: Accounting (Contabilidad)
-        {
-          'label': t['tab_accounting'] ?? 'Contabilidad',
-          'icon': Icons.account_balance_outlined,
-        },
+      bgTrans: true, // Transparent to let page content show (pills)
+      height: 120, // Standard height
+      actions: [
+        HeaderAction(icon: Icons.add_circle_outline),
+        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
+        HeaderAction(icon: Icons.notifications_none),
       ],
-      // bottomWidget: _BusinessSubHeader(isDark: isDark), // Removed in favor of Tabs
+    );
+  }
+
+  // Office Config (Already correct, but ensuring consistency)
+  if (cleanRoute.startsWith('/office') || cleanRoute.startsWith('office')) {
+    return HeaderData(
+      titleWidget: logoWidget,
+      bgTrans: true,
+      height: 120, // Standard height
       actions: [
         HeaderAction(icon: Icons.add_circle_outline),
         HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
@@ -569,8 +532,19 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         }
       }
     } catch (e) {
-      print('Error init call service: $e');
+      // Show error toast for call service init failure
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error inicializando llamadas: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      });
     }
+
+    // Fallback: ensure a non-null Widget is always returned
+    return;
 
     // 3. Initialize Global Notifications
     // This ensures notifications are fetched regardless of which page we are on
@@ -826,13 +800,23 @@ class _ModernSidebar extends StatelessWidget {
                                 : 'assets/images/conneck_logo_dark.png',
                             height: 40,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Text(
-                              'connek',
-                              style: GoogleFonts.inter(
-                                color: isDark ? Colors.white : Colors.black,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            errorBuilder: (_, __, ___) => Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'connek',
+                                  style: GoogleFonts.inter(
+                                    color: isDark ? Colors.white : Colors.black,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                   ),
@@ -845,13 +829,6 @@ class _ModernSidebar extends StatelessWidget {
                     isActive: isActive('/client'),
                     isCollapsed: isCollapsed,
                     onTap: () => context.go('/client'),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.receipt_long_outlined,
-                    label: t['header_sell'] ?? 'Sell (Business)',
-                    isActive: isActive('/business'),
-                    isCollapsed: isCollapsed,
-                    onTap: () => context.go('/business'),
                   ),
                   _SidebarItem(
                     icon: Icons.cleaning_services_outlined,
@@ -973,6 +950,9 @@ class _SidebarItem extends StatelessWidget {
       );
     }
 
+    // Fallback: ensure a non-null Widget is always returned
+    return const SizedBox.shrink();
+
     return item;
   }
 }
@@ -1049,302 +1029,317 @@ class _ModernGlassAppBar extends ConsumerWidget {
     }
 
     // Contenido interno con TABS Support
+    // Avoid wrapping header in a scroll view to prevent RenderLayoutBuilder mutation during layout
     Widget innerContent = SafeArea(
       bottom: false,
-      child: SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // TOP ROW (Logo + Icons)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // 1. CENTER LOGO (Absolute Center) - Only for Search
-                  if (location == '/search' && config.titleWidget != null)
-                    config.titleWidget!,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // TOP ROW (Logo + Icons)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 1. CENTER LOGO (Absolute Center) - Only for Search
+                if (location == '/search' && config.titleWidget != null)
+                  config.titleWidget!,
 
-                  // 2. LEFT & RIGHT CONTENT (Row)
-                  Row(
-                    children: [
-                      // --- LEFT SIDE ---
-                      if (location == '/search')
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: Theme.of(context).colorScheme.onSurface,
-                            size: 28,
-                          ),
-                          onPressed: () => context.pop(),
-                        )
-                      else if (location == '/chats' &&
-                          config.titleWidget != null)
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.arrow_back,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                size: 28,
-                              ),
-                              onPressed: () => context.go('/'),
-                            ),
-                            const SizedBox(width: 8),
-                            config.titleWidget!,
-                          ],
-                        )
-                      else
-                      // Standard Title/Logo
-                      if (config.titleWidget != null)
-                        config.titleWidget!
-                      else if (config.title != null)
-                        Text(
-                          config.title!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Roboto',
-                          ),
+                // 2. LEFT & RIGHT CONTENT (Row)
+                Row(
+                  children: [
+                    // --- LEFT SIDE ---
+                    // 1. Back Button (if applicable)
+                    if ((Navigator.of(context).canPop() ||
+                            [
+                              '/chats',
+                              '/notifications',
+                              '/profile',
+                              '/settings',
+                              '/search',
+                            ].contains(location)) &&
+                        ![
+                          '/',
+                          '/client',
+                          '/business',
+                          '/office',
+                        ].contains(location) &&
+                        !location.startsWith('/client/dashboard'))
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 28,
                         ),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/');
+                          }
+                        },
+                      ),
 
-                      const Spacer(),
-
-                      // --- RIGHT SIDE ---
-                      ...config.actions.map(
-                        (action) => Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Stack(
-                            alignment: Alignment.topRight,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  action.icon,
-                                  color:
-                                      action.color ??
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withOpacity(0.7),
-                                  size: 28,
-                                ),
-                                onPressed:
-                                    action.onTap ??
-                                    () {
-                                      if (action.route != null) {
-                                        context.push(action.route!);
-                                      }
-                                    },
-                                style: IconButton.styleFrom(
-                                  padding: const EdgeInsets.all(8),
-                                ),
-                              ),
-                              if (action.badgeCount > 0)
-                                Positioned(
-                                  top: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    constraints: const BoxConstraints(
-                                      minWidth: 16,
-                                      minHeight: 16,
-                                    ),
-                                    child: Text(
-                                      '${action.badgeCount}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                    // 2. Standard Title/Logo
+                    if (config.titleWidget != null)
+                      config.titleWidget!
+                    else if (config.title != null)
+                      Text(
+                        config.title!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Roboto',
                         ),
                       ),
 
-                      // Notification Badge
-                      const NotificationBadge(),
+                    const Spacer(),
 
-                      // Profile
-                      if (config.showProfile)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: SizedBox(
-                            height: 48,
-                            width: 48,
-                            child: LoginDropdownButton(),
-                          ),
+                    // --- RIGHT SIDE ---
+                    ...config.actions.map(
+                      (action) => Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                action.icon,
+                                color:
+                                    action.color ??
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.7),
+                                size: 28,
+                              ),
+                              onPressed:
+                                  action.onTap ??
+                                  () {
+                                    if (action.route != null) {
+                                      context.push(action.route!);
+                                    }
+                                  },
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(8),
+                              ),
+                            ),
+                            if (action.badgeCount > 0)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${action.badgeCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // TABS ROW (If present)
-            if (config.tabs.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(context).dividerColor.withOpacity(0.1),
-                      width: 1,
+                      ),
                     ),
+
+                    // Notification Badge
+                    // const NotificationBadge(), // Removed to avoid duplicate
+
+                    // Profile
+                    if (config.showProfile)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: SizedBox(
+                          height: 48,
+                          width: 48,
+                          child: LoginDropdownButton(),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // TABS ROW (If present)
+          if (config.tabs.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
+                    width: 1,
                   ),
                 ),
-                child: TabBar(
-                  key: ValueKey(
-                    'TabBar_${config.tabs.length}',
-                  ), // Force rebuild for safety
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  indicator: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  labelColor: Theme.of(context).colorScheme.surface,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
-                  // We need google fonts imported here, assuming it is.
-                  // If not, we use system font or standard TextStyles.
-                  // Assuming imported as project uses it.
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    fontFamily: 'Inter',
-                  ),
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  onTap: (index) {
-                    if (index >= 0 && index < config.tabs.length) {
-                      final tab = config.tabs[index];
-                      if (tab is Map && tab.containsKey('route')) {
-                        final route = tab['route'] as String;
-                        context.go(route);
-                      }
+              ),
+              child: TabBar(
+                key: ValueKey(
+                  'TabBar_${config.tabs.length}',
+                ), // Force rebuild for safety
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                indicator: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                labelColor: Theme.of(context).colorScheme.surface,
+                unselectedLabelColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.6),
+                // We need google fonts imported here, assuming it is.
+                // If not, we use system font or standard TextStyles.
+                // Assuming imported as project uses it.
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontFamily: 'Inter',
+                ),
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                onTap: (index) {
+                  if (index >= 0 && index < config.tabs.length) {
+                    final tab = config.tabs[index];
+                    if (tab is Map && tab.containsKey('route')) {
+                      final route = tab['route'] as String;
+                      context.go(route);
                     }
-                  },
-                  tabs: config.tabs.map((t) {
-                    if (t is String) {
-                      return Tab(text: t); // Fallback for pure strings
-                    } else if (t is Map) {
-                      final label = t['label'] ?? '';
-                      // Custom Dropdown Tab
-                      if (t['type'] == 'dropdown') {
-                        return Tab(
-                          child: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              // Find the index of this tab to select it
-                              final index = config.tabs.indexOf(t);
-                              DefaultTabController.of(context).animateTo(index);
+                  }
+                },
+                tabs: config.tabs.map((t) {
+                  if (t is String) {
+                    return Tab(text: t); // Fallback for pure strings
+                  } else if (t is Map) {
+                    final label = t['label'] ?? '';
+                    // Custom Dropdown Tab
+                    if (t['type'] == 'dropdown') {
+                      return Tab(
+                        child: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            // Find the index of this tab to select it
+                            final index = config.tabs.indexOf(t);
+                            DefaultTabController.of(context).animateTo(index);
 
-                              // Trigger callback
-                              final onSelected =
-                                  t['onSelected'] as Function(String)?;
-                              if (onSelected != null) {
-                                onSelected(value);
-                              }
-                            },
-                            offset: const Offset(
-                              0,
-                              40,
-                            ), // Push down to avoid overlapping
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Added Dynamic Icon
-                                if (t['icon'] != null) ...[
-                                  Icon(
-                                    t['icon'],
-                                    size: 18,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Text(label),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  size: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ],
-                            ),
-                            itemBuilder: (context) {
-                              final items =
-                                  t['items'] as List<Map<String, dynamic>>;
-                              return items.map((item) {
-                                return PopupMenuItem<String>(
-                                  value: item['value'],
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        item['icon'],
-                                        size: 18,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(item['label']),
-                                    ],
-                                  ),
-                                );
-                              }).toList();
-                            },
+                            // Trigger callback
+                            final onSelected =
+                                t['onSelected'] as Function(String)?;
+                            if (onSelected != null) {
+                              onSelected(value);
+                            }
+                          },
+                          offset: const Offset(
+                            0,
+                            40,
+                          ), // Push down to avoid overlapping
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        );
-                      } else {
-                        // Standard Tab with Icon
-                        return Tab(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Added Dynamic Icon
                               if (t['icon'] != null) ...[
-                                Icon(t['icon'], size: 18),
+                                Icon(
+                                  t['icon'],
+                                  size: 18,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                                 const SizedBox(width: 8),
                               ],
                               Text(label),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 16,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                              ),
                             ],
                           ),
-                        );
-                      }
+                          itemBuilder: (context) {
+                            final items =
+                                t['items'] as List<Map<String, dynamic>>;
+                            return items.map((item) {
+                              return PopupMenuItem<String>(
+                                value: item['value'],
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      item['icon'],
+                                      size: 18,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(item['label']),
+                                  ],
+                                ),
+                              );
+                            }).toList();
+                          },
+                        ),
+                      );
+                    } else {
+                      // Standard Tab with Icon
+                      return Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (t['icon'] != null) ...[
+                              Icon(t['icon'], size: 18),
+                              const SizedBox(width: 8),
+                            ],
+                            Text(label),
+                          ],
+                        ),
+                      );
                     }
-                    return const Tab(text: 'Error');
-                  }).toList(),
-                ),
+                  }
+                  // Show a disabled tab with error styling if config is invalid
+                  return Tab(
+                    child: Text(
+                      'Error',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
-            ],
-
-            // Display Custom Bottom Widget (e.g., Business Chips)
-            if (config.bottomWidget != null) config.bottomWidget!,
+            ),
           ],
-        ),
+
+          // Display Custom Bottom Widget
+          if (config.bottomWidget != null)
+            Container(child: config.bottomWidget!),
+        ],
       ),
     );
+
+    // END of innerContent
 
     // ============================================
     // ¡APPBAR SIN BLUR (SOLIDO O TRANSPARENTE)!
@@ -1395,6 +1390,8 @@ class _ModernGlassAppBar extends ConsumerWidget {
         child: innerContent, // Content (Buttons, etc.)
       ),
     );
+
+    return const SizedBox.shrink();
   }
 }
 
@@ -1551,8 +1548,8 @@ class _ModernGlassNavBar extends ConsumerWidget {
         _buildNavItem(
           context,
           ref,
-          Icons.receipt_long_outlined,
-          t['nav_sell'] ?? 'Sell',
+          Icons.storefront_outlined,
+          t['nav_sell'] ?? 'Ventas',
           '/business',
           isActive('/business'),
         ),
@@ -1860,8 +1857,23 @@ class _ProfileBottomSheetState extends ConsumerState<ProfileBottomSheet> {
 
     // Handle Error State explicitly to prevent crashes
     if (profileState.hasError) {
-      // Log error or show fallback?
-      // print('Profile Error: ${profileState.error}');
+      // Show error UI if profile fetch fails
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              'Error cargando perfil',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(profileState.error?.toString() ?? 'Error desconocido'),
+          ],
+        ),
+      );
     }
 
     final profile = profileState.valueOrNull;

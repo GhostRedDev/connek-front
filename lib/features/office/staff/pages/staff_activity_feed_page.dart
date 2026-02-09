@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:connek_frontend/system_ui/system_ui.dart';
 import '../providers/activity_feed_provider.dart';
 import '../widgets/activity_card.dart';
 
@@ -23,20 +24,34 @@ class _StaffActivityFeedPageState extends State<StaffActivityFeedPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                const Icon(Icons.feed, size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  'Feed de Actividades',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Icon(Icons.feed_outlined, size: 24, color: colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Feed de Actividades',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                AppButton.outline(
+                  text: 'Actualizar',
+                  icon: Icons.refresh,
+                  onPressed: () => context
+                      .read<ActivityFeedProvider>()
+                      .fetchActivities(widget.businessId),
                 ),
               ],
             ),
@@ -52,39 +67,69 @@ class _StaffActivityFeedPageState extends State<StaffActivityFeedPage> {
 
                 if (provider.error != null) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey[400],
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: AppCard(
+                          title: 'Ocurrió un error',
+                          description: 'No pudimos cargar el feed.',
+                          footer: Align(
+                            alignment: Alignment.centerRight,
+                            child: AppButton.outline(
+                              text: 'Reintentar',
+                              icon: Icons.refresh,
+                              onPressed: () =>
+                                  provider.fetchActivities(widget.businessId),
+                            ),
+                          ),
+                          child: AppText.p(
+                            provider.error!,
+                            style: theme.textTheme.bodyMedium,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error: ${provider.error}',
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ],
+                      ),
                     ),
                   );
                 }
 
                 if (provider.activities.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inbox, size: 64, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay actividades aún',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: AppCard(
+                          title: 'Sin actividades',
+                          description: 'Aquí aparecerán eventos del equipo.',
+                          footer: Align(
+                            alignment: Alignment.centerRight,
+                            child: AppButton.outline(
+                              text: 'Actualizar',
+                              icon: Icons.refresh,
+                              onPressed: () =>
+                                  provider.fetchActivities(widget.businessId),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 20,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: AppText.muted(
+                                  'Todavía no hay movimientos registrados.',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   );
                 }
@@ -92,7 +137,7 @@ class _StaffActivityFeedPageState extends State<StaffActivityFeedPage> {
                 return RefreshIndicator(
                   onRefresh: () => provider.fetchActivities(widget.businessId),
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     itemCount: provider.activities.length,
                     itemBuilder: (context, index) {
                       return Padding(

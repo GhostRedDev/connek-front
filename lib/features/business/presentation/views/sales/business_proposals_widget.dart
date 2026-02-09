@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:connek_frontend/system_ui/layout/buttons.dart';
+import 'package:connek_frontend/system_ui/form/inputs.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:connek_frontend/features/business/presentation/providers/business_provider.dart';
@@ -97,17 +100,10 @@ class _BusinessProposalsWidgetState
                         ),
                       ),
                       const Spacer(),
-                      ElevatedButton.icon(
+                      AppButton.primary(
+                        text: 'Nueva',
+                        icon: Icons.add,
                         onPressed: () => _showCreateProposalSheet(context),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Nueva'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4285F4),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -119,36 +115,14 @@ class _BusinessProposalsWidgetState
                   const SizedBox(height: 20),
 
                   // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                  AppInput.text(
+                    controller: _searchController,
+                    placeholder: 'Buscar propuestas',
+                    leading: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Icon(Icons.search, size: 18, color: Colors.grey),
                     ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (val) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar propuestas',
-                        hintStyle: GoogleFonts.inter(color: Colors.grey),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                    ),
+                    onChanged: (val) => setState(() {}),
                   ),
                   const SizedBox(height: 20),
 
@@ -206,23 +180,25 @@ class _BusinessProposalsWidgetState
   }
 
   Widget _buildFilterChip(String label) {
+    final theme = ShadTheme.of(context);
     final isSelected = _selectedFilter == label;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = label;
-        });
-      },
-      child: Container(
+      onTap: () => setState(() => _selectedFilter = label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4285F4) : Colors.grey[200],
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.muted,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
-          style: GoogleFonts.inter(
-            color: isSelected ? Colors.white : Colors.grey[700],
+          style: TextStyle(
+            color: isSelected
+                ? theme.colorScheme.primaryForeground
+                : theme.colorScheme.mutedForeground,
             fontWeight: FontWeight.w500,
             fontSize: 13,
           ),
@@ -313,13 +289,23 @@ class _BusinessProposalsWidgetState
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xFF1A1A1A)
-              : Colors.grey[50], // Slightly darker bg for card
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.1)),
-        ),
+        decoration: () {
+          final theme = ShadTheme.of(context);
+          return BoxDecoration(
+            color: theme.colorScheme.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: theme.colorScheme.border.withOpacity(0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          );
+        }(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -621,23 +607,52 @@ class _BusinessProposalsWidgetState
     int id,
     WidgetRef ref,
   ) async {
+    final theme = ShadTheme.of(context);
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Propuesta'),
-        content: const Text(
-          '¿Estás seguro de que deseas eliminar esta propuesta?',
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.border.withOpacity(0.5),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Eliminar Propuesta',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '¿Estás seguro de que deseas eliminar esta propuesta?',
+                style: TextStyle(color: theme.colorScheme.mutedForeground),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  AppButton.ghost(
+                    text: 'Cancelar',
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  const SizedBox(width: 8),
+                  AppButton.destructive(
+                    text: 'Eliminar',
+                    icon: Icons.delete_outline,
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
 

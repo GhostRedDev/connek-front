@@ -69,7 +69,7 @@ class SearchResultServiceCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
                 color: isDark
-                    ? const Color(0xFF95A1AC).withOpacity(0.4)
+                    ? const Color(0xFF95A1AC).withAlpha(102)
                     : Colors.grey.shade300,
                 width: 7,
               ),
@@ -101,7 +101,7 @@ class SearchResultServiceCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(50),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              color: const Color(0xFF6C63FF).withAlpha(102),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -133,7 +133,7 @@ class SearchResultServiceCard extends ConsumerWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withAlpha(153),
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Text(

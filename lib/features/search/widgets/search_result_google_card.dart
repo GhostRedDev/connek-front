@@ -151,7 +151,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
                               clientId = clientRes['id'];
                             }
                           } catch (e) {
-                            print('Error fetching client: $e');
+                            debugPrint('Error fetching client: $e');
                           }
 
                           if (clientId == null) {
@@ -263,7 +263,11 @@ class SearchResultGoogleCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(30),
               child: Image.network(
                 _getImageUrl(
-                  business.bannerImage,
+                  (business.services.isNotEmpty &&
+                          business.services.first.image != null &&
+                          business.services.first.image!.isNotEmpty)
+                      ? business.services.first.image
+                      : business.bannerImage,
                   'https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2727&auto=format&fit=crop',
                 ),
                 fit: BoxFit.cover,
@@ -285,7 +289,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
                   color: isDark
-                      ? const Color(0xFF95A1AC).withOpacity(0.4)
+                      ? const Color(0xFF95A1AC).withAlpha(102)
                       : Colors.grey.shade300, // Adapting border color
                   width: 7,
                 ),
@@ -319,7 +323,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(50),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              color: const Color(0xFF6C63FF).withAlpha(102),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -358,7 +362,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
+                              color: Colors.black.withAlpha(153),
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Row(
@@ -413,7 +417,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
+                              color: Colors.black.withAlpha(153),
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Row(
@@ -580,7 +584,7 @@ class SearchResultGoogleCard extends ConsumerWidget {
                                           side: BorderSide(
                                             color: const Color(
                                               0xFF4F87C9,
-                                            ).withOpacity(0.5),
+                                            ).withAlpha(128),
                                             width: 1.5,
                                           ),
                                           shape: RoundedRectangleBorder(

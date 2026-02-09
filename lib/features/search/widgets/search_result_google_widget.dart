@@ -9,6 +9,8 @@ import 'search_bar_widget.dart';
 import 'search_result_google_card.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../providers/search_provider.dart';
+import '../providers/job_search_provider.dart';
+import 'search_result_job_card.dart';
 
 // Local state provider for the selected tab
 // Local Notifier for the selected tab
@@ -92,15 +94,22 @@ class _SearchResultGoogleWidgetState
     final cardBgColor = isDark ? const Color(0xFF1E2429) : Colors.white;
     final screenHeight = MediaQuery.of(context).size.height;
     final isSearching = searchState.query.isNotEmpty;
+    final isJobsTab = selectedTab == 'Trabajos';
+
+    final jobsAsync = ref.watch(jobSearchProvider(searchState.query));
 
     // Filter results based on selected tab
     final filteredResults = searchState.results.where((business) {
       if (selectedTab == 'Google') {
         return business.id < 0; // Negative ID for Google results
-      } else {
-        // 'Servicios' or 'Empresas' -> Show all local businesses
-        return business.id > 0;
       }
+
+      if (selectedTab == 'Trabajos') {
+        return false;
+      }
+
+      // 'Servicios' or 'Empresas' -> Show all local businesses
+      return business.id > 0;
     }).toList();
 
     return Stack(
@@ -128,9 +137,9 @@ class _SearchResultGoogleWidgetState
                         begin: Alignment(xShift, 1.0), // Swaying bottom
                         end: Alignment(-xShift, -1.0), // Swaying top opposite
                         colors: [
-                          const Color(0xFF0000FF).withOpacity(0.3), // Blue
-                          const Color(0xFFFF0000).withOpacity(0.2), // Red
-                          Colors.white.withOpacity(0.15), // White
+                          const Color(0xFF0000FF).withAlpha(77), // Blue
+                          const Color(0xFFFF0000).withAlpha(51), // Red
+                          Colors.white.withAlpha(38), // White
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.4, 0.75, 1.0],
@@ -157,7 +166,75 @@ class _SearchResultGoogleWidgetState
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (searchState.isLoading)
+                  if (isJobsTab)
+                    jobsAsync.when(
+                      data: (jobs) {
+                        if (jobs.isEmpty && isSearching) {
+                          return Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.work_outline,
+                                  size: 50,
+                                  color: subTitleColor,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'No se encontraron trabajos',
+                                  style: GoogleFonts.inter(
+                                    color: textColor,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${jobs.length} trabajos para: ${searchState.query}',
+                              style: GoogleFonts.inter(
+                                color: textColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: jobs.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                final job = jobs[index];
+                                return SearchResultJobCard(job: job);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(
+                            color: isDark
+                                ? Colors.white
+                                : Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                      error: (e, s) => Center(
+                        child: Text(
+                          'Error: $e',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    )
+                  else if (searchState.isLoading)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
@@ -316,13 +393,13 @@ class _SearchResultGoogleWidgetState
                 ),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: (isDark ? Colors.black : Colors.white).withOpacity(
-                    0.8 * _scrollOpacity,
+                  color: (isDark ? Colors.black : Colors.white).withAlpha(
+                    (204 * _scrollOpacity).round().clamp(0, 255),
                   ),
                   border: Border(
                     bottom: BorderSide(
-                      color: (isDark ? Colors.white : Colors.black).withOpacity(
-                        0.1 * _scrollOpacity,
+                      color: (isDark ? Colors.white : Colors.black).withAlpha(
+                        (26 * _scrollOpacity).round().clamp(0, 255),
                       ),
                     ),
                   ),
@@ -349,14 +426,23 @@ class _SearchResultGoogleWidgetState
                         Row(
                           children: [
                             if (widget.onClose != null ||
-                                Navigator.of(context).canPop()) ...[
+                                Navigator.of(context).canPop() ||
+                                true) ...[
+                              // Force Back Button always
                               IconButton(
                                 icon: Icon(
                                   Icons.arrow_back,
                                   color: isDark ? Colors.white : Colors.black,
                                 ),
                                 onPressed:
-                                    widget.onClose ?? () => context.pop(),
+                                    widget.onClose ??
+                                    () {
+                                      if (Navigator.of(context).canPop()) {
+                                        context.pop();
+                                      } else {
+                                        context.go('/');
+                                      }
+                                    },
                               ),
                               const SizedBox(width: 8),
                             ],
@@ -429,14 +515,14 @@ class _SearchResultGoogleWidgetState
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha(26),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.1)
+                      ? Colors.white.withAlpha(26)
                       : Colors.grey.shade200,
                 ),
               ),
@@ -463,6 +549,13 @@ class _SearchResultGoogleWidgetState
                     'Google',
                     context,
                     icon: Icons.g_mobiledata,
+                  ),
+                  _buildTabItem(
+                    ref,
+                    selectedTab,
+                    'Trabajos',
+                    context,
+                    icon: Icons.work_outline,
                   ),
                 ],
               ),
@@ -493,10 +586,10 @@ class _SearchResultGoogleWidgetState
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 12 : 10,
           vertical: 10,
-        ), // Increased horizontal padding slightly
+        ),
         decoration: BoxDecoration(
           color: isSelected
               ? selectedBg
@@ -505,12 +598,13 @@ class _SearchResultGoogleWidgetState
           border: isSelected
               ? Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.1)
+                      ? Colors.white.withAlpha(26)
                       : Colors.grey.shade300,
                 )
               : null,
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (label == 'Google') ...[
               SvgPicture.asset(
@@ -518,19 +612,20 @@ class _SearchResultGoogleWidgetState
                 width: 18,
                 height: 18,
               ),
-              const SizedBox(width: 8),
+              if (isSelected) const SizedBox(width: 8),
             ] else if (icon != null) ...[
               Icon(icon, size: 18, color: contentColor),
-              const SizedBox(width: 8),
+              if (isSelected) const SizedBox(width: 8),
             ],
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                color: contentColor,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 14,
+            if (isSelected)
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: contentColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
-            ),
           ],
         ),
       ),

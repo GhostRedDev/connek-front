@@ -13,6 +13,34 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+final appInitProvider = FutureProvider<void>((ref) async {
+  // Prevent Font Scaling issues
+  // ignore: deprecated_member_use
+  GoogleFonts.config.allowRuntimeFetching = true;
+
+  debugPrint("Initializing app...");
+  try {
+    await dotenv.load(fileName: "assets/env");
+  } catch (e1) {
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e2) {
+      debugPrint("Failed to load env from assets/env or .env: $e1, $e2");
+    }
+  }
+
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseKey = dotenv.env['SUPABASE_KEY'];
+
+  if (supabaseUrl == null || supabaseKey == null) {
+    throw Exception('Supabase configuration missing in .env file');
+  }
+
+  debugPrint("Initializing Supabase...");
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
+  debugPrint("Supabase Initialized successfully.");
+});
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
@@ -30,52 +58,14 @@ void main() async {
   // The assertion "RenderParagraph._scheduleSystemFontsUpdate" happens when fonts load mid-frame.
   // We can try to suppress it by ensuring WidgetsBinding is fully ready? It is.
 
-  await _startApp();
-}
-
-Future<void> _startApp() async {
-  // Prevent Font Scaling issues
-  // ignore: deprecated_member_use
-  GoogleFonts.config.allowRuntimeFetching = true;
-
-  try {
-    debugPrint("Initializing app...");
-    try {
-      await dotenv.load(fileName: "assets/env");
-    } catch (e1) {
-      try {
-        await dotenv.load(fileName: ".env");
-      } catch (e2) {
-        debugPrint("Failed to load env from assets/env or .env: $e1, $e2");
-      }
-    }
-
-    final supabaseUrl = dotenv.env['SUPABASE_URL'];
-    final supabaseKey = dotenv.env['SUPABASE_KEY'];
-
-    if (supabaseUrl == null || supabaseKey == null) {
-      throw Exception('Supabase configuration missing in .env file');
-    }
-
-    debugPrint("Initializing Supabase...");
-
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
-    debugPrint("Supabase Initialized successfully.");
-
-    // Success: Run the main app
-    runApp(
-      ProviderScope(
-        child: DevicePreview(
-          enabled: !kReleaseMode,
-          builder: (context) => const MyApp(),
-        ),
+  runApp(
+    ProviderScope(
+      child: DevicePreview(
+        enabled: !kReleaseMode,
+        builder: (context) => const MyApp(),
       ),
-    );
-  } catch (e) {
-    debugPrint("CRITICAL ERROR: Failed to init Supabase. \n$e");
-    // Failure: Run the error screen
-    runApp(ConnectionErrorScreen(error: e.toString(), onRetry: _startApp));
-  }
+    ),
+  );
 }
 
 class MyApp extends ConsumerWidget {
@@ -85,32 +75,53 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch the theme provider for changes
     final themeMode = ref.watch(themeProvider);
+    final initAsync = ref.watch(appInitProvider);
 
-    return ShadApp.router(
-      title: 'Connek',
-      debugShowCheckedModeBanner: false,
-
-      // Theme Configuration
-      theme: AppTheme.shadThemeLight,
-      darkTheme: AppTheme.shadThemeDark,
-      themeMode: themeMode,
-
-      // Bridge to Material Theme
-      materialThemeBuilder: (context, theme) {
-        return theme.brightness == Brightness.dark
-            ? AppTheme.darkTheme
-            : AppTheme.lightTheme;
+    return initAsync.when(
+      loading: () {
+        return const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(body: Center(child: CircularProgressIndicator())),
+        );
       },
+      error: (e, _) {
+        debugPrint("CRITICAL ERROR: Failed to init Supabase. \n$e");
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: ConnectionErrorScreen(
+            error: e.toString(),
+            onRetry: () => ref.invalidate(appInitProvider),
+          ),
+        );
+      },
+      data: (_) {
+        return ShadApp.router(
+          title: 'Connek',
+          debugShowCheckedModeBanner: false,
 
-      routerConfig: ref.watch(routerProvider),
+          // Theme Configuration
+          theme: AppTheme.shadThemeLight,
+          darkTheme: AppTheme.shadThemeDark,
+          themeMode: themeMode,
 
-      // Localization
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en', ''), Locale('es', '')],
+          // Bridge to Material Theme
+          materialThemeBuilder: (context, theme) {
+            return theme.brightness == Brightness.dark
+                ? AppTheme.darkTheme
+                : AppTheme.lightTheme;
+          },
+
+          routerConfig: ref.watch(routerProvider),
+
+          // Localization
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en', ''), Locale('es', '')],
+        );
+      },
     );
   }
 }
