@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../client/presentation/sheets/quick_booking_sheet.dart';
 import '../models/service_search_item.dart';
 
 class SearchResultServiceCard extends ConsumerWidget {
@@ -213,8 +214,13 @@ class SearchResultServiceCard extends ConsumerWidget {
                         height: 45,
                         child: ElevatedButton(
                           onPressed: () {
-                            context.push(
-                              '/client/business/${service.businessId}',
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              useSafeArea: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) =>
+                                  QuickBookingSheet(service: service),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -225,7 +231,7 @@ class SearchResultServiceCard extends ConsumerWidget {
                             elevation: 2,
                           ),
                           child: Text(
-                            'Ver detalles',
+                            'Agendar',
                             style: GoogleFonts.outfit(
                               color: Colors.white,
                               fontSize: 14,

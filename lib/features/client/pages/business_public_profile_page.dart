@@ -9,6 +9,8 @@ import '../../business/presentation/providers/business_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../widgets/send_job_request_dialog.dart';
 import '../../../core/widgets/category_badge.dart';
+import '../../search/models/service_search_item.dart';
+import '../presentation/sheets/quick_booking_sheet.dart';
 
 // Providers for Data Fetching
 final publicBusinessProvider =
@@ -88,11 +90,8 @@ class _BusinessPublicProfilePageState
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    if (!await launchUrl(uri)) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not launch $url')));
+        debugPrint('Could not launch $url');
       }
     }
   }
@@ -324,10 +323,25 @@ class _BusinessPublicProfilePageState
                   businessName: name,
                   businessLogo: avatarUrl,
                   onBook: (service) {
-                    _showInviteDialog(
-                      context,
-                      business,
-                      serviceInterest: service['name'],
+                    final item = ServiceSearchItem(
+                      serviceId: service['id'],
+                      serviceName: service['name'] ?? 'Servicio',
+                      servicePrice: (service['price_cents'] ?? 0) / 100,
+                      serviceImage: service['image'],
+                      serviceProfileImage: service['profile_image'],
+                      serviceDescription: service['description'],
+                      businessId: _id,
+                      businessName: name,
+                      businessProfileImage: business['profile_image'],
+                      businessBannerImage: business['banner_image'],
+                    );
+
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => QuickBookingSheet(service: item),
                     );
                   },
                 ),

@@ -86,6 +86,24 @@ class BookingController {
     return success;
   }
 
+  Future<bool> createClientBooking({
+    required int businessId,
+    required int serviceId,
+    required DateTime date,
+  }) async {
+    final service = ref.read(bookingServiceProvider);
+    final success = await service.createClientBooking(
+      businessId: businessId,
+      serviceId: serviceId,
+      date: date,
+    );
+    if (success) {
+      ref.invalidate(bookingListProvider('business'));
+      ref.invalidate(bookingListProvider('client'));
+    }
+    return success;
+  }
+
   Future<bool> deleteBooking(String id, String role) async {
     final service = ref.read(bookingServiceProvider);
     final success = await service.deleteBooking(id);

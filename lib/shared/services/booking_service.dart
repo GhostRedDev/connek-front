@@ -199,6 +199,45 @@ class BookingService {
     }
   }
 
+  Future<bool> createClientBooking({
+    required int businessId,
+    required int serviceId,
+    required DateTime date,
+  }) async {
+    try {
+      final profile = _ref.read(profileProvider).value;
+      if (profile == null) return false;
+      final clientId = profile.id;
+
+      // 1. Fetch Business to get address_id
+      int addressId = 0;
+      try {
+        final businessRes = await _apiService.get('/business/full/$businessId');
+        if (businessRes != null && businessRes['success'] == true) {
+          final businessData = businessRes['data'];
+          addressId = businessData['address_id'] ?? 0;
+        }
+      } catch (_) {}
+
+      // 2. Create Booking via API
+      await _apiService.postForm(
+        '/bookings/create',
+        fields: {
+          'client_id': clientId,
+          'business_id': businessId,
+          'address_id': addressId, // Can be 0 if unknown
+          'service_id': serviceId,
+          'start_time_utc': date.toIso8601String(),
+        },
+      );
+
+      return true;
+    } catch (e) {
+      print('Error creating client booking: $e');
+      return false;
+    }
+  }
+
   Future<bool> deleteBooking(String id) async {
     final numericId = int.tryParse(id.replaceAll(RegExp(r'[^0-9]'), ''));
     if (numericId == null) return false;

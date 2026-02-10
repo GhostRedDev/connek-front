@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'labels.dart';
 
 /// React-style Component: AppDatePicker
 /// Props: value, onValueChange, placeholder
@@ -19,10 +20,9 @@ class AppDatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadDatePicker(
-      value: value,
+    final picker = ShadDatePicker(
+      selected: value,
       onChanged: onValueChange,
-      label: label != null ? Text(label!) : null,
       placeholder: Builder(
         builder: (context) => Text(
           placeholder,
@@ -32,6 +32,11 @@ class AppDatePicker extends StatelessWidget {
         ),
       ),
     );
+
+    if (label != null) {
+      return AppLabel(text: label!, child: picker);
+    }
+    return picker;
   }
 }
 
