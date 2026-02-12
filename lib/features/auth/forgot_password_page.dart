@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ForgotPasswordPage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/locale_provider.dart';
+
+class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
 
   @override
-  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
+  ConsumerState<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -22,7 +25,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Future<void> _handleResetPassword() async {
     if (_formKey.currentState?.validate() ?? false) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent (Placeholder)')),
+        const SnackBar(
+          content: Text('Password reset email sent (Placeholder)'),
+        ),
       );
       // Logic for supabase auth reset password would go here
     }
@@ -30,6 +35,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
@@ -43,7 +51,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               backgroundColor: const Color(0xFF1A1D21),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: () => context.go('/'), // Back to home
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/');
+                  }
+                }, // Back to home
               ),
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
@@ -79,7 +93,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             'assets/images/conneck_logo_white.png',
                             width: 100,
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Text('connek', style: TextStyle(color: Colors.white, fontSize: 30)),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Text(
+                                  'connek',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 30,
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -88,7 +109,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 ),
               ),
             ),
-            
+
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -97,10 +118,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                       const SizedBox(height: 20),
-                       Text(
-                        'Forgot Password',
-                         style: GoogleFonts.outfit(
+                      const SizedBox(height: 20),
+                      Text(
+                        t['auth_forgot_title'] ?? 'Forgot Password',
+                        style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w500,
@@ -108,35 +129,60 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Enter your email address and we will send you a link to reset your password.',
-                        style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+                        t['auth_forgot_subtitle'] ??
+                            'Enter your email address and we will send you a link to reset your password.',
+                        style: GoogleFonts.inter(
+                          color: Colors.grey[400],
+                          fontSize: 14,
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      
+
                       // Email Field
-                      Text('Email', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+                      Text(
+                        t['email_label'] ?? 'Email',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _emailController,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
-                          hintText: 'Enter your email',
+                          hintText: t['email_hint'] ?? 'Enter your email',
                           hintStyle: TextStyle(color: Colors.grey[600]),
                           filled: true,
                           fillColor: const Color(0xFF22262B),
                           hoverColor: Colors.white.withOpacity(0.05),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Colors.white24, width: 1.0),
+                            borderSide: const BorderSide(
+                              color: Colors.white24,
+                              width: 1.0,
+                            ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                         ),
-                        validator: (value) => (value == null || value.isEmpty || !value.contains('@')) ? 'Valid email required' : null,
+                        validator: (value) =>
+                            (value == null ||
+                                value.isEmpty ||
+                                !value.contains('@'))
+                            ? (t['auth_error_valid_email'] ??
+                                  'Valid email required')
+                            : null,
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Send Button
                       SizedBox(
                         width: double.infinity,
@@ -146,9 +192,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             backgroundColor: const Color(0xFF4F87C9),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: Text('Send email', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: Text(
+                            t['auth_button_send_email'] ?? 'Send email',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 40),

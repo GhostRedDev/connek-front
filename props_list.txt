@@ -1,0 +1,27 @@
+Schema Name: Body_update_greg_employees_greg_business__business_id__put
+Prop: accepted_payment_methods
+Prop: active
+Prop: allow_rescheduling
+Prop: ask_for_consent
+Prop: blacklist
+Prop: cancellation_documents
+Prop: cancellation_motive
+Prop: cancellations
+Prop: conversation_tone
+Prop: custom_policies
+Prop: escalation_time_minutes
+Prop: excluded_phones
+Prop: information_not_to_share
+Prop: library
+Prop: notifications
+Prop: payment_policy
+Prop: post_booking_procedures
+Prop: privacy_policy
+Prop: procedures
+Prop: procedures_details
+Prop: refund_policy
+Prop: refund_policy_details
+Prop: save_information
+Prop: subscription_active
+Prop: subscription_id
+Prop: subscription_plan

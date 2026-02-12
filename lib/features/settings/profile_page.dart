@@ -1,5 +1,5 @@
-import 'dart:io';
-import 'dart:ui'; // Add this for ImageFilter
+// Add this for ImageFilter
+// Add this for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,7 +23,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   late ProfileSection _currentSection;
-  bool _isEditing = false;
+  final bool _isEditing = false;
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -124,9 +124,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final pickedFile = await picker.pickImage(source: source);
     if (pickedFile != null) {
       if (isBanner) {
-        await ref.read(profileProvider.notifier).uploadBanner(pickedFile.path);
+        await ref.read(profileProvider.notifier).uploadBanner(pickedFile);
       } else {
-        await ref.read(profileProvider.notifier).uploadAvatar(pickedFile.path);
+        await ref.read(profileProvider.notifier).uploadAvatar(pickedFile);
       }
     }
   }
@@ -175,8 +175,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   final profileState = ref.watch(profileProvider);
                   return profileState.when(
                     data: (user) {
-                      if (user == null)
+                      if (user == null) {
                         return const Center(child: Text("Guest or Error"));
+                      }
                       _initializeControllers(user);
 
                       switch (_currentSection) {
@@ -434,6 +435,49 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               textColor,
               maxLines: 4,
             ),
+
+            if (user.hasBusiness) ...[
+              const SizedBox(height: 30),
+              _buildLabel("Información del Negocio", textColor, isHeader: true),
+              const SizedBox(height: 16),
+
+              // Business Image
+              if (user.businessProfileImage != null)
+                Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: NetworkImage(user.businessProfileImage!),
+                        fit: BoxFit.cover,
+                      ),
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _buildLabel("Nombre de la Empresa", labelColor),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  user.businessName ?? 'Sin nombre',
+                  style: TextStyle(color: textColor, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Para editar los datos del negocio, ve a la sección 'Mi Negocio'.",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
 
             const SizedBox(height: 30),
 

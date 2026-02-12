@@ -18,6 +18,8 @@ class Lead {
   final int? requestBudgetMax;
   final int? requestBudgetMin;
   final String? clientImageUrl;
+  final String? clientPhone;
+  final DateTime? proposedBookingDate;
 
   Lead({
     required this.id,
@@ -39,6 +41,8 @@ class Lead {
     this.requestBudgetMax,
     this.requestBudgetMin,
     this.clientImageUrl,
+    this.clientPhone,
+    this.proposedBookingDate,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -47,12 +51,22 @@ class Lead {
       return Lead.fromBackend(json);
     }
 
+    // Safely parse int wrapper
+    int safeInt(dynamic val) {
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? 0;
+      return 0;
+    }
+
     return Lead(
-      id: json['id'] ?? 0,
-      requestId: json['requestId'] ?? 0,
-      createdAt: DateTime.parse(
-        json['createdAt'] ?? DateTime.now().toIso8601String(),
-      ),
+      id: safeInt(json['id']),
+      requestId: safeInt(json['requestId']),
+      createdAt:
+          DateTime.tryParse(
+            json['createdAt'] ?? DateTime.now().toIso8601String(),
+          ) ??
+          DateTime.now(),
       seen: json['seen'] ?? false,
       clientContacted: json['clientContacted'] ?? false,
       bookingMade: json['bookingMade'] ?? false,
@@ -60,15 +74,19 @@ class Lead {
       proposalSent: json['proposalSent'] ?? false,
       proposalAccepted: json['proposalAccepted'] ?? false,
       status: json['status'] ?? 'pending',
-      clientId: json['clientId'] ?? 0,
-      serviceId: json['serviceId'] ?? 0,
+      clientId: safeInt(json['clientId']),
+      serviceId: safeInt(json['serviceId']),
       clientFirstName: json['clientFirstName'] ?? '',
       clientLastName: json['clientLastName'] ?? '',
       requestDescription: json['requestDescription'] ?? '',
       requestIsDirect: json['requestIsDirect'] ?? false,
-      requestBudgetMax: json['requestBudgetMax'],
-      requestBudgetMin: json['requestBudgetMin'],
+      requestBudgetMax: safeInt(json['requestBudgetMax']),
+      requestBudgetMin: safeInt(json['requestBudgetMin']),
       clientImageUrl: json['clientImageUrl'],
+      clientPhone: json['clientPhone'],
+      proposedBookingDate: json['proposedBookingDate'] != null
+          ? DateTime.tryParse(json['proposedBookingDate'])
+          : null,
     );
   }
 
@@ -77,12 +95,21 @@ class Lead {
     final client = request['client'] ?? {};
 
     // Prioritize photo_id as it seems to hold the updated public URL
-    String? imageUrl = client['photo_id'] ?? client['profile_url'];
+    String? imageUrl =
+        client['photo_id'] ?? client['profile_url'] ?? client['profile_image'];
+
+    // Safely parse int wrapper
+    int safeInt(dynamic val) {
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? 0;
+      return 0;
+    }
 
     return Lead(
-      id: json['id'],
-      requestId: json['request_id'],
-      createdAt: DateTime.parse(json['created_at']),
+      id: safeInt(json['id']),
+      requestId: safeInt(json['request_id']),
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       seen: json['seen'] ?? false,
       clientContacted: json['client_contacted'] ?? false,
       bookingMade: json['booking_made'] ?? false,
@@ -90,15 +117,19 @@ class Lead {
       proposalSent: json['proposal_sent'] ?? false,
       proposalAccepted: json['proposal_accepted'] ?? false,
       status: json['status'] ?? 'pending',
-      clientId: client['id'] ?? 0,
-      serviceId: json['service_id'] ?? 0,
+      clientId: safeInt(client['id']),
+      serviceId: safeInt(json['service_id']),
       clientFirstName: client['first_name'] ?? 'Unknown',
       clientLastName: client['last_name'] ?? '',
       requestDescription: request['description'] ?? '',
       requestIsDirect: request['is_direct'] ?? false,
-      requestBudgetMax: request['budget_max_cents'],
-      requestBudgetMin: request['budget_min_cents'],
+      requestBudgetMax: safeInt(request['budget_max_cents']),
+      requestBudgetMin: safeInt(request['budget_min_cents']),
       clientImageUrl: imageUrl,
+      clientPhone: client['phone']?.toString(),
+      proposedBookingDate: json['proposed_booking_date'] != null
+          ? DateTime.tryParse(json['proposed_booking_date'])
+          : null,
     );
   }
 }

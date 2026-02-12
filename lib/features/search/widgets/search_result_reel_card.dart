@@ -14,8 +14,10 @@ class SearchResultReelCard extends StatelessWidget {
     this.title = '\$40/H',
     this.subtitle = 'PRECIO',
     this.rating = '5.0',
-    this.imageUrl = 'https://images.unsplash.com/photo-1581578731117-104f2a41272c?q=80&w=2546&auto=format&fit=crop', // Interior design placeholder
-    this.profileImageUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2864&auto=format&fit=crop', // Profile placeholder
+    this.imageUrl =
+        'https://images.unsplash.com/photo-1581578731117-104f2a41272c?q=80&w=2546&auto=format&fit=crop', // Interior design placeholder
+    this.profileImageUrl =
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2864&auto=format&fit=crop', // Profile placeholder
   });
 
   @override
@@ -28,7 +30,10 @@ class SearchResultReelCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         image: DecorationImage(
           fit: BoxFit.cover,
-          image: NetworkImage(imageUrl), // Using network for reliability in dev
+          image: imageUrl.startsWith('http')
+              ? NetworkImage(imageUrl)
+              : const AssetImage('assets/images/placeholder_service.png')
+                    as ImageProvider, // Fallback for dev
         ),
       ),
       child: Container(
@@ -54,24 +59,26 @@ class SearchResultReelCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   ClipRRect(
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(50),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: 10,
-                        sigmaY: 10,
-                      ),
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A1D21).withOpacity(0.5), // Validated neutralAlpha50 approximation
+                          color: const Color(0xFF1A1D21).withAlpha(128),
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Padding(
-                          padding: const EdgeInsetsDirectional.fromSTEB(10, 5, 10, 5),
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                            10,
+                            5,
+                            10,
+                            5,
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.max,
                             children: [
-                               const Icon(
+                              const Icon(
                                 Icons.star,
                                 color: Color(0xFFFFF59D), // yellow200
                                 size: 18,
@@ -92,7 +99,7 @@ class SearchResultReelCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               // Bottom Details
               Column(
                 mainAxisSize: MainAxisSize.max,
@@ -125,15 +132,13 @@ class SearchResultReelCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       // Profile Image
                       Container(
                         width: 30,
                         height: 30,
                         clipBehavior: Clip.antiAlias,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: const BoxDecoration(shape: BoxShape.circle),
                         child: Image.network(
                           profileImageUrl,
                           fit: BoxFit.cover,

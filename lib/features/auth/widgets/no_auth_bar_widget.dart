@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../home/widgets/login_dropdown_button.dart';
 
 class NoAuthBarWidget extends StatelessWidget {

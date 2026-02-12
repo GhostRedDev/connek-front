@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/layout.dart';
+import '../../../core/providers/locale_provider.dart';
+import '../../../core/constants/connek_icons.dart';
 
-class SearchBarWidget extends StatefulWidget {
+class SearchBarWidget extends ConsumerStatefulWidget {
   final Function(String) onSubmitted;
+  final Function(String)? onChanged;
   final String? initialValue;
   final String? hintText;
+  final bool autofocus;
 
   const SearchBarWidget({
     super.key,
     required this.onSubmitted,
+    this.onChanged,
     this.initialValue,
     this.hintText,
+    this.autofocus = false,
   });
 
   @override
-  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+  ConsumerState<SearchBarWidget> createState() => _SearchBarWidgetState();
 }
 
-class _SearchBarWidgetState extends State<SearchBarWidget> {
+class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   late TextEditingController _textController;
   final FocusNode _focusNode = FocusNode();
 
@@ -25,17 +33,40 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   void initState() {
     super.initState();
     _textController = TextEditingController(text: widget.initialValue);
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    // Hide navbar when focused, show when unfocused
+    ref.read(navbarVisibilityProvider.notifier).state = !_focusNode.hasFocus;
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _textController.dispose();
     _focusNode.dispose();
+    // Ensure navbar is visible when widget is disposed (e.g. navigating away)
+    // ref.read(navbarVisibilityProvider.notifier).state = true;
+    // Commented out to prevent "referencing provider after dispose" if context is gone.
+    // Safest is to handle this logic where the page/widget is destroyed or effectively rely on layout state reset if needed.
+    // For now, let's leave it as is, or use addPostFrameCallback check if mounted.
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final hintColor = Theme.of(context).hintColor;
+    final fillColor = isDark
+        ? const Color(0xFF22262B).withAlpha(128)
+        : Colors.grey.shade200;
+    final iconColor = isDark ? Colors.white70 : Colors.grey.shade600;
+
     return Container(
       width: double.infinity,
       height: 50,
@@ -48,56 +79,53 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           onFieldSubmitted: (val) {
             widget.onSubmitted(val);
           },
-          autofocus: false,
+          onChanged: (val) {
+            if (widget.onChanged != null) widget.onChanged!(val);
+          },
+          autofocus: widget.autofocus,
           enabled: true,
           obscureText: false,
           style: GoogleFonts.inter(
-            color: Colors.white,
+            color: textColor,
             fontWeight: FontWeight.w400,
           ),
-          cursorColor: Colors.white,
+          cursorColor: textColor,
           decoration: InputDecoration(
             isDense: true,
-            hintText: widget.hintText ?? 'Busca un servicio o empresa',
+            hintText:
+                widget.hintText ??
+                t['search_placeholder'] ??
+                'Search for a service or business',
             hintStyle: GoogleFonts.inter(
-              color: Colors.white70,
+              color: hintColor,
               fontWeight: FontWeight.w400,
             ),
             enabledBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.white24, // secondaryAlpha20 proxy
+              borderSide: BorderSide(
+                color: isDark ? Colors.white24 : Colors.grey.shade300,
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(100),
             ),
             focusedBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.transparent,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.transparent, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
             errorBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
               borderRadius: BorderRadius.circular(100),
             ),
-            prefixIcon: const Icon(
-              Icons.search,
-              color: Colors.white70,
-            ),
+            prefixIcon: Icon(ConnekIcons.search, color: iconColor),
             filled: true,
-            fillColor: const Color(0xFF22262B).withOpacity(0.5), // Semi-transparent fill to match theme
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            fillColor: fillColor,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
           ),
         ),
       ),

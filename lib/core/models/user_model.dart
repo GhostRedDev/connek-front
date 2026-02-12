@@ -13,6 +13,10 @@ class UserProfile {
   final bool hasBusiness;
   final List<String> images;
   final String? dob;
+  final String? businessProfileImage;
+  final String? businessName;
+  final int? businessId;
+  final String? stripeId;
 
   UserProfile({
     required this.id,
@@ -27,6 +31,10 @@ class UserProfile {
     this.hasBusiness = false,
     this.images = const [],
     this.dob,
+    this.businessProfileImage,
+    this.businessName,
+    this.businessId,
+    this.stripeId,
   });
 
   // Factory to create from JSON (Supabase response)
@@ -44,8 +52,15 @@ class UserProfile {
       hasBusiness: json['has_business'] as bool? ?? false,
       images: (json['images'] != null && json['images'] is String)
           ? List<String>.from(jsonDecode(json['images']))
-          : (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+          : (json['images'] as List<dynamic>?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                [],
       dob: json['dob'] as String?,
+      businessProfileImage: json['business_profile_image'] as String?,
+      businessName: json['business_name'] as String?,
+      businessId: json['business_id'] as int?,
+      stripeId: json['stripe_id'] as String?,
     );
   }
 
@@ -61,6 +76,7 @@ class UserProfile {
       'banner_url': bannerUrl,
       'images': jsonEncode(images),
       'dob': dob,
+      // Note: we don't usually update business fields via Client Profile update, so excluding them here is safe for now unless specifically requested.
     };
   }
 
@@ -73,6 +89,8 @@ class UserProfile {
     String? bannerUrl,
     List<String>? images,
     String? dob,
+    String? businessProfileImage,
+    String? businessName,
   }) {
     return UserProfile(
       id: id,
@@ -87,6 +105,9 @@ class UserProfile {
       hasBusiness: hasBusiness,
       images: images ?? this.images,
       dob: dob ?? this.dob,
+      businessProfileImage: businessProfileImage ?? this.businessProfileImage,
+      businessName: businessName ?? this.businessName,
+      businessId: businessId ?? businessId,
     );
   }
 }

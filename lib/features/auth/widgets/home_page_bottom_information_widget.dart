@@ -1,48 +1,114 @@
 import 'package:flutter/material.dart';
 
-class HomePageBottomInformationWidget extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/locale_provider.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../shared/widgets/info_sheet.dart';
+
+class HomePageBottomInformationWidget extends ConsumerWidget {
   const HomePageBottomInformationWidget({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
+    final theme = ShadTheme.of(context);
+
+    // Helper for Consistent Links
+    Widget buildFooterLink(String text, VoidCallback onTap) {
+      return ShadButton.link(
+        onPressed: onTap,
+        child: Text(
+          text,
+          style: theme.textTheme.small.copyWith(
+            color: theme.colorScheme.mutedForeground,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+      );
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      // Background is handled by parent gradient, so transparent here or removed
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      // Glass/Overlay effect if desired, or just transparent
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 4,
             children: [
-              _buildLink('Terms of Use'),
-              const SizedBox(width: 24),
-              _buildLink('Privacy Policy'),
-              const SizedBox(width: 24),
-              _buildLink('Cookies'),
+              buildFooterLink(
+                t['footer_terms'] ?? 'Terms of Use',
+                () => showInfoSheet(
+                  context,
+                  title: t['footer_terms'] ?? 'Terms of Use',
+                  content:
+                      t['footer_terms_content'] ??
+                      "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                ),
+              ),
+              buildFooterLink(
+                t['footer_privacy'] ?? 'Privacy Policy',
+                () => showInfoSheet(
+                  context,
+                  title: t['footer_privacy'] ?? 'Privacy Policy',
+                  content:
+                      t['footer_privacy_content'] ??
+                      "Your privacy is important to us.",
+                ),
+              ),
+              buildFooterLink(
+                t['footer_cookies'] ?? 'Cookies',
+                () => showInfoSheet(
+                  context,
+                  title: t['footer_cookies'] ?? 'Cookies',
+                  content:
+                      t['footer_cookies_content'] ??
+                      "We use cookies to improve your experience.",
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          const SizedBox(height: 1),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 4,
             children: [
-              _buildLink('How it works'),
-              const SizedBox(width: 24),
-              _buildLink('About'),
-              const SizedBox(width: 24),
-              _buildLink('Contact Us'),
+              buildFooterLink(
+                t['footer_how_it_works'] ?? 'How it works',
+                () => showInfoSheet(
+                  context,
+                  title: t['footer_how_it_works'] ?? 'How it works',
+                  content:
+                      t['footer_how_it_works_content'] ??
+                      "1. Search. 2. Request. 3. Done.",
+                ),
+              ),
+              buildFooterLink(
+                t['footer_about'] ?? 'About',
+                () => showInfoSheet(
+                  context,
+                  title: t['footer_about'] ?? 'About',
+                  content:
+                      t['footer_about_content'] ??
+                      "Connek connects you with the best professionals.",
+                ),
+              ),
+              buildFooterLink(
+                t['footer_contact'] ?? 'Contact Us',
+                () => showInfoSheet(
+                  context,
+                  title: t['footer_contact'] ?? 'Contact Us',
+                  content:
+                      t['footer_contact_content'] ??
+                      "Email: support@connek.com",
+                ),
+              ),
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLink(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
       ),
     );
   }

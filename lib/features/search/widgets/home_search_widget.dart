@@ -1,18 +1,22 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeSearchWidget extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/constants/connek_icons.dart';
+
+class HomeSearchWidget extends ConsumerStatefulWidget {
   const HomeSearchWidget({super.key});
 
   @override
-  State<HomeSearchWidget> createState() => _HomeSearchWidgetState();
+  ConsumerState<HomeSearchWidget> createState() => _HomeSearchWidgetState();
 }
 
-class _HomeSearchWidgetState extends State<HomeSearchWidget>
+class _HomeSearchWidgetState extends ConsumerState<HomeSearchWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-
   @override
   void initState() {
     super.initState();
@@ -30,142 +34,145 @@ class _HomeSearchWidgetState extends State<HomeSearchWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Title
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Find services in\n',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
-                  ),
-                ),
-                const TextSpan(
-                  text: 'Connek',
-                  style: TextStyle(
-                    color: Colors.blue, // Match the blue in image
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
+    final tAsync = ref.watch(translationProvider);
+    final t = tAsync.value ?? {};
 
-          // Search Bar with Animated Border
-          GestureDetector(
-            onTap: () => context.push('/search'),
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _AnimatedGradientBorderPainter(
-                    controller: _controller,
-                    strokeWidth: 2.5, // slightly thicker for effect
-                    radius: 30,
-                  ),
-                  child: child,
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor, // Adaptive background
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    if (Theme.of(context).brightness == Brightness.light)
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                      ),
-                  ],
-                ),
-                child: AbsorbPointer(
-                  // Prevent internal focus so tap works
-                  child: TextField(
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: t['home_title_find_services'] ?? 'Find services in\n',
                     style: TextStyle(
                       color: Theme.of(context).textTheme.bodyLarge?.color,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
                     ),
-                    decoration: InputDecoration(
-                      hintText: 'Search...',
-                      hintStyle: TextStyle(
-                        color: Theme.of(context).hintColor.withOpacity(0.7),
-                      ),
-                      // Remove generic border to let Painter shine
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
+                  ),
+                  const TextSpan(
+                    text: 'Connek',
+                    style: TextStyle(
+                      color: Colors.blue, // Match the blue in image
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Search Bar with Animated Border
+            GestureDetector(
+              onTap: () => context.push('/search', extra: {'autofocus': true}),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: _AnimatedGradientBorderPainter(
+                      controller: _controller,
+                      strokeWidth: 2.5,
+                      radius: 30,
+                    ),
+                    child: child,
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      if (Theme.of(context).brightness == Brightness.light)
+                        BoxShadow(
+                          color: Colors.black.withAlpha(13),
+                          blurRadius: 10,
+                        ),
+                    ],
+                  ),
+                  child: AbsorbPointer(
+                    child: ShadInput(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 16,
                       ),
+                      placeholder: Text(
+                        t['home_search_hint'] ?? 'Search...',
+                        style: TextStyle(
+                          color: Theme.of(context).hintColor.withAlpha(
+                            (((Theme.of(context).hintColor.a * 0.7) * 255.0)
+                                    .round()
+                                    .clamp(0, 255))
+                                .toInt(),
+                          ),
+                        ),
+                      ),
+                      decoration: const ShadDecoration(
+                        border: ShadBorder.none,
+                        focusedBorder: ShadBorder.none,
+                        errorBorder: ShadBorder.none,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Buttons Row
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => context.push('/search'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).cardColor, // Adaptive button
-                    foregroundColor: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.color,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 0,
-                    side: BorderSide(color: Theme.of(context).dividerColor),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+            // Buttons Row
+            // Request Button
+            SizedBox(
+              width: double.infinity,
+              child: ShadButton(
+                height: 56,
+                backgroundColor: const Color(0xFF0D47A1),
+                shadows: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(51),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
-                  child: const Text(
-                    'Search',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ],
+                decoration: ShadDecoration(
+                  border: ShadBorder.all(
+                    radius: BorderRadius.circular(999),
+                    color: Colors.transparent,
+                    width: 0,
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.auto_awesome, size: 20),
-                  label: const Text(
-                    'Request',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(
-                      0xFF0D47A1,
-                    ), // Blue button applies to both
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                onPressed: () {},
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      ConnekIcons.awesome,
+                      color: Colors.white,
+                      size: 20,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Text(
+                      t['home_button_request'] ?? 'Solicitar',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
