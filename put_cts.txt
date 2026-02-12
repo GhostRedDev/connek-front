@@ -1,0 +1,3 @@
+Content types for PUT: ['application/x-www-form-urlencoded']
+--- Schema for application/x-www-form-urlencoded ---
+Ref: #/components/schemas/Body_update_greg_employees_greg_business__business_id__put

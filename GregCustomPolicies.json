@@ -1,0 +1,18 @@
+﻿{
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Name"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    }
+  },
+  "type": "object",
+  "required": [
+    "name",
+    "description"
+  ],
+  "title": "GregCustomPolicies"
+}

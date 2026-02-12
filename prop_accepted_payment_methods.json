@@ -1,0 +1,14 @@
+{
+  "anyOf": [
+    {
+      "items": {
+        "$ref": "#/components/schemas/GregPaymentMethods"
+      },
+      "type": "array"
+    },
+    {
+      "type": "null"
+    }
+  ],
+  "title": "Accepted Payment Methods"
+}
