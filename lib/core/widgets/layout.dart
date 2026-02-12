@@ -203,28 +203,27 @@ HeaderData getHeaderConfig(
     ),
   );
 
-  if (route == '/') {
-    // Hide actions if not logged in
-    final List<HeaderAction> actions = isLoggedIn
-        ? [
-            HeaderAction(
-              icon: Icons.chat_bubble_outline_rounded,
-              route: '/chats',
-              // badgeCount defaulted to 0
-            ),
-            HeaderAction(
-              icon: Icons.notifications_none_rounded,
-              route: '/notifications',
-            ),
-          ]
-        : [];
+  // Common actions based on login state
+  final List<HeaderAction> commonActions = isLoggedIn
+      ? [
+          HeaderAction(
+            icon: Icons.chat_bubble_outline_rounded,
+            route: '/chats',
+          ),
+          HeaderAction(
+            icon: Icons.notifications_none_rounded,
+            route: '/notifications',
+          ),
+        ]
+      : [];
 
+  if (route == '/') {
     // Home Header: Transparent, Logo, Actions
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: true,
-      actions: actions,
-      height: 120, // Increased from 100 to fix overflow
+      actions: commonActions,
+      height: 120,
     );
   }
 
@@ -236,11 +235,9 @@ HeaderData getHeaderConfig(
       titleWidget: logoWidget,
       bgTrans: true, // Transparent to let page content show (pills)
       height: 120, // Standard height
-      actions: [
-        HeaderAction(icon: Icons.add_circle_outline),
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: isLoggedIn
+          ? [HeaderAction(icon: Icons.add_circle_outline), ...commonActions]
+          : [],
     );
   }
 
@@ -250,25 +247,19 @@ HeaderData getHeaderConfig(
       titleWidget: logoWidget,
       bgTrans: true,
       height: 120, // Standard height
-      actions: [
-        HeaderAction(icon: Icons.add_circle_outline),
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: isLoggedIn
+          ? [HeaderAction(icon: Icons.add_circle_outline), ...commonActions]
+          : [],
     );
   }
 
   // Specific exception for Support
   if (route.contains('/client/dashboard/support')) {
     return HeaderData(
-      // title: t['header_support'] ?? 'Support', // Removed to avoid overlap with page header
       titleWidget: null,
       bgTrans: true, // Transparent
       showProfile: true,
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: commonActions,
     );
   }
 
@@ -304,10 +295,7 @@ HeaderData getHeaderConfig(
               '/client/dashboard/bookmarks', // Ensure this route matches router
         },
       ],
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: commonActions,
     );
   }
 
@@ -317,10 +305,7 @@ HeaderData getHeaderConfig(
       titleWidget: logoWidget,
       bgTrans: false,
       showProfile: true,
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: commonActions,
     );
   }
 
@@ -330,11 +315,9 @@ HeaderData getHeaderConfig(
       bgTrans: true,
       height: 125, // Increased from 110 to fix overflow on notch devices
       tabs: [], // Tab removed as per request (moved to Profile)
-      actions: [
-        HeaderAction(icon: Icons.add_circle_outline),
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: isLoggedIn
+          ? [HeaderAction(icon: Icons.add_circle_outline), ...commonActions]
+          : [],
     );
   }
 
@@ -343,11 +326,13 @@ HeaderData getHeaderConfig(
       titleWidget: logoWidget,
       bgTrans: true,
       height: 125,
-      actions: [
-        const HeaderAction(icon: Icons.add_circle_outline),
-        const HeaderAction(icon: Icons.chat_bubble_outline),
-        const HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: isLoggedIn
+          ? [
+              const HeaderAction(icon: Icons.add_circle_outline),
+              const HeaderAction(icon: Icons.chat_bubble_outline),
+              const HeaderAction(icon: Icons.notifications_none),
+            ]
+          : [],
     );
   }
 
@@ -365,9 +350,7 @@ HeaderData getHeaderConfig(
     return HeaderData(
       titleWidget: logoWidget,
       bgTrans: true,
-      actions: [
-        HeaderAction(icon: Icons.notifications_none),
-      ], // Removed badgeCount
+      actions: isLoggedIn ? [HeaderAction(icon: Icons.notifications_none)] : [],
       showProfile: true,
     );
   }
@@ -381,10 +364,7 @@ HeaderData getHeaderConfig(
       titleWidget: logoWidget,
       bgTrans: false, // Opaque (Normal Color)
       showProfile: true,
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: commonActions,
     );
   }
 
@@ -394,10 +374,7 @@ HeaderData getHeaderConfig(
       // title: t['header_settings'] ?? 'Settings',
       bgTrans: true, // Transparent
       showProfile: true, // Show user avatar
-      actions: [
-        HeaderAction(icon: Icons.chat_bubble_outline, route: '/chats'),
-        HeaderAction(icon: Icons.notifications_none),
-      ],
+      actions: commonActions,
     );
   }
 
@@ -415,7 +392,12 @@ HeaderData getHeaderConfig(
     );
   }
 
-  return HeaderData(titleWidget: logoWidget, bgTrans: false, height: 130);
+  return HeaderData(
+    titleWidget: logoWidget,
+    bgTrans: false,
+    height: 130,
+    actions: commonActions,
+  );
 }
 
 // Helper to get dynamic label for Sales

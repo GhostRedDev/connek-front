@@ -19,6 +19,9 @@ class ServiceSearchItem {
   // Type flag for rendering
   final bool isGoogleResult;
 
+  // Custom Form
+  final List<Map<String, dynamic>>? customForm;
+
   ServiceSearchItem({
     required this.serviceId,
     required this.serviceName,
@@ -31,6 +34,7 @@ class ServiceSearchItem {
     this.businessProfileImage,
     this.businessBannerImage,
     this.isGoogleResult = false,
+    this.customForm,
   });
 
   // Create from Business + Service
@@ -50,6 +54,7 @@ class ServiceSearchItem {
       businessProfileImage: business.profileImage,
       businessBannerImage: business.bannerImage,
       isGoogleResult: business.id < 0,
+      customForm: service.customForm,
     );
   }
 }

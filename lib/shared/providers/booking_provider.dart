@@ -68,6 +68,27 @@ class BookingController {
     ref.invalidate(bookingDetailsProvider(id));
   }
 
+  Future<void> confirmBooking(String id, String role) async {
+    final service = ref.read(bookingServiceProvider);
+    await service.updateBookingStatus(id, BookingStatus.confirmed);
+    ref.invalidate(bookingListProvider(role));
+    ref.invalidate(bookingDetailsProvider(id));
+  }
+
+  Future<void> startService(String id, String role) async {
+    final service = ref.read(bookingServiceProvider);
+    await service.updateBookingStatus(id, BookingStatus.in_progress);
+    ref.invalidate(bookingListProvider(role));
+    ref.invalidate(bookingDetailsProvider(id));
+  }
+
+  Future<void> completeBooking(String id, String role) async {
+    final service = ref.read(bookingServiceProvider);
+    await service.updateBookingStatus(id, BookingStatus.completed);
+    ref.invalidate(bookingListProvider(role));
+    ref.invalidate(bookingDetailsProvider(id));
+  }
+
   Future<bool> createManualBooking({
     required int clientId,
     required int serviceId,
@@ -90,12 +111,16 @@ class BookingController {
     required int businessId,
     required int serviceId,
     required DateTime date,
+    int? employeeId,
+    Map<String, dynamic>? customFormAnswers,
   }) async {
     final service = ref.read(bookingServiceProvider);
     final success = await service.createClientBooking(
       businessId: businessId,
       serviceId: serviceId,
       date: date,
+      employeeId: employeeId,
+      customFormAnswers: customFormAnswers,
     );
     if (success) {
       ref.invalidate(bookingListProvider('business'));

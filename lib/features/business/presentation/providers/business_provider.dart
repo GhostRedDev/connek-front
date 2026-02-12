@@ -438,6 +438,7 @@ class BusinessRepository {
     required String content,
   }) async {
     try {
+      // 1. Try API
       final response = await _apiService.post(
         '/reviews/create',
         body: {
@@ -450,10 +451,27 @@ class BusinessRepository {
       if (response != null && response is Map && response['success'] == true) {
         return Map<String, dynamic>.from(response['data']);
       }
-      return null;
+      throw Exception('API Failed');
     } catch (e) {
-      print('Error creating business review: $e');
-      return null;
+      print('⚠️ API create business review failed. Trying Direct DB... $e');
+      try {
+        // 2. Fallback to Supabase
+        final res = await _supabase
+            .from('reviews')
+            .insert({
+              'client_id': clientId,
+              'business_id': businessId,
+              'rating': rating,
+              'content': content,
+              // 'created_at': DateTime.now().toIso8601String(), // Auto-generated
+            })
+            .select('*, client(*)')
+            .single();
+        return Map<String, dynamic>.from(res);
+      } catch (dbError) {
+        print('❌ Direct DB create business review failed: $dbError');
+        return null;
+      }
     }
   }
 
@@ -476,10 +494,27 @@ class BusinessRepository {
       if (response != null && response is Map && response['success'] == true) {
         return Map<String, dynamic>.from(response['data']);
       }
-      return null;
+      throw Exception('API Failed');
     } catch (e) {
-      print('Error creating service review: $e');
-      return null;
+      print('⚠️ API create service review failed. Trying Direct DB... $e');
+      try {
+        final res = await _supabase
+            .from('service_reviews')
+            .insert({
+              'client_id': clientId,
+              'service_id': serviceId,
+              'rating': rating,
+              'content': content,
+            })
+            .select('*, client(*)')
+            .single();
+        return Map<String, dynamic>.from(res);
+      } catch (dbError) {
+        print('❌ Direct DB create service review failed: $dbError');
+        // Fallback to 'reviews' table with service_id if table 'service_reviews' doesn't exist?
+        // This is risky without knowing schema.
+        return null;
+      }
     }
   }
 
@@ -502,10 +537,25 @@ class BusinessRepository {
       if (response != null && response is Map && response['success'] == true) {
         return Map<String, dynamic>.from(response['data']);
       }
-      return null;
+      throw Exception('API Failed');
     } catch (e) {
-      print('Error creating event review: $e');
-      return null;
+      print('⚠️ API create event review failed. Trying Direct DB... $e');
+      try {
+        final res = await _supabase
+            .from('event_reviews')
+            .insert({
+              'client_id': clientId,
+              'event_id': eventId,
+              'rating': rating,
+              'content': content,
+            })
+            .select('*, client(*)')
+            .single();
+        return Map<String, dynamic>.from(res);
+      } catch (dbError) {
+        print('❌ Direct DB create event review failed: $dbError');
+        return null;
+      }
     }
   }
 

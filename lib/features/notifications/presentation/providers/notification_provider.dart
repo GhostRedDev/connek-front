@@ -51,7 +51,7 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
     try {
       // First get the client ID for this user ID
       final clientResponse = await _supabase
-          .from('client') // The table name is 'client' in the backend
+          .from('clients') // Correct table name
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
@@ -125,7 +125,7 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
     int? finalClientId = clientId;
     if (finalClientId == null) {
       final clientResponse = await _supabase
-          .from('client')
+          .from('clients')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();

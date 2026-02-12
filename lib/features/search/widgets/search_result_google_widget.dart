@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'search_bar_widget.dart';
 import 'search_result_google_card.dart';
 import '../../../core/providers/locale_provider.dart';
@@ -310,7 +311,9 @@ class _SearchResultGoogleWidgetState
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
           // Move up out of view (screenHeight) or stay above center
-          bottom: isSearching ? screenHeight : (screenHeight / 2) + 50,
+          bottom: isSearching
+              ? screenHeight
+              : (screenHeight / 2) + 80, // Moved up from 50 to 80
           left: 16,
           right: 16,
           child: AnimatedOpacity(
@@ -352,8 +355,30 @@ class _SearchResultGoogleWidgetState
           ),
         ),
 
-        // 3. SEARCH BAR LAYER
-        // Moves between Center and Bottom
+        // 3. SUGGESTED BUSINESSES LAYER (Added)
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          bottom: isSearching
+              ? -200
+              : (screenHeight / 2) -
+                    230, // Adjusted to be visible below search bar
+          left: 16,
+          right: 16,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: isSearching ? 0.0 : 1.0,
+            child: IgnorePointer(
+              ignoring: isSearching,
+              child: _buildSuggestedBusinesses(
+                isDark: isDark,
+                selectedTab: selectedTab,
+              ),
+            ),
+          ),
+        ),
+
+        // 4. SEARCH BAR LAYER
         AnimatedPositioned(
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutBack,
@@ -468,31 +493,44 @@ class _SearchResultGoogleWidgetState
                         ),
 
                         // Right: Actions
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              color: textColor,
-                              onPressed: () => context.push('/chats'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.notifications_none),
-                              color: textColor,
-                              onPressed: () => context.push('/notifications'),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.exit_to_app,
-                                color: Colors.red,
+                        if (Supabase.instance.client.auth.currentSession !=
+                            null)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chat_bubble_outline),
+                                color: textColor,
+                                onPressed: () => context.push('/chats'),
                               ),
-                              onPressed: () async {
-                                await Supabase.instance.client.auth.signOut();
-                                if (context.mounted) context.go('/');
-                              },
+                              IconButton(
+                                icon: const Icon(Icons.notifications_none),
+                                color: textColor,
+                                onPressed: () => context.push('/notifications'),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.exit_to_app,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () async {
+                                  await Supabase.instance.client.auth.signOut();
+                                  if (context.mounted) context.go('/');
+                                },
+                              ),
+                            ],
+                          )
+                        else
+                          TextButton(
+                            onPressed: () => context.push('/login'),
+                            child: Text(
+                              t['login_button'] ?? 'Iniciar Sesión',
+                              style: GoogleFonts.inter(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
                   ),
@@ -560,6 +598,320 @@ class _SearchResultGoogleWidgetState
                 ],
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuggestedBusinesses({
+    required bool isDark,
+    required String selectedTab,
+  }) {
+    // Determine title based on tab
+    String title = 'Negocios Sugeridos';
+    if (selectedTab == 'Servicios') title = 'Servicios Populares';
+    if (selectedTab == 'Empresas') title = 'Empresas Destacadas';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: isDark ? Colors.white70 : Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 140, // Height for cards
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: Supabase.instance.client
+                .from('business')
+                .select(
+                  'id, name, profile_image, services:service(name, price)',
+                ) // Added price for services
+                .limit(10),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                );
+              }
+              List<Map<String, dynamic>> businesses;
+              if (snapshot.data == null || (snapshot.data as List).isEmpty) {
+                // Mock Data Fallback
+                if (selectedTab == 'Servicios') {
+                  businesses = [
+                    {
+                      'id': -101,
+                      'name': 'Diseño Web Profesional',
+                      'profile_image': null,
+                      'price': 1500, // Service Price
+                      'category': 'Tecnología',
+                      'is_service': true,
+                    },
+                    {
+                      'id': -102,
+                      'name': 'Limpieza de Jardín',
+                      'profile_image': null,
+                      'price': 500,
+                      'category': 'Hogar',
+                      'is_service': true,
+                    },
+                    {
+                      'id': -103,
+                      'name': 'Reparación de PC',
+                      'profile_image': null,
+                      'price': 300,
+                      'category': 'Técnico',
+                      'is_service': true,
+                    },
+                  ];
+                } else {
+                  // Business Mock Data
+                  businesses = [
+                    {
+                      'id': -1,
+                      'name': 'Tech Solutions',
+                      'profile_image': null,
+                      'services': [
+                        {'name': 'Desarrollo Web'},
+                      ],
+                      'is_service': false,
+                    },
+                    {
+                      'id': -2,
+                      'name': 'Green Gardens',
+                      'profile_image': null,
+                      'services': [
+                        {'name': 'Jardinería'},
+                      ],
+                      'is_service': false,
+                    },
+                    {
+                      'id': -3,
+                      'name': 'Fast Fix',
+                      'profile_image': null,
+                      'services': [
+                        {'name': 'Reparaciones'},
+                      ],
+                      'is_service': false,
+                    },
+                  ];
+                }
+              } else {
+                // Real Data Adapter
+                businesses = List<Map<String, dynamic>>.from(
+                  snapshot.data as List,
+                );
+                // Tag real data as business (default for now) or service based on structure
+                // Assuming we query businesses, so is_service = false
+                for (var b in businesses) {
+                  b['is_service'] = false;
+                }
+              }
+
+              return ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.zero,
+                itemCount: businesses.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                itemBuilder: (context, index) {
+                  final b = businesses[index];
+                  final imageUrl = b['profile_image'] != null
+                      ? Supabase.instance.client.storage
+                            .from('business')
+                            .getPublicUrl(b['profile_image'])
+                      : null;
+
+                  // Category & IsService logic
+                  final isService = b['is_service'] == true;
+                  String categoryText = 'Servicios';
+                  if (isService) {
+                    categoryText = b['category'] ?? 'General';
+                  } else {
+                    // Business logic
+                    final services = b['services'] as List?;
+                    if (services != null && services.isNotEmpty) {
+                      categoryText = (services[0] is Map
+                          ? (services[0]['name'] as String? ?? 'Servicios')
+                          : 'Servicios');
+                    }
+                  }
+
+                  // Generate gradients based on index for variety
+                  final gradients = [
+                    const [Color(0xFF2E3192), Color(0xFF1BFFFF)], // Blue/Cyan
+                    const [Color(0xFFD4145A), Color(0xFFFBB03B)], // Red/Orange
+                    const [
+                      Color(0xFF009245),
+                      Color(0xFFFCEE21),
+                    ], // Green/Yellow
+                    const [Color(0xFF662D8C), Color(0xFFED1E79)], // Purple/Pink
+                    const [
+                      Color(0xFF1A2980),
+                      Color(0xFF26D0CE),
+                    ], // Dark Blue/Teal
+                  ];
+                  final gradient = gradients[index % gradients.length];
+
+                  return GestureDetector(
+                    onTap: () => context.push('/client/business/${b['id']}'),
+                    // Business Card Container
+                    child: Container(
+                      width: 240,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        // Use image as background if available, else gradient
+                        image: imageUrl != null
+                            ? DecorationImage(
+                                image: CachedNetworkImageProvider(imageUrl),
+                                fit: BoxFit.cover,
+                                colorFilter: ColorFilter.mode(
+                                  Colors.black.withOpacity(0.4), // Darken image
+                                  BlendMode.darken,
+                                ),
+                              )
+                            : null,
+                        gradient: imageUrl == null
+                            ? LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: gradient,
+                              )
+                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          // Content Overlay
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Top Right Badge (Category / Price)
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        categoryText,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isService)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '\$${b['price']}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    else if (imageUrl != null)
+                                      Icon(
+                                        Icons.verified,
+                                        color: Colors.blue.shade400,
+                                        size: 20,
+                                      ),
+                                  ],
+                                ),
+                                const Spacer(),
+
+                                // Business Name
+                                Text(
+                                  b['name'],
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black45,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                // Rating
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.star_rounded,
+                                      color: Colors.amber,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '5.0 (24)',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
       ],

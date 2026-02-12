@@ -13,9 +13,7 @@ class BusinessSearchResponse {
     return BusinessSearchResponse(
       success: json['success'] ?? false,
       data: json['data'] is List
-          ? (json['data'] as List)
-              .map((e) => Business.fromJson(e))
-              .toList()
+          ? (json['data'] as List).map((e) => Business.fromJson(e)).toList()
           : [],
       message: json['message'],
     );
@@ -61,14 +59,10 @@ class Business {
       bannerImage: json['banner_image'],
       category: json['category'],
       services: json['services'] is List
-          ? (json['services'] as List)
-              .map((e) => Service.fromJson(e))
-              .toList()
+          ? (json['services'] as List).map((e) => Service.fromJson(e)).toList()
           : [],
       addresses: json['addresses'] is List
-          ? (json['addresses'] as List)
-              .map((e) => Address.fromJson(e))
-              .toList()
+          ? (json['addresses'] as List).map((e) => Address.fromJson(e)).toList()
           : [],
       phone: json['phone']?.toString(),
       website: json['website'],
@@ -83,21 +77,27 @@ class Service {
   final String name;
   final double price;
   final String? image;
+  final List<Map<String, dynamic>>? customForm;
 
   Service({
     required this.id,
     required this.name,
     required this.price,
     this.image,
+    this.customForm,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
     return Service(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      price: (json['price'] as num?)?.toDouble() ??
+      price:
+          (json['price'] as num?)?.toDouble() ??
           ((json['price_cents'] as num?)?.toDouble() ?? 0.0) / 100,
       image: json['image'],
+      customForm: json['custom_form'] != null
+          ? List<Map<String, dynamic>>.from(json['custom_form'])
+          : null,
     );
   }
 }
@@ -109,9 +109,6 @@ class Address {
   Address({required this.city, required this.address});
 
   factory Address.fromJson(Map<String, dynamic> json) {
-    return Address(
-      city: json['city'] ?? '',
-      address: json['address'] ?? '',
-    );
+    return Address(city: json['city'] ?? '', address: json['address'] ?? '');
   }
 }

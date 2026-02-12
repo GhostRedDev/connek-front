@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -7,6 +8,7 @@ import '../../../../system_ui/form/date_pickers.dart';
 import '../../../search/models/service_search_item.dart';
 import '../../../../shared/providers/booking_provider.dart';
 import '../../../../features/settings/providers/profile_provider.dart';
+import '../../../../features/business/presentation/providers/business_provider.dart';
 
 class QuickBookingSheet extends ConsumerStatefulWidget {
   final ServiceSearchItem service;
@@ -20,7 +22,10 @@ class QuickBookingSheet extends ConsumerStatefulWidget {
 class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _selectedTime;
+  int? _selectedEmployeeId;
   bool _isLoading = false;
+  Map<String, dynamic> _formAnswers = {};
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -48,6 +53,19 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
 
   Future<void> _handleBooking() async {
     if (_selectedTime == null) return;
+    if (widget.service.customForm != null &&
+        widget.service.customForm!.isNotEmpty) {
+      if (!_formKey.currentState!.validate()) {
+        ShadToaster.of(context).show(
+          const ShadToast.destructive(
+            title: Text('Datos requeridos'),
+            description: Text('Por favor responda las preguntas del servicio.'),
+          ),
+        );
+        return;
+      }
+      _formKey.currentState!.save();
+    }
 
     // Check if user is logged in via profile
     final profile = ref.read(profileProvider).value;
@@ -78,6 +96,8 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
             businessId: widget.service.businessId,
             serviceId: widget.service.serviceId,
             date: bookingDate,
+            employeeId: _selectedEmployeeId,
+            customFormAnswers: _formAnswers,
           );
 
       if (mounted) {
@@ -296,6 +316,134 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
 
                   const SizedBox(height: 24),
 
+                  // Employee Selection Section
+                  _EmployeeSelection(
+                    businessId: widget.service.businessId,
+                    selectedId: _selectedEmployeeId,
+                    onSelect: (id) => setState(() => _selectedEmployeeId = id),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Custom Service Questions
+                  if (widget.service.customForm != null &&
+                      widget.service.customForm!.isNotEmpty) ...[
+                    Text(
+                      'Detalles del Servicio',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: widget.service.customForm!.map((q) {
+                          final id = q['id'].toString();
+                          final type = q['type'];
+                          final label = q['label'];
+                          final required = q['required'] == true;
+                          final options = q['options'] as List<dynamic>?;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label + (required ? ' *' : ''),
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: theme.colorScheme.foreground,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (type == 'boolean')
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: RadioListTile<bool>(
+                                          title: const Text('Si'),
+                                          value: true,
+                                          groupValue: _formAnswers[id],
+                                          onChanged: (val) => setState(
+                                            () => _formAnswers[id] = val,
+                                          ),
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: RadioListTile<bool>(
+                                          title: const Text('No'),
+                                          value: false,
+                                          groupValue: _formAnswers[id],
+                                          onChanged: (val) => setState(
+                                            () => _formAnswers[id] = val,
+                                          ),
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else if (type == 'options' && options != null)
+                                  DropdownButtonFormField<String>(
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: theme.colorScheme.card,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.border,
+                                        ),
+                                      ),
+                                    ),
+                                    dropdownColor: theme.colorScheme.card,
+                                    items: options
+                                        .map<DropdownMenuItem<String>>((opt) {
+                                          return DropdownMenuItem(
+                                            value: opt.toString(),
+                                            child: Text(opt.toString()),
+                                          );
+                                        })
+                                        .toList(),
+                                    onChanged: (val) =>
+                                        setState(() => _formAnswers[id] = val),
+                                    validator: required
+                                        ? (val) =>
+                                              val == null ? 'Requerido' : null
+                                        : null,
+                                  )
+                                else
+                                  TextFormField(
+                                    decoration: InputDecoration(
+                                      hintText: 'Escribe tu respuesta',
+                                      filled: true,
+                                      fillColor: theme.colorScheme.card,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: theme.colorScheme.border,
+                                        ),
+                                      ),
+                                    ),
+                                    onSaved: (val) => _formAnswers[id] = val,
+                                    validator: required
+                                        ? (val) => val == null || val.isEmpty
+                                              ? 'Requerido'
+                                              : null
+                                        : null,
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
                   // Time Slots Section
                   Text(
                     'Horarios disponibles',
@@ -431,3 +579,144 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
     );
   }
 }
+
+class _EmployeeSelection extends ConsumerWidget {
+  final int businessId;
+  final int? selectedId;
+  final Function(int?) onSelect;
+
+  const _EmployeeSelection({
+    required this.businessId,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // We can use a FutureProvider for employees here or just watch a future
+    // For simplicity, let's create a temporary provider or just use FutureBuilder/Repository
+    // But since we are inside a ConsumerWidget, let's use the repository directly via FutureProvider
+
+    final employeesFuture = ref.watch(employeesProvider(businessId));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Selecciona Profesional',
+          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        employeesFuture.when(
+          data: (employees) {
+            if (employees.isEmpty) {
+              return Text(
+                'Cualquier profesional disponible',
+                style: GoogleFonts.inter(color: Colors.grey),
+              );
+            }
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // "Anyone" Option
+                  _buildAvatarItem(
+                    context,
+                    id: null,
+                    name: 'Cualquiera',
+                    imageUrl: null,
+                    isSelected: selectedId == null,
+                  ),
+                  ...employees.map(
+                    (e) => _buildAvatarItem(
+                      context,
+                      id: e['id'],
+                      name: e['first_name'] ?? 'Staff',
+                      imageUrl: e['photo_url'], // Standardize image key?
+                      isSelected: selectedId == e['id'],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text(
+            'Error al cargar personal',
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarItem(
+    BuildContext context, {
+    required int? id,
+    required String name,
+    String? imageUrl,
+    required bool isSelected,
+  }) {
+    final theme = ShadTheme.of(context);
+    return GestureDetector(
+      onTap: () => onSelect(id),
+      child: Container(
+        margin: const EdgeInsets.only(right: 16),
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : Colors.transparent,
+                  width: 3,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(2.0), // Gap
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(imageUrl)
+                      : null,
+                  child: imageUrl == null || imageUrl.isEmpty
+                      ? Icon(
+                          id == null ? Icons.groups : Icons.person,
+                          color: Colors.grey,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.foreground,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Simple Provider for fetching employees for this sheet
+final employeesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>((
+      ref,
+      businessId,
+    ) async {
+      final repo = ref.read(businessRepositoryProvider);
+      return repo.getEmployees(businessId);
+    });

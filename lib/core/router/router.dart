@@ -18,6 +18,9 @@ import '../../features/chat/presentation/pages/chat_page.dart'; // Restore this
 import '../../features/notifications/presentation/pages/notification_page.dart'; // Added
 import '../../features/chat/presentation/pages/new_chat_page.dart';
 import '../../features/call/presentation/pages/call_page.dart'; // Corrected CallPage import
+import '../../features/chat/presentation/pages/greg_chat_page.dart';
+import '../../features/chat/presentation/pages/marketing_chat_page.dart';
+import '../../features/chat/presentation/pages/ai_assistants_page.dart';
 
 import '../../features/client/client_page.dart';
 import '../../features/client/create_request_page.dart';
@@ -62,6 +65,7 @@ import '../providers/user_mode_provider.dart';
 import '../../features/settings/providers/profile_provider.dart';
 import '../../shared/pages/booking_details_page.dart';
 import '../../features/client/pages/business_public_profile_page.dart';
+import '../../features/client/pages/booking_tracking_page.dart';
 
 // Global Key for Root Navigator (to cover shell)
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -180,6 +184,27 @@ final routerProvider = Provider<GoRouter>((ref) {
               int.tryParse(state.pathParameters['businessId'] ?? '') ?? 0;
           return GregTestChatPage(businessId: businessId);
         },
+      ),
+
+      // Greg Chat (Full Screen, No Shell)
+      GoRoute(
+        path: '/greg-chat',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const GregChatPage(),
+      ),
+
+      // Marketing Chat (Full Screen, No Shell)
+      GoRoute(
+        path: '/marketing-chat',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const MarketingChatPage(),
+      ),
+
+      // AI Assistants Page (Full Screen, No Shell)
+      GoRoute(
+        path: '/ai-assistants',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const AIAssistantsPage(),
       ),
 
       // Stripe Success Deep Link
@@ -336,6 +361,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                       isClientView: true,
                     ),
                   ),
+                  GoRoute(
+                    path: 'tracking/:id',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) {
+                      return BookingTrackingPage(
+                        bookingId: state.pathParameters['id'] ?? '',
+                      );
+                    },
+                  ),
                 ],
               ),
               GoRoute(
@@ -409,6 +443,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                   bookingId: state.pathParameters['id'] ?? '',
                   isClientView: false,
                 ),
+              ),
+              GoRoute(
+                path: 'tracking/:id',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) {
+                  return BookingTrackingPage(
+                    bookingId: state.pathParameters['id'] ?? '',
+                  );
+                },
               ),
               // Wizard
               GoRoute(

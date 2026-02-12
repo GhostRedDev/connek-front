@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,15 +8,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:animate_do/animate_do.dart';
 
-import '../widgets/chat_input_area.dart';
 import '../providers/chat_provider.dart';
 import '../../../call/services/call_service.dart';
 import '../../../../core/providers/locale_provider.dart';
-
-// ignore: unused_import
 import '../../../social/user_profile_page.dart';
-// ignore: unused_import
 import '../../../social/models/contact_model.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -28,7 +29,6 @@ class ChatPage extends ConsumerStatefulWidget {
 }
 
 class _ChatPageState extends ConsumerState<ChatPage> {
-  final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final _supabase = Supabase.instance.client;
   int _myClientId = 0;
@@ -44,7 +44,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
     try {
-      // 1. Fetch Client ID
       final res = await _supabase
           .from('client')
           .select('id')
@@ -56,11 +55,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           _myClientId = res['id'];
         });
 
-        // 2. Fetch Business ID (if exists)
         final busRes = await _supabase
             .from('business')
             .select('id')
-            .eq('owner_user', user.id) // Correct column is owner_user
+            .eq('owner_user', user.id)
             .maybeSingle();
 
         if (busRes != null && mounted) {
@@ -74,13 +72,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
-  // To avoid constant flickering, we cache the stream or use a StreamProvider.
-  // But for now, calling getMessagesStream directly in build is okay if the provider is stable.
-  // Better: Create a provider family.
-
   @override
   void dispose() {
-    _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -108,7 +101,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       SnackBar(
         content: Text(
           ref.read(translationProvider).value?['chat_uploading'] ??
-              'Uploading...',
+              'Subiendo...',
         ),
       ),
     );
@@ -137,7 +130,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           SnackBar(
             content: Text(
               ref.read(translationProvider).value?['chat_upload_failed'] ??
-                  'Upload failed',
+                  'Falló la subida',
             ),
           ),
         );
@@ -154,48 +147,38 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        final bgColor = Theme.of(context).cardColor;
-        final textColor = Theme.of(context).colorScheme.onSurface;
-        final tAsync = ref.watch(translationProvider);
-
         return Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: const BoxDecoration(
+            color: Color(0xFF1F1F1F),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildAttachmentOption(
                 Icons.image,
-                tAsync.value?['chat_attachment_gallery'] ?? 'Gallery',
+                'Galería',
                 'image',
-                textColor,
+                Colors.white,
               ),
               _buildAttachmentOption(
                 Icons.videocam,
-                tAsync.value?['chat_attachment_video'] ?? 'Video',
+                'Video',
                 'video',
-                textColor,
+                Colors.white,
               ),
               _buildAttachmentOption(
                 Icons.camera_alt,
-                tAsync.value?['chat_attachment_camera'] ?? 'Camera',
+                'Cámara',
                 'camera',
-                textColor,
+                Colors.white,
               ),
               _buildAttachmentOption(
                 Icons.insert_drive_file,
-                tAsync.value?['chat_attachment_file'] ?? 'Document',
+                'Documento',
                 'file',
-                textColor,
-              ),
-              _buildAttachmentOption(
-                Icons.mic,
-                tAsync.value?['chat_attachment_audio'] ?? 'Audio',
-                'audio',
-                textColor,
+                Colors.white,
               ),
             ],
           ),
@@ -216,14 +199,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       onTap: () {
         Navigator.pop(context);
         if (type == 'file' || type == 'audio') {
-          final t = ref.read(translationProvider).value;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                t?['chat_attachment_restricted'] ??
-                    'Picking documents/audio requires restart/setup. Use Image/Video/Camera for now.',
-              ),
-            ),
+            const SnackBar(content: Text('Funcionalidad próximamente.')),
           );
         } else {
           _handleAttachment(type);
@@ -232,60 +209,22 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _buildMessageContent(ChatMessage msg, bool isMe) {
-    final bool isImage = msg.contentType == 'image';
-
-    if (isImage) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          msg.content,
-          width: 200,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-        ),
-      );
-    }
-
-    return Text(
-      msg.content,
-      style: GoogleFonts.inter(
-        color: isMe ? Colors.white : Theme.of(context).colorScheme.onSurface,
-        fontSize: 15,
-        height: 1.4,
-      ),
-    );
-  }
-
   Future<void> _initiateCall(
     Map<String, dynamic>? contactInfo, {
     bool isVideo = true,
   }) async {
     if (contactInfo == null) return;
-
     final receiverId = contactInfo['id'];
     if (receiverId == null) return;
 
-    // Prevent Self-Call
     if (receiverId == _myClientId || receiverId == _myBusinessId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot call yourself / No puedes llamarte a ti mismo'),
-        ),
+        const SnackBar(content: Text('No puedes llamarte a ti mismo')),
       );
       return;
     }
 
-    // 1. Fetch My Profile (Name/Image) from DB
-    // Use the ID we already fetched in _fetchMyIds
-    // Determine if we are acting as Business or Client?
-    // Usually standard chat is Client-to-Client unless Business mode.
-    // For now, prioritize Business if _myBusinessId > 0, else Client.
-    // Or check user mode? We don't have userModeProvider here easily (can watch it).
-
-    // Simple fallback:
-    String myName = 'Caller';
+    String myName = 'Usuario';
     String? myImage;
     int myId = _myClientId;
 
@@ -300,10 +239,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         final lName = res['last_name'] ?? '';
         myName = '$fName $lName'.trim();
         if (myName.isEmpty) myName = 'Usuario';
-
-        // Fix Image URL
-        // photo_id is often the full URL or null. profile_url might be filename.
-        // Prioritize photo_id if it starts with http
         if (res['photo_id'] != null &&
             res['photo_id'].toString().startsWith('http')) {
           myImage = res['photo_id'];
@@ -313,17 +248,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       print('Error fetching my profile for call: $e');
     }
 
-    if (myName.isEmpty) myName = 'Unknown';
-
-    // 2. Generate Call ID
     final callId = DateTime.now().millisecondsSinceEpoch.toString();
 
-    // 3. Navigate Local
     if (mounted) {
       context.push('/call/$callId?isCaller=true&isVideo=$isVideo');
     }
 
-    // 4. Notify Receiver
     try {
       final callService = CallService(
         _supabase,
@@ -346,7 +276,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        // For reverse: true, 0.0 is the bottom (start of list)
         0.0,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
@@ -354,17 +283,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
+  // Send helpers
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
+    try {
+      final int conversationId = int.tryParse(widget.chatId) ?? 0;
+      await ref.read(chatProvider.notifier).sendMessage(conversationId, text);
+      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error enviando mensaje: $e')));
+    }
+  }
+
+  Future<void> _sendAudio(String path, int duration) async {
+    final file = XFile(path);
+    _uploadAndSend(file, 'audio');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final int conversationId = int.tryParse(widget.chatId) ?? 0;
 
-    // We can access 'chats' to get the contact info for the header
     final chatsAsync = ref.watch(chatProvider);
-    final tAsync = ref.watch(translationProvider);
     Map<String, dynamic>? contactInfo;
 
-    // Use .asData?.value to prevent flicker during refresh (Fixes valueOrNull error)
     final chats = chatsAsync.asData?.value ?? [];
     if (chats.isNotEmpty) {
       final chat = chats.firstWhere(
@@ -377,10 +323,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       }
     }
 
-    final contactName =
-        contactInfo?['name'] ?? (tAsync.value?['loading'] ?? 'Loading...');
+    final contactName = contactInfo?['name'] ?? 'Cargando...';
     final contactImage = contactInfo?['image'];
-    final t = tAsync.value ?? {};
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -388,150 +332,169 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         backgroundColor: bgColor,
         elevation: 0,
         surfaceTintColor: bgColor,
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
         leading: widget.isEmbedded
             ? null
-            : Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Theme.of(context).cardColor,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      size: 20,
-                    ),
-                    onPressed: () => context.pop(),
-                  ),
+            : IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
+                onPressed: () => context.pop(),
               ),
         title: GestureDetector(
-          onTap: () {
+          onTap: () async {
             if (contactInfo != null) {
               if (contactInfo['is_business'] == true) {
+                // Navigate to Business Profile
                 context.push('/client/business/${contactInfo['id']}');
               } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => UserProfilePage(
-                      contact: ContactDetails(
-                        id: contactInfo!['id'] ?? 0,
-                        firstName: contactInfo['name'] ?? 'User',
-                        lastName: '',
-                        profileUrl: contactInfo['image'],
-                        hasBusiness: contactInfo['is_business'] ?? false,
-                        verifiedIdentity: true, // Mock
-                      ),
-                    ),
-                  ),
-                );
+                // Navigate to Client Profile
+                try {
+                  final contactId = contactInfo['id'];
+                  if (contactId != null) {
+                    final res = await _supabase
+                        .from('client')
+                        .select()
+                        .eq('id', contactId)
+                        .maybeSingle();
+
+                    if (res != null) {
+                      final contact = ContactDetails.fromJson(res);
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserProfilePage(
+                              contact: contact,
+                              userId: contactId,
+                            ),
+                          ),
+                        );
+                      }
+                    } else {
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserProfilePage(userId: contactId),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                } catch (e) {
+                  print('Error navigating to profile: $e');
+                }
               }
             }
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: Theme.of(context).dividerColor.withOpacity(0.1),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundImage:
+                    contactImage != null &&
+                        contactImage.isNotEmpty &&
+                        (contactImage.startsWith('http') ||
+                            contactImage.startsWith('https'))
+                    ? CachedNetworkImageProvider(contactImage)
+                    : null,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+                child:
+                    contactImage == null ||
+                        contactImage.isEmpty ||
+                        (!contactImage.startsWith('http') &&
+                            !contactImage.startsWith('https'))
+                    ? Icon(
+                        Icons.person,
+                        size: 16,
+                        color: isDark ? Colors.white : Colors.black54,
+                      )
+                    : null,
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    contactName,
-                    style: GoogleFonts.inter(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  contactName,
+                  style: GoogleFonts.inter(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if (contactInfo?['is_business'] == true) ...[
-                  const SizedBox(width: 4),
-                  const Icon(Icons.storefront, size: 16, color: Colors.blue),
-                ],
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 12,
-                  backgroundImage:
-                      contactImage != null &&
-                          contactImage.isNotEmpty &&
-                          (contactImage.startsWith('http') ||
-                              contactImage.startsWith('https'))
-                      ? CachedNetworkImageProvider(contactImage)
-                      : null,
-                  backgroundColor: Colors.transparent,
-                  child:
-                      contactImage == null ||
-                          contactImage.isEmpty ||
-                          (!contactImage.startsWith('http') &&
-                              !contactImage.startsWith('https'))
-                      ? const Icon(Icons.person, size: 12, color: Colors.grey)
-                      : null,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.call_outlined),
+            icon: Icon(
+              Icons.phone_outlined,
+              color: isDark ? Colors.white : Colors.black,
+            ),
             onPressed: () => _initiateCall(contactInfo, isVideo: false),
-            tooltip: t['chat_call_voice'] ?? 'Llamada de voz',
           ),
           IconButton(
-            icon: const Icon(Icons.videocam_outlined),
+            icon: Icon(
+              Icons.videocam_outlined,
+              color: isDark ? Colors.white : Colors.black,
+            ),
             onPressed: () => _initiateCall(contactInfo, isVideo: true),
-            tooltip: t['chat_call_video'] ?? 'Videollamada',
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(
+              Icons.more_vert,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+            color: isDark ? const Color(0xFF1F1F1F) : Colors.white,
             onSelected: (value) {
-              // Handle actions
-              if (value == 'view_contact') {
-                // Nav logic already in header title
-              } else if (value == 'create_group') {
-                // TODO: Create Group
-              } else if (value == 'block') {
-                // TODO: Block
-              } else if (value == 'report') {
-                // TODO: Report
+              if (value == 'block') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Usuario bloqueado')),
+                );
+              } else if (value == 'view_profile') {
+                // View Profile
               }
             },
             itemBuilder: (BuildContext context) {
               return [
                 PopupMenuItem(
-                  value: 'view_contact',
-                  child: Text(t['chat_menu_view_contact'] ?? 'Ver contacto'),
+                  value: 'view_profile',
+                  child: Text(
+                    'Ver perfil',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
                 ),
-                PopupMenuItem(
-                  value: 'create_group',
-                  child: Text(t['chat_menu_create_group'] ?? 'Crear grupo'),
-                ),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'block',
-                  child: Text(t['chat_menu_block'] ?? 'Bloquear'),
+                  child: Text(
+                    'Bloquear',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'report',
-                  child: Text(t['chat_menu_report'] ?? 'Reportar'),
+                  child: Text(
+                    'Reportar',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
                 ),
               ];
             },
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
-          // Messages
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
               stream: ref
@@ -539,8 +502,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   .getMessagesStream(conversationId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error loading messages: ${snapshot.error}'),
+                  return const Center(
+                    child: Text('Error', style: TextStyle(color: Colors.red)),
                   );
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -551,26 +514,24 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 if (messages.isEmpty) {
                   return Center(
                     child: Text(
-                      t['chat_no_messages'] ?? 'No messages yet',
-                      style: TextStyle(color: Colors.grey[600]),
+                      'No hay mensajes',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[600] : Colors.grey[400],
+                      ),
                     ),
                   );
                 }
-
-                // Auto scroll on new data?
-                // WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
                 return ListView.builder(
                   reverse: true,
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
+                    horizontal: 16,
                     vertical: 20,
                   ),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    // Correctly Identify 'Me' whether I sent as Client or Business
                     final bool isMe =
                         (msg.sender == _myClientId ||
                         msg.sender == _myBusinessId);
@@ -581,48 +542,25 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       context,
                       contactImage: contactImage,
                       contactName: contactName,
+                      isDark: isDark, // Pass isDark
                     );
                   },
                 );
               },
             ),
           ),
-
-          // Input Area
-          ChatInputArea(
+          // New Instagram-style Input
+          _InstagramInputArea(
             onSendText: _sendMessage,
             onSendAudio: _sendAudio,
             onAttachmentPress: _showAttachmentMenu,
             onCameraPress: () => _handleAttachment('camera'),
+            onGalleryPress: () => _handleAttachment('image'),
+            isDark: isDark, // Pass Theme
           ),
         ],
       ),
     );
-  }
-
-  // Helper to send text
-  Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
-
-    // Optimistic UI update could go here, but we rely on Stream
-
-    try {
-      final int conversationId = int.tryParse(widget.chatId) ?? 0;
-      await ref.read(chatProvider.notifier).sendMessage(conversationId, text);
-      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
-    }
-  }
-
-  // Helper to send audio
-  Future<void> _sendAudio(String path, int duration) async {
-    // Create XFile from path
-    final file = XFile(path);
-    // Reuse upload logic (type 'audio')
-    _uploadAndSend(file, 'audio');
   }
 
   Widget _buildMessage(
@@ -631,127 +569,73 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     BuildContext context, {
     String? contactImage,
     String? contactName,
+    required bool isDark,
   }) {
     final time = _formatMessageTime(msg.createdAt);
 
-    // Logic for Initials if image missing
+    // Initial logic
     String initials = '?';
-    if (contactName != null && contactName.trim().isNotEmpty) {
-      final cleanName = contactName.trim();
-      final parts = cleanName.split(' ');
-      if (parts.length > 1 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
-        initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      } else if (cleanName.isNotEmpty) {
-        initials = cleanName[0].toUpperCase();
-      }
+    if (!isMe && contactName != null && contactName.isNotEmpty) {
+      initials = contactName[0].toUpperCase();
     }
 
-    // Avatar Widget
-    final avatar = ClipOval(
-      child: Container(
-        width: 32,
-        height: 32,
-        color: Colors.blueGrey,
-        child:
-            (contactImage != null &&
-                contactImage.isNotEmpty &&
-                (contactImage.startsWith('http') ||
-                    contactImage.startsWith('https')))
-            ? CachedNetworkImage(
-                imageUrl: contactImage,
-                fit: BoxFit.cover,
-                // Opt: 32 * 3 = 96
-                memCacheWidth: 96,
-                memCacheHeight: 96,
-                placeholder: (context, url) =>
-                    Container(color: Colors.blueGrey),
-                errorWidget: (context, url, error) => _buildInitials(initials),
-              )
-            : _buildInitials(initials),
-      ),
+    final avatar = CircleAvatar(
+      radius: 14,
+      backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+      backgroundImage:
+          (!isMe && contactImage != null && contactImage.contains('http'))
+          ? CachedNetworkImageProvider(contactImage)
+          : null,
+      child: (!isMe && (contactImage == null || !contactImage.contains('http')))
+          ? Text(
+              initials,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black54,
+                fontSize: 10,
+              ),
+            )
+          : null,
     );
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12, top: 4),
+        margin: const EdgeInsets.only(bottom: 8, top: 2),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.85,
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: isMe
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end, // Avatar at bottom
           children: [
-            // Avatar for THEM (on Left)
             if (!isMe) ...[avatar, const SizedBox(width: 8)],
-
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+                  horizontal: 16,
+                  vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  // Gradient for ME, Glass/Solid for THEM
                   gradient: isMe
                       ? const LinearGradient(
-                          colors: [Color(0xFF4285F4), Color(0xFF3B78E7)],
+                          colors: [
+                            Color(0xFF8B5CF6),
+                            Color(0xFF3B82F6),
+                          ], // Purple to Blue
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  color: isMe ? null : Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: isMe
-                        ? const Radius.circular(16)
-                        : const Radius.circular(4),
-                    bottomRight: isMe
-                        ? const Radius.circular(4)
-                        : const Radius.circular(16),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).shadowColor.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: isMe
+                      ? null
+                      : (isDark
+                            ? const Color(0xFF262626)
+                            : Colors.grey[200]), // Dynamic Cloud Color
+                  borderRadius: BorderRadius.circular(22),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Sender Name (Optional) - User asked for avatar of person coming from username
-                    // If it's a group chat, showing name is good.
-                    // But for 1:1, usually hidden.
-                    // Let's hide name inside bubble for now since we have avatar.
-                    _buildMessageContent(msg, isMe),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          time,
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            color: isMe ? Colors.white70 : Colors.grey,
-                          ),
-                        ),
-                        if (isMe) ...[
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.done_all,
-                            size: 14,
-                            color: Colors.white70,
-                          ), // Mock 'Read' status
-                        ],
-                      ],
-                    ),
-                  ],
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [_buildMessageContent(msg, isMe, isDark)],
                 ),
               ),
             ),
@@ -761,15 +645,28 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _buildInitials(String initials) {
-    return Center(
-      child: Text(
-        initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+  Widget _buildMessageContent(ChatMessage msg, bool isMe, bool isDark) {
+    final bool isImage = msg.contentType == 'image';
+
+    if (isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          msg.content,
+          width: 200,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.broken_image, size: 50, color: Colors.grey),
         ),
+      );
+    }
+
+    return Text(
+      msg.content,
+      style: GoogleFonts.inter(
+        color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black87),
+        fontSize: 15,
+        height: 1.4,
       ),
     );
   }
@@ -780,5 +677,258 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     } catch (_) {
       return '';
     }
+  }
+}
+
+class _InstagramInputArea extends StatefulWidget {
+  final Function(String) onSendText;
+  final Function(String path, int duration) onSendAudio;
+  final VoidCallback onAttachmentPress;
+  final VoidCallback onCameraPress;
+  final VoidCallback onGalleryPress;
+  final bool isDark;
+
+  const _InstagramInputArea({
+    required this.onSendText,
+    required this.onSendAudio,
+    required this.onAttachmentPress,
+    required this.onCameraPress,
+    required this.onGalleryPress,
+    required this.isDark,
+  });
+
+  @override
+  State<_InstagramInputArea> createState() => _InstagramInputAreaState();
+}
+
+class _InstagramInputAreaState extends State<_InstagramInputArea>
+    with SingleTickerProviderStateMixin {
+  final TextEditingController _textController = TextEditingController();
+  final AudioRecorder _audioRecorder = AudioRecorder();
+
+  // Recording State
+  bool _isRecording = false;
+  DateTime? _startTime;
+  Timer? _timer;
+  String _durationText = "0:00";
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _audioRecorder.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      if (await _audioRecorder.hasPermission()) {
+        final dir = await getTemporaryDirectory();
+        final path =
+            '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+        await _audioRecorder.start(const RecordConfig(), path: path);
+
+        setState(() {
+          _isRecording = true;
+          _startTime = DateTime.now();
+        });
+
+        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          final duration = DateTime.now().difference(_startTime!);
+          final minutes = duration.inMinutes.toString().padLeft(1, '0');
+          final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+          setState(() {
+            _durationText = "$minutes:$seconds";
+          });
+        });
+      }
+    } catch (e) {
+      debugPrint("Error recording: $e");
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    _timer?.cancel();
+    final path = await _audioRecorder.stop();
+    setState(() {
+      _isRecording = false;
+      _durationText = "0:00";
+    });
+
+    if (path != null) {
+      final duration = DateTime.now().difference(_startTime!).inMilliseconds;
+      if (duration > 500) {
+        widget.onSendAudio(path, duration);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isRecording) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: widget.isDark ? Colors.black : Colors.white,
+        child: Row(
+          children: [
+            const Icon(Icons.fiber_manual_record, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(
+              _durationText,
+              style: TextStyle(
+                color: widget.isDark ? Colors.white : Colors.black,
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () {
+                _audioRecorder.stop();
+                _timer?.cancel();
+                setState(() {
+                  _isRecording = false;
+                  _durationText = "0:00";
+                });
+              },
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _stopRecording,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF4285F4),
+                ),
+                child: const Icon(Icons.send, color: Colors.white, size: 20),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final hasText = _textController.text.trim().isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      color: widget.isDark
+          ? Colors
+                .black // Dark BG
+          : Colors.white, // Light BG
+      child: Row(
+        children: [
+          // Camera Button (Blue Circle)
+          GestureDetector(
+            onTap: widget.onCameraPress,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF0095F6), // Instagram Blue
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Pill Input
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? const Color(0xFF262626)
+                    : Colors.grey[200], // Dynamic Input BG
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      style: TextStyle(
+                        color: widget.isDark ? Colors.white : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Message...',
+                        hintStyle: TextStyle(
+                          color: widget.isDark ? Colors.grey : Colors.grey[600],
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
+                      ),
+                      onSubmitted: (val) {
+                        if (val.trim().isNotEmpty) {
+                          widget.onSendText(val.trim());
+                          _textController.clear();
+                        }
+                      },
+                    ),
+                  ),
+                  if (hasText) ...[
+                    TextButton(
+                      onPressed: () {
+                        widget.onSendText(_textController.text.trim());
+                        _textController.clear();
+                      },
+                      child: const Text(
+                        'Send',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    IconButton(
+                      icon: Icon(
+                        Icons.mic_none,
+                        color: widget.isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      onPressed: _startRecording,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.image_outlined,
+                        color: widget.isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      onPressed: widget.onGalleryPress,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.mood,
+                        color: widget.isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      onPressed: widget.onAttachmentPress,
+                    ),
+                  ],
+                  const SizedBox(width: 4),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

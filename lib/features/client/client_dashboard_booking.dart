@@ -7,11 +7,20 @@ import '../../shared/models/booking_model.dart';
 import '../../shared/providers/booking_provider.dart';
 import 'widgets/client_booking_card.dart';
 
-class ClientDashboardBooking extends ConsumerWidget {
+class ClientDashboardBooking extends ConsumerStatefulWidget {
   const ClientDashboardBooking({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ClientDashboardBooking> createState() =>
+      _ClientDashboardBookingState();
+}
+
+class _ClientDashboardBookingState
+    extends ConsumerState<ClientDashboardBooking> {
+  String _selectedFilter = 'Todos';
+
+  @override
+  Widget build(BuildContext context) {
     // Consume Shared Provider as 'client'
     final bookingsAsync = ref.watch(bookingListProvider('client'));
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -19,7 +28,6 @@ class ClientDashboardBooking extends ConsumerWidget {
     // Style constants
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D21);
-    final cardColor = isDark ? const Color(0xFF1E2429) : Colors.white;
 
     return Container(
       color: backgroundColor,
@@ -33,7 +41,7 @@ class ClientDashboardBooking extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bookings',
+                  'Reservas', // Changed to Spanish "Reservas"
                   style: GoogleFonts.inter(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -42,7 +50,7 @@ class ClientDashboardBooking extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'View and manage your bookings',
+                  'Administra tus citas y servicios',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -89,13 +97,13 @@ class ClientDashboardBooking extends ConsumerWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip('Todos', true, isDark),
+                      _buildFilterChip('Todos', isDark),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Proximas', false, isDark),
+                      _buildFilterChip('Próximas', isDark),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Completadas', false, isDark),
+                      _buildFilterChip('Completadas', isDark),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Canceladas', false, isDark),
+                      _buildFilterChip('Canceladas', isDark),
                     ],
                   ),
                 ),
@@ -108,7 +116,23 @@ class ClientDashboardBooking extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, st) => Center(child: Text('Error: $err')),
               data: (bookings) {
-                if (bookings.isEmpty) {
+                // Filter Logic
+                final filteredBookings = bookings.where((b) {
+                  if (_selectedFilter == 'Todos') return true;
+                  if (_selectedFilter == 'Próximas') {
+                    return b.status == BookingStatus.confirmed ||
+                        b.status == BookingStatus.pending;
+                  }
+                  if (_selectedFilter == 'Completadas') {
+                    return b.status == BookingStatus.completed;
+                  }
+                  if (_selectedFilter == 'Canceladas') {
+                    return b.status == BookingStatus.cancelled;
+                  }
+                  return true;
+                }).toList();
+
+                if (filteredBookings.isEmpty) {
                   return Center(
                     child: SingleChildScrollView(
                       child: Padding(
@@ -125,7 +149,7 @@ class ClientDashboardBooking extends ConsumerWidget {
                             const SizedBox(height: 24),
 
                             Text(
-                              "You don't have any bookings yet",
+                              "No tienes reservas ${_selectedFilter != 'Todos' ? 'en esta categoría' : ''}",
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 fontSize: 18,
@@ -135,7 +159,7 @@ class ClientDashboardBooking extends ConsumerWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Bookings will appear here once you book a service",
+                              "Tus reservas aparecerán aquí cuando agendes un servicio",
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 fontSize: 14,
@@ -145,32 +169,33 @@ class ClientDashboardBooking extends ConsumerWidget {
                             const SizedBox(height: 32),
 
                             // Search Services Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // Navigate to Search or Home
-                                  context.go('/');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                            if (_selectedFilter == 'Todos')
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    // Navigate to Search or Home
+                                    context.go('/');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                ),
-                                child: Text(
-                                  "Search services",
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                                  child: Text(
+                                    "Buscar servicios",
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -183,10 +208,10 @@ class ClientDashboardBooking extends ConsumerWidget {
                     horizontal: 16,
                     vertical: 20,
                   ),
-                  itemCount: bookings.length,
+                  itemCount: filteredBookings.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
-                    final booking = bookings[index];
+                    final booking = filteredBookings[index];
                     return _buildBookingCard(context, booking);
                   },
                 );
@@ -198,26 +223,34 @@ class ClientDashboardBooking extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? (isDark ? const Color(0xFF333333) : Colors.black87)
-            : (isDark ? const Color(0xFF1E2429) : Colors.grey[200]),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
+  Widget _buildFilterChip(String label, bool isDark) {
+    final isSelected = _selectedFilter == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = label;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
           color: isSelected
-              ? Colors.transparent
-              : (isDark ? Colors.white10 : Colors.transparent),
+              ? (isDark ? const Color(0xFF333333) : Colors.black87)
+              : (isDark ? const Color(0xFF1E2429) : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : (isDark ? Colors.white10 : Colors.transparent),
+          ),
         ),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: isSelected ? Colors.white : Colors.grey[600],
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isSelected ? Colors.white : Colors.grey[600],
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

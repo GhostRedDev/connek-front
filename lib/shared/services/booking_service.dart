@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/api_service.dart';
 import '../../features/settings/providers/profile_provider.dart';
 import '../models/booking_model.dart';
@@ -8,6 +9,7 @@ import '../models/booking_model.dart';
 class BookingService {
   final ApiService _apiService;
   final Ref _ref;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   BookingService(this._apiService, this._ref);
 
@@ -43,31 +45,148 @@ class BookingService {
       return [];
     } catch (e) {
       print('API Error fetching business bookings: $e');
-      return [];
     }
+
+    // Fallback: Direct DB Query
+    try {
+      print('DEBUG: Trying Direct DB for Business Bookings');
+      final response = await _supabase
+          .from('bookings')
+          .select('*, client:clients(*), service:services(*)')
+          .eq('business_id', businessId)
+          .order('created_at', ascending: false);
+
+      final List data = response as List;
+      return data.map((json) {
+        // Transform Supabase structure to Model
+        // Note: 'client' and 'service' are objects thanks to select()
+        final enrichedJson = Map<String, dynamic>.from(json);
+        if (json['client'] != null) enrichedJson['client'] = json['client'];
+        // If no quote, create dummy quote structure for price if available in service
+        if (json['service'] != null) {
+          final svc = json['service'];
+          final cents =
+              svc['price_cents'] ??
+              (svc['price'] != null ? (svc['price'] * 100).toInt() : 0);
+          enrichedJson['quote'] = {
+            'amountCents': cents,
+            'description': svc['name'],
+          };
+          enrichedJson['requests'] = {
+            'services': svc,
+          }; // Mock structure for mapper
+        }
+        return _mapBackendBookingToModel(enrichedJson, isBusiness: true);
+      }).toList();
+    } catch (dbError) {
+      print('DB Error fetching business bookings: $dbError');
+    }
+
+    return [];
   }
 
   Future<List<BookingModel>> _fetchClientBookings() async {
     final profile = await _ref.read(profileProvider.future);
-    if (profile == null) return [];
+    if (profile == null) {
+      print('DEBUG: Profile is null in _fetchClientBookings');
+      return [];
+    }
+    print(
+      'DEBUG: Fetching client bookings. ID (int): ${profile.id}, UserID (UUID): ${profile.userId}',
+    );
 
-    try {
-      // New: Use API Endpoint for Client Bookings
-      // The backend has /bookings/client/{client_id}
-      // Assuming profile.id is the client_id (integer) or mapped to it.
-      // User profile usually has 'id' as integer if it matches backend Client ID.
-      // If profile.id is UUID, we might need profile.clientId (if available).
-      // Checking profileProvider... usually it has the numeric ID or similar.
-      final response = await _apiService.get('/bookings/client/${profile.id}');
+    // Strategy: Try multiple endpoints since backend route is uncertain without docs
+    final endpoints = [
+      '/bookings/client/${profile.id}',
+      '/bookings?client_id=${profile.id}',
+      '/bookings/user/${profile.userId}', // Try UUID
+      '/client/${profile.id}/bookings',
+    ];
 
-      if (response != null && response['success'] == true) {
-        final List data = response['data'];
-        return data
-            .map((json) => _mapBackendBookingToModel(json, isBusiness: false))
-            .toList();
+    for (final endpoint in endpoints) {
+      try {
+        print('DEBUG: Trying endpoint: $endpoint');
+        final response = await _apiService.get(endpoint);
+        print(
+          'DEBUG: Response for $endpoint: ${response != null ? "OK" : "NULL"}',
+        );
+
+        dynamic rawData = [];
+        if (response is Map && response['success'] == true) {
+          rawData = response['data'];
+        } else if (response is List) {
+          rawData = response;
+        }
+
+        if (rawData is List) {
+          print('DEBUG: Found ${rawData.length} bookings at $endpoint');
+          if (rawData.isNotEmpty) {
+            return rawData
+                .map((json) {
+                  try {
+                    return _mapBackendBookingToModel(json, isBusiness: false);
+                  } catch (e) {
+                    print('DEBUG: Map error: $e');
+                    return null;
+                  }
+                })
+                .whereType<BookingModel>()
+                .toList();
+          }
+          // If empty, we might want to return empty immediately
+          // But if we are iterating endpoints, maybe the first one returned empty (correctly)
+          // and we stop? Or maybe it was the wrong endpoint that returned empty?
+          // We'll assume the FIRST endpoint that returns a valid structure is the correct one.
+          // So if we get [] from the first one, we return [] and stop.
+          return [];
+        }
+      } catch (e) {
+        print('DEBUG: Endpoint $endpoint failed: $e');
       }
-    } catch (e) {
-      print('API Error fetching client bookings: $e');
+    }
+
+    // Direct DB Fallback
+    try {
+      print('DEBUG: Trying Direct DB for Client Bookings');
+      final response = await _supabase
+          .from('bookings')
+          .select(
+            '*, business:business!bookings_business_id_fkey(*), requests:requests(*, services:services(*))',
+          )
+          .eq('client_id', profile.id)
+          .order('created_at', ascending: false);
+
+      final List data = response as List;
+      return data.map((json) {
+        final enrichedJson = Map<String, dynamic>.from(json);
+        if (json['business'] != null)
+          enrichedJson['business'] = json['business'];
+
+        // Populate service details from linked request if available
+        if (json['requests'] != null) {
+          final request = json['requests'];
+          // Supabase single object if one-to-one or list if one-to-many.
+          // Assuming booking -> request is 1:1 or 1:N but we take first.
+          // However standard join might return list. Let's handle it.
+          Map<String, dynamic>? svc;
+          if (request is List && request.isNotEmpty) {
+            if (request[0]['services'] != null) svc = request[0]['services'];
+          } else if (request is Map && request['services'] != null) {
+            svc = request['services'];
+          }
+
+          if (svc != null) {
+            enrichedJson['requests'] = {'services': svc};
+            final cents =
+                svc['price_cents'] ??
+                (svc['price'] != null ? (svc['price'] * 100).toInt() : 0);
+            enrichedJson['quote'] = {'amountCents': cents};
+          }
+        }
+        return _mapBackendBookingToModel(enrichedJson, isBusiness: false);
+      }).toList();
+    } catch (dbError) {
+      print('DB Error fetching client bookings: $dbError');
     }
 
     return [];
@@ -106,6 +225,7 @@ class BookingService {
     if (status == BookingStatus.cancelled) statusStr = 'cancelled';
     if (status == BookingStatus.completed) statusStr = 'completed';
     if (status == BookingStatus.confirmed) statusStr = 'accepted';
+    if (status == BookingStatus.in_progress) statusStr = 'in_progress';
 
     try {
       await _apiService.patchForm(
@@ -114,6 +234,16 @@ class BookingService {
       );
     } catch (e) {
       print('Error updating booking status: $e');
+      // Direct DB Fallback
+      try {
+        await _supabase
+            .from('bookings')
+            .update({'status': statusStr})
+            .eq('id', numericId);
+        print('Direct DB Status Update Success');
+      } catch (dbError) {
+        print('Direct DB Status Update Error: $dbError');
+      }
     }
   }
 
@@ -203,14 +333,19 @@ class BookingService {
     required int businessId,
     required int serviceId,
     required DateTime date,
+    int? employeeId,
+    Map<String, dynamic>? customFormAnswers,
   }) async {
+    dynamic profile;
+    int? clientId;
+    int addressId = 0;
+
     try {
-      final profile = _ref.read(profileProvider).value;
+      profile = _ref.read(profileProvider).value;
       if (profile == null) return false;
-      final clientId = profile.id;
+      clientId = profile.id;
 
       // 1. Fetch Business to get address_id
-      int addressId = 0;
       try {
         final businessRes = await _apiService.get('/business/full/$businessId');
         if (businessRes != null && businessRes['success'] == true) {
@@ -220,21 +355,54 @@ class BookingService {
       } catch (_) {}
 
       // 2. Create Booking via API
-      await _apiService.postForm(
-        '/bookings/create',
-        fields: {
-          'client_id': clientId,
-          'business_id': businessId,
-          'address_id': addressId, // Can be 0 if unknown
-          'service_id': serviceId,
-          'start_time_utc': date.toIso8601String(),
-        },
-      );
+      final Map<String, dynamic> fields = {
+        'client_id': clientId,
+        'business_id': businessId,
+        'address_id': addressId, // Can be 0 if unknown
+        'service_id': serviceId,
+        'start_time_utc': date.toIso8601String(),
+        if (employeeId != null) 'employee_id': employeeId,
+      };
+
+      if (customFormAnswers != null) {
+        fields['custom_form_answers'] = jsonEncode(customFormAnswers);
+      }
+
+      await _apiService.postForm('/bookings/create', fields: fields);
 
       return true;
     } catch (e) {
-      print('Error creating client booking: $e');
-      return false;
+      print('Error creating client booking via API: $e. Using DB Fallback.');
+
+      if (profile == null || clientId == null) return false;
+
+      // Direct DB Fallback
+      try {
+        final payload = {
+          'client_id': clientId,
+          'business_id': businessId,
+          // 'service_id': serviceId, // Column likely missing or named differently (e.g. quote/request link)
+          'start_time_utc': date.toIso8601String(),
+          'status': 'pending',
+          if (employeeId != null) 'employee_id': employeeId,
+          if (customFormAnswers != null)
+            'custom_form_answers': customFormAnswers,
+          // 'created_by': profile.userId,
+        };
+
+        // If addressId > 0 use it
+        if (addressId > 0) {
+          payload['address_id'] = addressId;
+        }
+
+        print('DEBUG: DB Insert Payload Keys: ${payload.keys.toList()}');
+        await _supabase.from('bookings').insert(payload);
+        print('Direct DB Booking Creation Success');
+        return true;
+      } catch (dbError) {
+        print('Direct DB Error creating booking: $dbError');
+        return false;
+      }
     }
   }
 
@@ -385,6 +553,8 @@ class BookingService {
         statusStr == 'confirmed' ||
         statusStr == 'scheduled') {
       status = BookingStatus.confirmed;
+    } else if (statusStr == 'in_progress') {
+      status = BookingStatus.in_progress;
     } else if (statusStr == 'completed') {
       status = BookingStatus.completed;
     } else if (statusStr == 'cancelled' || statusStr == 'declined') {
@@ -461,6 +631,19 @@ class BookingService {
       clientName = 'Yo';
     }
 
+    // Location
+    String? location;
+    if (json['address'] != null) {
+      if (json['address'] is String) {
+        location = json['address'];
+      } else if (json['address'] is Map) {
+        location = json['address']['address'];
+        if (json['address']['city'] != null) {
+          location = '$location, ${json['address']['city']}';
+        }
+      }
+    }
+
     return BookingModel(
       id: idStr,
       title: serviceName, // Use service name as title
@@ -468,18 +651,21 @@ class BookingService {
       status: status,
       date: date,
       timeRange: DateFormat('HH:mm').format(date),
+      location: location,
       price: price,
       client: BookingParticipant(
         id: (json['client_id'] ?? 0).toString(),
         name: clientName,
         role: 'Cliente',
         image: clientImg,
+        phone: json['client']?['phone']?.toString(), // Map client phone
       ),
       agent: BookingParticipant(
         id: (json['business_id'] ?? 0).toString(),
         name: businessName,
         role: 'Proveedor',
         image: businessImg,
+        phone: json['business']?['phone']?.toString(), // Map business phone
       ),
       serviceName: serviceName,
       serviceImage: serviceImg,

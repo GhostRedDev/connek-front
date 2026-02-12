@@ -168,4 +168,13 @@ class BusinessCategories {
   static List<BusinessCategory> getByGroup(String group) {
     return all.where((cat) => cat.group == group).toList();
   }
+
+  /// Map of groups to their categories for dropdown usage
+  static Map<String, List<String>> get categories {
+    final Map<String, List<String>> result = {};
+    for (final group in allGroups) {
+      result[group] = getByGroup(group).map((cat) => cat.name).toList();
+    }
+    return result;
+  }
 }

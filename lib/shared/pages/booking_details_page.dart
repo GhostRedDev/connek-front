@@ -4,8 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/booking_model.dart';
 import '../providers/booking_provider.dart';
+import '../../features/notifications/data/models/notification_model.dart';
+import '../../features/notifications/presentation/providers/notification_provider.dart';
+import '../../features/notifications/presentation/widgets/notification_item.dart';
 
 class BookingDetailsPage extends ConsumerWidget {
   final String bookingId;
@@ -20,6 +24,14 @@ class BookingDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingAsync = ref.watch(bookingDetailsProvider(bookingId));
+    final notificationsAsync = ref.watch(notificationProvider);
+    final bookingNotifications = (notificationsAsync.value ?? []).where((n) {
+      if (n.type != NotificationType.booking) return false;
+      final dataId = n.data?['booking_id']?.toString();
+      if (dataId == null) return false;
+      // Check if bookingId (e.g., BK123) contains the numeric ID (e.g., 123)
+      return bookingId.contains(dataId);
+    }).toList();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -50,13 +62,48 @@ class BookingDetailsPage extends ConsumerWidget {
                 _buildHeaderCard(context, booking, isDark),
                 const SizedBox(height: 20),
 
+                // Contact & Location Card
+                _buildContactAndLocationCard(context, booking, isDark),
+                const SizedBox(height: 20),
+                const SizedBox(height: 20),
+
                 // Participants Card
                 _buildParticipantsCard(context, booking, isDark),
                 const SizedBox(height: 20),
 
+                // Custom Form Answers
+                if (booking.customFormAnswers != null &&
+                    booking.customFormAnswers!.isNotEmpty) ...[
+                  _buildCustomAnswersCard(context, booking, isDark),
+                  const SizedBox(height: 20),
+                ],
+
                 // Payment Info
                 _buildPaymentInfo(context, booking, isDark),
                 const SizedBox(height: 30),
+
+                // Notifications / Timeline
+                if (bookingNotifications.isNotEmpty) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Actividad',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...bookingNotifications.map(
+                    (n) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: NotificationItem(notification: n),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
                 // Actions
                 if (booking.status != BookingStatus.cancelled &&
@@ -200,6 +247,13 @@ class BookingDetailsPage extends ConsumerWidget {
               _buildInfoItem(Icons.access_time, bk.timeRange),
             ],
           ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            Icons.attach_money,
+            '\$${bk.price.toStringAsFixed(2)}',
+          ),
         ],
       ),
     );
@@ -320,11 +374,38 @@ class BookingDetailsPage extends ConsumerWidget {
     );
   }
 
-  // Keep existing _buildActions for active bookings
   Widget _buildActions(BuildContext context, WidgetRef ref, BookingModel bk) {
-    // ... existing implementation
+    if (!isClientView) {
+      return _buildBusinessActions(context, ref, bk);
+    }
+
     return Column(
       children: [
+        if (bk.status == BookingStatus.confirmed ||
+            bk.status == BookingStatus.in_progress) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () =>
+                  context.push('/client/dashboard/booking/tracking/${bk.id}'),
+              icon: const Icon(Icons.map, size: 20),
+              label: const Text('Seguimiento en Vivo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(
+                  0xFF34A853,
+                ), // Green for active action
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                shadowColor: const Color(0xFF34A853).withOpacity(0.4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -350,6 +431,103 @@ class BookingDetailsPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             child: const Text('Cancelar Reserva'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBusinessActions(
+    BuildContext context,
+    WidgetRef ref,
+    BookingModel bk,
+  ) {
+    return Column(
+      children: [
+        if (bk.status == BookingStatus.confirmed ||
+            bk.status == BookingStatus.in_progress) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push('/business/tracking/${bk.id}'),
+              icon: const Icon(Icons.monitor_heart_outlined, size: 20),
+              label: const Text('Monitorear Servicio'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF4285F4),
+                side: const BorderSide(color: Color(0xFF4285F4)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (bk.status == BookingStatus.pending) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _confirmBooking(context, ref, bk),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Aceptar Reserva'),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (bk.status == BookingStatus.confirmed) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _startService(context, ref, bk),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF34A853),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Iniciar Servicio'),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (bk.status == BookingStatus.in_progress) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _completeBooking(context, ref, bk),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4285F4),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Completar Cita'),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        // Cancel Option
+        SizedBox(
+          width: double.infinity,
+          child: TextButton(
+            onPressed: () => _cancelBooking(context, ref, bk),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text('Cancelar / Rechazar'),
           ),
         ),
       ],
@@ -498,6 +676,303 @@ class BookingDetailsPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmBooking(BuildContext context, WidgetRef ref, BookingModel bk) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Aceptar Reserva?'),
+        content: const Text(
+          'El cliente recibirá una notificación de confirmación.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(bookingUpdateProvider)
+                  .confirmBooking(bk.id, 'business'); // Pass business role
+            },
+            child: const Text('Aceptar', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startService(BuildContext context, WidgetRef ref, BookingModel bk) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Iniciar Servicio?'),
+        content: const Text(
+          'Esto indicará que el cliente está siendo atendido.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(bookingUpdateProvider)
+                  .startService(bk.id, 'business');
+            },
+            child: const Text('Iniciar', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _completeBooking(BuildContext context, WidgetRef ref, BookingModel bk) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Completar Cita?'),
+        content: const Text('Esta acción marcará la cita como finalizada.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(bookingUpdateProvider)
+                  .completeBooking(bk.id, 'business');
+            },
+            child: const Text(
+              'Completar',
+              style: TextStyle(color: Colors.blue),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactAndLocationCard(
+    BuildContext context,
+    BookingModel bk,
+    bool isDark,
+  ) {
+    // If client view, contact agent (business). If business view, contact client.
+    final target = isClientView ? bk.agent : bk.client;
+    // Location is relevant for Client to go to Business or Business to go to Client
+    // Usually Business Location unless house call.
+    final location = bk.location;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Contacto y Ubicación',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildContactButton(
+                context,
+                icon: Icons.chat_bubble_outline,
+                label: 'Chat',
+                onTap: () {
+                  // Navigate to chat
+                  // TODO: Implement Chat Navigation
+                  // context.push('/chats/${target.id}');
+                  // Current router structure /chats is list, /chats/:id is not standard yet?
+                  // Assuming /chats/new or similar. For now just show toast or placeholder
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Chat próximamente')),
+                  );
+                },
+                color: const Color(0xFF4285F4),
+              ),
+              _buildContactButton(
+                context,
+                icon: Icons.phone_outlined,
+                label: 'Llamar',
+                onTap: () {
+                  if (target.phone != null) {
+                    launchUrl(Uri.parse('tel:${target.phone}'));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Número no disponible')),
+                    );
+                  }
+                },
+                color: Colors.green,
+              ),
+              _buildContactButton(
+                context,
+                icon: Icons
+                    .message_outlined, // WhatsApp icon usually custom, use message for now
+                label: 'WhatsApp',
+                onTap: () {
+                  if (target.phone != null) {
+                    // Normalize phone
+                    final phone = target.phone!.replaceAll(
+                      RegExp(r'[^0-9]'),
+                      '',
+                    );
+                    launchUrl(Uri.parse('https://wa.me/$phone'));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Número no disponible')),
+                    );
+                  }
+                },
+                color: const Color(0xFF25D366),
+              ),
+            ],
+          ),
+          if (location != null && location.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined, color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(location, style: GoogleFonts.inter(fontSize: 14)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  // Open maps
+                  final query = Uri.encodeComponent(location);
+                  launchUrl(
+                    Uri.parse(
+                      'https://www.google.com/maps/search/?api=1&query=$query',
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Cómo llegar'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomAnswersCard(
+    BuildContext context,
+    BookingModel bk,
+    bool isDark,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Detalles del Servicio',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (bk.customFormAnswers != null)
+            ...bk.customFormAnswers!.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pregunta (ID: ${entry.key})',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      entry.value.toString(),
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

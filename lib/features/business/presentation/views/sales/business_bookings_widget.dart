@@ -403,6 +403,8 @@ class _BookingCard extends StatelessWidget {
         return t['booking_status_pending'] ?? 'Pendiente';
       case BookingStatus.confirmed:
         return t['booking_status_confirmed'] ?? 'Próxima';
+      case BookingStatus.in_progress:
+        return t['booking_status_in_progress'] ?? 'En Progreso';
       case BookingStatus.completed:
         return t['booking_status_completed'] ?? 'Completada';
       case BookingStatus.cancelled:

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../business/presentation/providers/business_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../widgets/send_job_request_dialog.dart';
-import '../../../core/widgets/category_badge.dart';
+
 import '../../search/models/service_search_item.dart';
 import '../presentation/sheets/quick_booking_sheet.dart';
 
@@ -89,9 +90,14 @@ class _BusinessPublicProfilePageState
   }
 
   Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } catch (e) {
       if (mounted) {
-        debugPrint('Could not launch $url');
+        debugPrint('Could not launch $url: $e');
       }
     }
   }
@@ -109,7 +115,32 @@ class _BusinessPublicProfilePageState
             return const Center(child: Text("Negocio no encontrado"));
           }
 
-          final bannerUrl = _getImageUrl(business['banner_image']);
+          // Try to get banner from 'banner_image' or first item in 'images'
+          String? derivedBanner = business['banner_image'];
+          if (derivedBanner == null || derivedBanner.isEmpty) {
+            final imagesData = business['images'];
+            if (imagesData != null) {
+              if (imagesData is List && imagesData.isNotEmpty) {
+                derivedBanner = imagesData.first.toString();
+              } else if (imagesData is String) {
+                try {
+                  // Clean up string if needed or parse standard JSON
+                  // Simple check if it looks like a list
+                  if (imagesData.startsWith('[') && imagesData.endsWith(']')) {
+                    final parsed = jsonDecode(imagesData);
+                    if (parsed is List && parsed.isNotEmpty) {
+                      derivedBanner = parsed.first.toString();
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Error parsing images JSON: $e');
+                }
+              }
+            }
+          }
+
+          final bannerUrl = _getImageUrl(derivedBanner);
+
           final avatarUrl = _getImageUrl(business['profile_image']);
           final name = business['name'] ?? 'Negocio';
           final description = business['description'] ?? '';
@@ -126,236 +157,501 @@ class _BusinessPublicProfilePageState
             error: (e, s) => '—',
           );
 
-          return NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  expandedHeight: 200,
-                  pinned: true,
-                  leading: IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.black26,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    onPressed: () => context.pop(),
-                  ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: bannerUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) =>
-                              Container(color: Colors.grey),
+          return Stack(
+            children: [
+              // 1. Fixed Header Image (Behind everything)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 300,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (bannerUrl.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: bannerUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) =>
+                            Container(color: Colors.grey),
+                      )
+                    else
+                      Container(
+                        color: Colors.grey.shade300,
+                        child: const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey,
                         ),
-                        Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.black45, Colors.transparent],
-                            ),
+                      ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.black54, Colors.transparent],
+                          stops: [0.0, 0.5],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. Scrollable Content
+              NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    // Transparent Spacer to show image (Reduced height to account for overlap)
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: 226),
+                    ), // 250 - 24
+                    SliverToBoxAdapter(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(24),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: CachedNetworkImage(
-                                  imageUrl: avatarUrl,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (context, url, error) =>
-                                      Image.network(
-                                        'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?q=80&w=1000&auto=format&fit=crop',
-                                        fit: BoxFit.cover,
-                                      ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  // Call
-                                  if (business['phone'] != null)
-                                    _buildAction(
-                                      icon: Icons.phone,
-                                      onTap: () => _launchUrl(
-                                        'tel:${business['phone']}',
-                                      ),
-                                    ),
-                                  // Website
-                                  if (business['website'] != null)
-                                    _buildAction(
-                                      icon: Icons.language,
-                                      onTap: () =>
-                                          _launchUrl(business['website']),
-                                    ),
-                                  // Chat (Primary)
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8.0,
-                                      ),
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          _showInviteDialog(context, business);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          foregroundColor: Colors.white,
-                                          shape: const StadiumBorder(),
+                            // Stack: Avatar (popped out) + Stats
+                            Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.topLeft,
+                              children: [
+                                // Stats Row (Aligned relative to Avatar space)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    12,
+                                    16,
+                                    0,
+                                  ), // Top padding for stats inside sheet
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      const SizedBox(
+                                        width: 100,
+                                      ), // Spacer for Avatar (90 + margin)
+                                      Expanded(
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatItem(
+                                              ratingText,
+                                              "Rating",
+                                            ),
+                                            _buildStatItem(
+                                              reviewsAsync.value?.length
+                                                      .toString() ??
+                                                  "0",
+                                              "Reseñas",
+                                            ),
+                                            _buildStatItem(
+                                              (business['year_founded'] != null)
+                                                  ? ((DateTime.now().year -
+                                                            (business['year_founded']
+                                                                as int))
+                                                        .toString())
+                                                  : "N/A",
+                                              "Años",
+                                            ),
+                                          ],
                                         ),
-                                        child: const Text("Conversar"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Avatar: Positioned to pop out
+                                Positioned(
+                                  top: -50,
+                                  left: 24,
+                                  child: Container(
+                                    width: 90,
+                                    height: 90,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Theme.of(
+                                          context,
+                                        ).scaffoldBackgroundColor,
+                                        width: 4,
+                                      ),
+                                      color: Theme.of(
+                                        context,
+                                      ).scaffoldBackgroundColor,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Color(0xFFDE0046),
+                                            Color(0xFFF7A34B),
+                                          ],
+                                          begin: Alignment.bottomLeft,
+                                          end: Alignment.topRight,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.all(2.5),
+                                      child: CachedNetworkImage(
+                                        imageUrl: avatarUrl,
+                                        imageBuilder:
+                                            (
+                                              context,
+                                              imageProvider,
+                                            ) => CircleAvatar(
+                                              backgroundImage: imageProvider,
+                                              backgroundColor: Colors.grey[200],
+                                            ),
+                                        placeholder: (context, url) =>
+                                            const CircleAvatar(
+                                              backgroundColor: Colors.grey,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                        errorWidget: (context, url, error) =>
+                                            CircleAvatar(
+                                              backgroundColor: Colors.grey[200],
+                                              child: Icon(
+                                                Icons.person,
+                                                color: Colors.grey[400],
+                                                size: 40,
+                                              ),
+                                            ),
                                       ),
                                     ),
                                   ),
+                                ),
+                              ],
+                            ),
+
+                            // Main Content
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 16.0,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 2. Name & Bio
+                                  Text(
+                                    name,
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  if (business['category'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 2.0,
+                                      ),
+                                      child: Text(
+                                        _getCategoryName(business['category']),
+                                        style: GoogleFonts.inter(
+                                          color: Colors.grey,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  if (description.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6.0,
+                                      ),
+                                      child: Text(
+                                        description,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          height: 1.4,
+                                        ),
+                                        maxLines: 4,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  // Link
+                                  if (business['website'] != null)
+                                    GestureDetector(
+                                      onTap: () =>
+                                          _launchUrl(business['website']),
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4.0,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.link,
+                                              size: 16,
+                                              color: Colors.blue[600],
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                business['website'],
+                                                style: GoogleFonts.inter(
+                                                  color: Colors.blue[600],
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 13,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                  const SizedBox(height: 20),
+
+                                  // 3. Action Buttons
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () => _showInviteDialog(
+                                            context,
+                                            business,
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF4285F4,
+                                            ),
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 12,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "Agendar / Mensaje",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: () {
+                                            if (business['phone'] != null)
+                                              _launchUrl(
+                                                'tel:${business['phone']}',
+                                              );
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: isDark
+                                                ? Colors.white
+                                                : Colors.black,
+                                            side: BorderSide(
+                                              color: isDark
+                                                  ? Colors.white24
+                                                  : Colors.grey.shade300,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 12,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "Llamar",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: isDark
+                                                ? Colors.white24
+                                                : Colors.grey.shade300,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.person_add_outlined,
+                                            size: 20,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 8,
+                                          ), // Matched height roughly
+                                          constraints: const BoxConstraints(
+                                            minWidth: 44,
+                                            minHeight: 44,
+                                          ),
+                                          onPressed: () {}, // Save logic
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 16),
+                                  AboutSection(business: business),
+                                  const SizedBox(height: 16),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          name,
-                          style: GoogleFonts.outfit(
-                            fontSize: 22,
+                      ),
+                    ),
+                    SliverPersistentHeader(
+                      delegate: _SliverAppBarDelegate(
+                        TabBar(
+                          controller: _tabController,
+                          labelColor: isDark ? Colors.white : Colors.black,
+                          unselectedLabelColor: Colors.grey,
+                          indicatorColor: isDark ? Colors.white : Colors.black,
+                          indicatorWeight: 1,
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          labelStyle: GoogleFonts.inter(
                             fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
-                        ),
-                        // Category Badge
-                        if (business['category'] != null) ...[
-                          const SizedBox(height: 8),
-                          CategoryBadge(categoryId: business['category']),
-                        ],
-                        // Username or short desc
-                        // Text("@username", style: GoogleFonts.inter(color: Colors.grey, fontSize: 14)),
-                        const SizedBox(height: 12),
-                        if (description.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(12),
+                          tabs: const [
+                            Tab(icon: Icon(Icons.grid_on_outlined), text: null),
+                            Tab(
+                              icon: Icon(Icons.photo_camera_outlined),
+                              text: null,
                             ),
-                            child: Text(
-                              description,
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
+                            Tab(
+                              icon: Icon(Icons.calendar_today_outlined),
+                              text: null,
                             ),
-                          ),
-                        const SizedBox(height: 16),
-                        // Stats Row (Mock for now, or fetch real counts if available)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            // We don't have these counts in `getBusinessById` yet
-                            _buildStat(ratingText, 'Rating'),
-                            // _buildStat("?", "Seguidores"),
-                            _buildStat("Verified", "Status"),
+                            Tab(icon: Icon(Icons.star_outline), text: null),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        AboutSection(business: business),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverPersistentHeader(
-                  delegate: _SliverAppBarDelegate(
-                    TabBar(
-                      controller: _tabController,
-                      labelColor: isDark ? Colors.white : Colors.black,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: Colors.blue,
-                      indicatorWeight: 3,
-                      labelStyle: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
                       ),
-                      tabs: const [
-                        Tab(text: "Servicios"),
-                        Tab(text: "Fotos"),
-                        Tab(text: "Eventos"),
-                        Tab(text: "Reseñas"),
-                      ],
+                      pinned: true,
                     ),
-                  ),
-                  pinned: true,
-                ),
-              ];
-            },
-            body: TabBarView(
-              controller: _tabController,
-              children: [
-                _ServicesTab(
-                  businessId: _id,
-                  businessName: name,
-                  businessLogo: avatarUrl,
-                  onBook: (service) {
-                    final item = ServiceSearchItem(
-                      serviceId: service['id'],
-                      serviceName: service['name'] ?? 'Servicio',
-                      servicePrice: (service['price_cents'] ?? 0) / 100,
-                      serviceImage: service['image'],
-                      serviceProfileImage: service['profile_image'],
-                      serviceDescription: service['description'],
+                  ];
+                },
+                body: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _ServicesTab(
                       businessId: _id,
                       businessName: name,
-                      businessProfileImage: business['profile_image'],
-                      businessBannerImage: business['banner_image'],
-                    );
+                      businessLogo: avatarUrl,
+                      onBook: (service) {
+                        final item = ServiceSearchItem(
+                          serviceId: service['id'],
+                          serviceName: service['name'] ?? 'Servicio',
+                          servicePrice: (service['price_cents'] ?? 0) / 100,
+                          serviceImage: service['image'],
+                          serviceProfileImage: service['profile_image'],
+                          serviceDescription: service['description'],
+                          businessId: _id,
+                          businessName: name,
+                          businessProfileImage: business['profile_image'],
+                          businessBannerImage: business['banner_image'],
+                        );
 
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      useSafeArea: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => QuickBookingSheet(service: item),
-                    );
-                  },
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) =>
+                              QuickBookingSheet(service: item),
+                        );
+                      },
+                    ),
+                    _PortfolioTab(businessId: _id),
+                    _EventsTab(businessId: _id),
+                    _ReviewsTab(businessId: _id),
+                  ],
                 ),
-                _PortfolioTab(businessId: _id),
-                _EventsTab(businessId: _id),
-                _ReviewsTab(businessId: _id),
-              ],
-            ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AppBar(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.black26,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => context.pop(),
+                    ),
+                  ),
+                  actions: [
+                    CircleAvatar(
+                      backgroundColor: Colors.black26,
+                      child: IconButton(
+                        icon: const Icon(Icons.more_vert, color: Colors.white),
+                        onPressed: () {},
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
     );
+  }
+
+  // Helper Methods
+  Widget _buildStatItem(String value, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        Text(label, style: GoogleFonts.inter(fontSize: 13, color: Colors.grey)),
+      ],
+    );
+  }
+
+  String _getCategoryName(dynamic categoryId) {
+    // Ideally this fetches from a provider or map.
+    // Returning a placeholder or string representation.
+    if (categoryId == null) return "Servicios";
+    // Mock category mapping or simple string return
+    return "Categoría $categoryId";
   }
 
   Future<void> _showInviteDialog(
@@ -469,32 +765,6 @@ class _BusinessPublicProfilePageState
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAction({IconData? icon, VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.withAlpha(77)),
-        ),
-        child: Icon(icon, size: 20, color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildStat(String value, String label) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Text(label, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)),
-      ],
     );
   }
 }

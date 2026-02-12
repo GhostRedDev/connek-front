@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:google_fonts/google_fonts.dart'; // Removed
-import 'package:connek_frontend/system_ui/typography.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/business_provider.dart';
 
@@ -42,6 +42,8 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
   ];
 
   List<Map<String, dynamic>> _employees = [];
+  List<Map<String, dynamic>> _customQuestions =
+      []; // Local state for form builder
   String? _previewImage;
   bool _showPreview = false;
 
@@ -83,6 +85,10 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
           s['category'] ?? s['service_category'] ?? 'Barbershop';
       if (!_categories.contains(_selectedCategory)) {
         _categories.add(_selectedCategory);
+      }
+
+      if (s['custom_form'] != null) {
+        _customQuestions = List<Map<String, dynamic>>.from(s['custom_form']);
       }
     }
 
@@ -436,6 +442,96 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Custom Form Builder
+                    _buildLabel('Formulario Personalizado (Datos del Cliente)'),
+                    Text(
+                      'Diseña las preguntas que el cliente debe responder al reservar este servicio.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_customQuestions.isNotEmpty)
+                      ..._customQuestions.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final q = entry.value;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: inputFillColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                q['type'] == 'boolean'
+                                    ? Icons.check_circle_outline
+                                    : q['type'] == 'options'
+                                    ? Icons.list
+                                    : Icons.text_fields,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      q['label'] ?? 'Pregunta sin título',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tipo: ${q['type']} • ${q['required'] == true ? 'Obligatorio' : 'Opcional'}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _customQuestions.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _showAddQuestionDialog,
+                        icon: const Icon(Icons.add_circle_outline, size: 18),
+                        label: const Text('Agregar Pregunta'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF4285F4),
+                          side: const BorderSide(color: Color(0xFF4285F4)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -861,6 +957,182 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     );
   }
 
+  Future<void> _showAddQuestionDialog() async {
+    String label = '';
+    String type = 'text'; // text, boolean, options
+    bool required = false;
+    String optionsText = '';
+    final formKey = GlobalKey<FormState>();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+            final text = isDark ? Colors.white : Colors.black;
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nueva Pregunta',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: text,
+                        fontFamily: 'Outfit',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'Pregunta / Etiqueta',
+                        hintText: 'Ej: ¿Tiene alergias?',
+                        filled: true,
+                        fillColor: isDark ? Colors.white10 : Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      style: TextStyle(color: text),
+                      onChanged: (val) => label = val,
+                      validator: (val) =>
+                          val == null || val.isEmpty ? 'Requerido' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: type,
+                      decoration: InputDecoration(
+                        labelText: 'Tipo de Respuesta',
+                        filled: true,
+                        fillColor: isDark ? Colors.white10 : Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      dropdownColor: bg,
+                      style: TextStyle(color: text),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'text',
+                          child: Text('Texto Libre'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'boolean',
+                          child: Text('Si / No'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'options',
+                          child: Text('Selección Múltiple'),
+                        ),
+                      ],
+                      onChanged: (val) => setModalState(() => type = val!),
+                    ),
+                    if (type == 'options') ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Opciones (separadas por comas)',
+                          hintText: 'Ej: Opción A, Opción B, Opción C',
+                          filled: true,
+                          fillColor: isDark ? Colors.white10 : Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        style: TextStyle(color: text),
+                        onChanged: (val) => optionsText = val,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Requerido' : null,
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: Text(
+                        'Respuesta Obligatoria',
+                        style: TextStyle(color: text),
+                      ),
+                      value: required,
+                      activeColor: const Color(0xFF4285F4),
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) => setModalState(() => required = val),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4285F4),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () {
+                          if (formKey.currentState!.validate()) {
+                            final question = {
+                              'id': DateTime.now().millisecondsSinceEpoch
+                                  .toString(),
+                              'label': label,
+                              'type': type,
+                              'required': required,
+                            };
+                            if (type == 'options') {
+                              question['options'] = optionsText
+                                  .split(',')
+                                  .map((e) => e.trim())
+                                  .where((e) => e.isNotEmpty)
+                                  .toList();
+                            }
+                            setState(() {
+                              _customQuestions.add(question);
+                            });
+                            Navigator.pop(ctx);
+                          }
+                        },
+                        child: const Text(
+                          'Guardar Pregunta',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _saveService() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -902,6 +1174,9 @@ class _BusinessServiceSheetState extends ConsumerState<BusinessServiceSheet> {
     if (widget.type == 'event' && eventDateIso != null) {
       payload['event_date'] = eventDateIso;
     }
+
+    // Save custom form
+    payload['custom_form'] = _customQuestions;
 
     final businessData = ref.read(businessProvider).value;
 
