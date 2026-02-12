@@ -669,6 +669,9 @@ class BookingService {
       ),
       serviceName: serviceName,
       serviceImage: serviceImg,
+      customFormAnswers: json['custom_form_answers'] is Map
+          ? json['custom_form_answers']
+          : null,
     );
   }
 
