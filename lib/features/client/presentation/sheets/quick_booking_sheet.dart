@@ -24,50 +24,13 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
   TimeOfDay? _selectedTime;
   int? _selectedEmployeeId;
   bool _isLoading = false;
-<<<<<<< Updated upstream
   Map<String, dynamic> _formAnswers = {};
   final _formKey = GlobalKey<FormState>();
-=======
-  List<Map<String, dynamic>> _employees = [];
-  int? _selectedStaffId;
-  bool _isLoadingEmployees = true;
->>>>>>> Stashed changes
 
   @override
   void initState() {
     super.initState();
     print('QuickBookingSheet V2 Loaded');
-    _loadEmployees();
-  }
-
-  Future<void> _loadEmployees() async {
-    try {
-      final allEmployees = await ref
-          .read(businessRepositoryProvider)
-          .getEmployees(widget.service.businessId);
-      
-      if (mounted) {
-        // Filter employees assigned to this service
-        final serviceResourceIds = widget.service.resourcesList ?? [];
-        final assignedEmployees = allEmployees.where((emp) {
-          final resourceId = emp['resource_id'] ?? emp['id'];
-          return serviceResourceIds.contains(resourceId);
-        }).toList();
-        
-        print('📋 Service ${widget.service.serviceId} has ${serviceResourceIds.length} assigned resources');
-        print('👥 Found ${assignedEmployees.length} matching employees');
-        
-        setState(() {
-          _employees = assignedEmployees;
-          _isLoadingEmployees = false;
-        });
-      }
-    } catch (e) {
-      print('❌ Error loading employees: $e');
-      if (mounted) {
-        setState(() => _isLoadingEmployees = false);
-      }
-    }
   }
 
   // Generating time slots every 30 mins from 8 AM to 6 PM
@@ -133,12 +96,8 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
             businessId: widget.service.businessId,
             serviceId: widget.service.serviceId,
             date: bookingDate,
-<<<<<<< Updated upstream
             employeeId: _selectedEmployeeId,
             customFormAnswers: _formAnswers,
-=======
-            staffId: _selectedStaffId,
->>>>>>> Stashed changes
           );
 
       if (mounted) {
@@ -342,7 +301,6 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
 
                   const SizedBox(height: 24),
 
-<<<<<<< Updated upstream
                   // Employee Selection Section
                   _EmployeeSelection(
                     businessId: widget.service.businessId,
@@ -466,45 +424,6 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
                             ),
                           );
                         }).toList(),
-=======
-                  // Staff Selection Section Debug
-                  if (!_isLoadingEmployees && _employees.isNotEmpty) ...[
-                    AppText.large(
-                      'Profesional',
-                      style: GoogleFonts.outfit(fontSize: 18),
-                    ),
-                    const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          // "Any Professional" Option
-                          _buildStaffItem(
-                            id: null,
-                            name: 'Cualquiera',
-                            imageUrl: null,
-                            isSelected: _selectedStaffId == null,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 16),
-                          // Employee List
-                          ..._employees.map((employee) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 16),
-                              child: _buildStaffItem(
-                                id: employee['id'],
-                                name: employee['first_name'] ?? 'Staff',
-                                imageUrl:
-                                    employee['avatar_url'] ??
-                                    employee['profile_image'],
-                                isSelected: _selectedStaffId == employee['id'],
-                                color: theme.colorScheme.primary,
-                              ),
-                            );
-                          }),
-                        ],
->>>>>>> Stashed changes
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -632,65 +551,6 @@ class _QuickBookingSheetState extends ConsumerState<QuickBookingSheet> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStaffItem({
-    required int? id,
-    required String name,
-    required String? imageUrl,
-    required bool isSelected,
-    required Color color,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedStaffId = id;
-        });
-      },
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected ? color : Colors.transparent,
-                width: 3,
-              ),
-            ),
-            padding: const EdgeInsets.all(3),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[200],
-                image: imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(imageUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: imageUrl == null
-                  ? Icon(
-                      id == null ? Icons.people : Icons.person,
-                      color: Colors.grey[400],
-                      size: 30,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 8),
-          AppText.small(
-            name,
-            style: GoogleFonts.inter(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
-            color: isSelected ? color : Colors.grey[600],
           ),
         ],
       ),

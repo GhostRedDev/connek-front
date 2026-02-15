@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/providers/locale_provider.dart';
+import '../../system_ui/core/constants.dart';
 
 import 'providers/client_requests_provider.dart';
 import 'widgets/client_request_card.dart';
@@ -36,158 +37,171 @@ class _ClientDashboardRequestsState
 
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppBreakpoints.ultraWide),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        t['client_requests_title'] ?? 'Solicitudes',
-                        style: GoogleFonts.inter(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            t['client_requests_title'] ?? 'Solicitudes',
+                            style: GoogleFonts.inter(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
                         ),
-                      ),
+                        TextButton.icon(
+                          onPressed: () => context.push('/client/request'),
+                          icon: const Icon(Icons.add),
+                          label: Text(
+                            t['client_publish_job'] ?? 'Publicar trabajo',
+                          ),
+                        ),
+                      ],
                     ),
-                    TextButton.icon(
-                      onPressed: () => context.push('/client/request'),
-                      icon: const Icon(Icons.add),
-                      label: Text(
-                        t['client_publish_job'] ?? 'Publicar trabajo',
+                    const SizedBox(height: 8),
+                    Text(
+                      t['client_requests_subtitle'] ??
+                          'Consulta las solicitudes a distintas empresas.',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  t['client_requests_subtitle'] ??
-                      'Consulta las solicitudes a distintas empresas.',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Tabs: Solicitudes | Ofertas
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            child: Row(
-              children: [
-                _buildMainTabChip(
-                  t['client_tab_requests'] ?? 'Solicitudes',
-                  'requests',
-                ),
-                const SizedBox(width: 8),
-                _buildMainTabChip(
-                  t['client_tab_offers'] ?? 'Ofertas',
-                  'offers',
-                ),
-              ],
-            ),
-          ),
-
-          // Filters (only for Solicitudes tab)
-          if (_selectedTab == 'requests')
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  _buildFilterChip(t['filter_all'] ?? 'Todos', 'all'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                    t['filter_pending'] ?? 'Pendiente',
-                    'pending',
-                  ),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                    t['filter_completed'] ?? 'Completado',
-                    'completed',
-                  ),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                    t['filter_cancelled'] ?? 'Cancelado',
-                    'cancelled',
-                  ),
-                ],
               ),
-            ),
 
-          const SizedBox(height: 10),
-
-          // Content List
-          Expanded(
-            child: requestsAsync.when(
-              data: (allRequests) {
-                if (_selectedTab == 'offers') {
-                  final offers = _flattenOffers(allRequests);
-                  if (offers.isEmpty) {
-                    return _buildEmptyState(
-                      t['no_offers'] ?? 'Aún no tienes ofertas.',
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
+              // Tabs: Solicitudes | Ofertas
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    _buildMainTabChip(
+                      t['client_tab_requests'] ?? 'Solicitudes',
+                      'requests',
                     ),
-                    itemCount: offers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final offer = offers[index];
-                      return _OfferCard(
-                        request: offer.request,
-                        quote: offer.quote,
-                        onTap: () => context.push(
-                          '/client/request-details',
-                          extra: offer.request,
-                        ),
-                      );
-                    },
-                  );
-                }
+                    const SizedBox(width: 8),
+                    _buildMainTabChip(
+                      t['client_tab_offers'] ?? 'Ofertas',
+                      'offers',
+                    ),
+                  ],
+                ),
+              ),
 
-                // Requests tab
-                final requests = _filterRequests(allRequests);
-                if (requests.isEmpty) {
-                  return _buildEmptyState(
-                    t['no_requests'] ?? 'No requests found',
-                  );
-                }
-
-                return ListView.builder(
+              // Filters (only for Solicitudes tab)
+              if (_selectedTab == 'requests')
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 10,
                   ),
-                  itemCount: requests.length,
-                  itemBuilder: (context, index) {
-                    final req = requests[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildRequestCard(context, req),
+                  child: Row(
+                    children: [
+                      _buildFilterChip(t['filter_all'] ?? 'Todos', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        t['filter_pending'] ?? 'Pendiente',
+                        'pending',
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        t['filter_completed'] ?? 'Completado',
+                        'completed',
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        t['filter_cancelled'] ?? 'Cancelado',
+                        'cancelled',
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 10),
+
+              // Content List
+              Expanded(
+                child: requestsAsync.when(
+                  data: (allRequests) {
+                    if (_selectedTab == 'offers') {
+                      final offers = _flattenOffers(allRequests);
+                      if (offers.isEmpty) {
+                        return _buildEmptyState(
+                          t['no_offers'] ?? 'Aún no tienes ofertas.',
+                        );
+                      }
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        itemCount: offers.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final offer = offers[index];
+                          return _OfferCard(
+                            request: offer.request,
+                            quote: offer.quote,
+                            onTap: () => context.push(
+                              '/client/request-details',
+                              extra: offer.request,
+                            ),
+                          );
+                        },
+                      );
+                    }
+
+                    // Requests tab
+                    final requests = _filterRequests(allRequests);
+                    if (requests.isEmpty) {
+                      return _buildEmptyState(
+                        t['no_requests'] ?? 'No requests found',
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      itemCount: requests.length,
+                      itemBuilder: (context, index) {
+                        final req = requests[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildRequestCard(context, req),
+                        );
+                      },
                     );
                   },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) =>
-                  Center(child: Text("Error loading requests: $e")),
-            ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, st) =>
+                      Center(child: Text("Error loading requests: $e")),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

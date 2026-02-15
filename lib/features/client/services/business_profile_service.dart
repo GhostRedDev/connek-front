@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../business/providers/business_provider.dart';
+import '../../business/presentation/providers/business_provider.dart';
 
 // Model for Business Profile
 class BusinessProfile {

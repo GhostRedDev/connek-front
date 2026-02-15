@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'providers/wallet_provider.dart';
 import '../settings/providers/profile_provider.dart'; // Import ProfileProvider
 import 'services/client_wallet_service.dart'; // Import ClientWalletService
+import '../../system_ui/core/constants.dart';
 
 class ClientDashboardWallet extends ConsumerWidget {
   const ClientDashboardWallet({super.key});
@@ -29,288 +30,314 @@ class ClientDashboardWallet extends ConsumerWidget {
           final transactions = state.transactions;
           final balance = state.balance;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Text(
-                  'Billetera y pagos',
-                  style: GoogleFonts.inter(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.ultraWide,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Controla tus métodos de pagos y transacciones.',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Text(
+                      'Billetera y pagos',
+                      style: GoogleFonts.inter(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Controla tus métodos de pagos y transacciones.',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-                // Balance Card
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD), // Light Blue
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Balance total:',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                    // Balance Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD), // Light Blue
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        NumberFormat.currency(symbol: '\$').format(balance),
-                        style: GoogleFonts.inter(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1565C0), // Blue
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _showDepositDialog(context, ref),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Depositar'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(
-                                  0xFF0D1B2A,
-                                ), // Dark Navy
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                elevation: 0,
-                              ),
+                          Text(
+                            'Balance total:',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: Colors.grey[600],
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: OutlinedButton.icon(
+                          const SizedBox(height: 8),
+                          Text(
+                            NumberFormat.currency(symbol: '\$').format(balance),
+                            style: GoogleFonts.inter(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1565C0), // Blue
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () =>
+                                      _showDepositDialog(context, ref),
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Depositar'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(
+                                      0xFF0D1B2A,
+                                    ), // Dark Navy
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _showWithdrawDialog(
+                                    context,
+                                    ref,
+                                    balance,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.arrow_outward,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Retirar'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0D1B2A),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    side: const BorderSide(
+                                      color: Color(0xFF0D1B2A),
+                                      width: 1,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Metodos de pago
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF131619), // Dark bg
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            "Métodos de Pago",
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
                               onPressed: () =>
-                                  _showWithdrawDialog(context, ref, balance),
-                              icon: const Icon(Icons.arrow_outward, size: 18),
-                              label: const Text('Retirar'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF0D1B2A),
+                                  _handleAddPaymentMethod(context, ref),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
-                                ),
-                                side: const BorderSide(
-                                  color: Color(0xFF0D1B2A),
-                                  width: 1,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
+                              ),
+                              child: const Text(
+                                "+ Agregar método de pago",
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Metodos de pago
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF131619), // Dark bg
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        "Métodos de Pago",
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              _handleAddPaymentMethod(context, ref),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                          child: const Text(
-                            "+ Agregar método de pago",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Cupones Header
-                Text(
-                  'Cupones',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Coupons List (Dynamic)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  clipBehavior: Clip.none,
-                  child: Row(
-                    children: coupons.map((coupon) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: _buildCouponCard(
-                          context,
-                          ref,
-                          code: coupon.code,
-                          discount: coupon.discount,
-                          description: coupon.description,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Transacciones Header
-                Text(
-                  'Transacciones',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Transactions Container
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF131619) : Colors.grey[50],
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark ? Colors.white10 : Colors.grey.shade200,
                     ),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: transactions.isEmpty
-                      ? _buildEmptyTransactionsState(isDark)
-                      : Column(
-                          children: [
-                            // Search & Filter
-                            TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Buscar transacción',
-                                hintStyle: GoogleFonts.inter(
-                                  color: Colors.grey[500],
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search,
-                                  color: Colors.grey[400],
-                                ),
-                                filled: true,
-                                fillColor: isDark
-                                    ? const Color(0xFF1E2429)
-                                    : Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            // Filter Chips
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _buildFilterChip('Todos', true),
-                                  const SizedBox(width: 8),
-                                  _buildFilterChip('Pagos', false),
-                                  const SizedBox(width: 8),
-                                  _buildFilterChip('Ganancias', false),
-                                  const SizedBox(width: 8),
-                                  _buildFilterChip('Reembolsos', false),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
 
-                            // List of Transactions
-                            ...transactions.map((tx) {
-                              final isNegative = tx.amount < 0;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildTransactionItem(
-                                  title: tx.title,
-                                  date: DateFormat('MMM d, y').format(tx.date),
-                                  amount: NumberFormat.currency(
-                                    symbol: '\$',
-                                  ).format(tx.amount),
-                                  amountColor: isNegative
-                                      ? (isDark ? Colors.white : Colors.black87)
-                                      : const Color(
-                                          0xFF0F9D58,
-                                        ), // Green for deposits
-                                  tag: tx.type.toUpperCase(),
-                                  tagColor: isNegative
-                                      ? Colors.red.withOpacity(0.1)
-                                      : Colors.green.withOpacity(0.1),
-                                  tagTextColor: isNegative
-                                      ? Colors.red
-                                      : Colors.green,
-                                  icon: tx.type == 'deposit'
-                                      ? Icons.arrow_downward
-                                      : (tx.type == 'withdrawal'
-                                            ? Icons.arrow_upward
-                                            : Icons.payment),
-                                ),
-                              );
-                            }),
-                          ],
+                    const SizedBox(height: 32),
+
+                    // Cupones Header
+                    Text(
+                      'Cupones',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Coupons List (Dynamic)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
+                      child: Row(
+                        children: coupons.map((coupon) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: _buildCouponCard(
+                              context,
+                              ref,
+                              code: coupon.code,
+                              discount: coupon.discount,
+                              description: coupon.description,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Transacciones Header
+                    Text(
+                      'Transacciones',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Transactions Container
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF131619)
+                            : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.grey.shade200,
                         ),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: transactions.isEmpty
+                          ? _buildEmptyTransactionsState(isDark)
+                          : Column(
+                              children: [
+                                // Search & Filter
+                                TextField(
+                                  decoration: InputDecoration(
+                                    hintText: 'Buscar transacción',
+                                    hintStyle: GoogleFonts.inter(
+                                      color: Colors.grey[500],
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.search,
+                                      color: Colors.grey[400],
+                                    ),
+                                    filled: true,
+                                    fillColor: isDark
+                                        ? const Color(0xFF1E2429)
+                                        : Colors.white,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Filter Chips
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      _buildFilterChip('Todos', true),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Pagos', false),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Ganancias', false),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Reembolsos', false),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                // List of Transactions
+                                ...transactions.map((tx) {
+                                  final isNegative = tx.amount < 0;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: _buildTransactionItem(
+                                      title: tx.title,
+                                      date: DateFormat(
+                                        'MMM d, y',
+                                      ).format(tx.date),
+                                      amount: NumberFormat.currency(
+                                        symbol: '\$',
+                                      ).format(tx.amount),
+                                      amountColor: isNegative
+                                          ? (isDark
+                                                ? Colors.white
+                                                : Colors.black87)
+                                          : const Color(
+                                              0xFF0F9D58,
+                                            ), // Green for deposits
+                                      tag: tx.type.toUpperCase(),
+                                      tagColor: isNegative
+                                          ? Colors.red.withOpacity(0.1)
+                                          : Colors.green.withOpacity(0.1),
+                                      tagTextColor: isNegative
+                                          ? Colors.red
+                                          : Colors.green,
+                                      icon: tx.type == 'deposit'
+                                          ? Icons.arrow_downward
+                                          : (tx.type == 'withdrawal'
+                                                ? Icons.arrow_upward
+                                                : Icons.payment),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(height: 100), // Bottom padding
+                  ],
                 ),
-                const SizedBox(height: 100), // Bottom padding
-              ],
+              ),
             ),
           );
         },

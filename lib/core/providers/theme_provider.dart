@@ -1,21 +1,87 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ThemePersistence {
+  static const String prefsKey = 'theme_mode';
+
+  static String encode(ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.system => 'system',
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+    };
+  }
+
+  static ThemeMode decode(String? value) {
+    return switch (value) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
+  }
+}
 
 // Theme Notifier
 class ThemeNotifier extends Notifier<ThemeMode> {
+  ThemeNotifier({ThemeMode? initialTheme}) : _initialTheme = initialTheme;
+
+  final ThemeMode? _initialTheme;
+
   @override
   ThemeMode build() {
-    return ThemeMode.system; // Default to system
+    // If main() preloaded the value, use it to avoid startup flicker.
+    final initial = _initialTheme ?? ThemeMode.system;
+
+    // Also attempt a lazy load in case we weren't preloaded.
+    unawaited(_loadFromPrefsIfNeeded(current: initial));
+    return initial;
   }
 
   void setTheme(ThemeMode mode) {
     state = mode;
+    unawaited(_saveToPrefs(mode));
   }
 
   void toggleTheme() {
     state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    unawaited(_saveToPrefs(state));
+  }
+
+  Future<void> _loadFromPrefsIfNeeded({required ThemeMode current}) async {
+    // If a caller provided an initialTheme, we can skip reading.
+    if (_initialTheme != null) {
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = ThemePersistence.decode(
+        prefs.getString(ThemePersistence.prefsKey),
+      );
+
+      if (saved != current) {
+        state = saved;
+      }
+    } catch (_) {
+      // Ignore persistence failures.
+    }
+  }
+
+  Future<void> _saveToPrefs(ThemeMode mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        ThemePersistence.prefsKey,
+        ThemePersistence.encode(mode),
+      );
+    } catch (_) {
+      // Ignore persistence failures.
+    }
   }
 }
 

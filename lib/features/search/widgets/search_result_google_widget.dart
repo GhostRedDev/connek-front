@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'search_bar_widget.dart';
 import 'search_result_google_card.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../system_ui/core/constants.dart';
 import '../providers/search_provider.dart';
 import '../providers/job_search_provider.dart';
 import 'search_result_job_card.dart';
@@ -160,28 +161,118 @@ class _SearchResultGoogleWidgetState
               padding: const EdgeInsets.only(
                 top: 120, // Space for Header
                 bottom: 250, // Space for Tabs (110) + SearchBar (~60) + Padding
-                left: 16,
-                right: 16,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isJobsTab)
-                    jobsAsync.when(
-                      data: (jobs) {
-                        if (jobs.isEmpty && isSearching) {
-                          return Center(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppBreakpoints.ultraWide,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isJobsTab)
+                          jobsAsync.when(
+                            data: (jobs) {
+                              if (jobs.isEmpty && isSearching) {
+                                return Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.work_outline,
+                                        size: 50,
+                                        color: subTitleColor,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'No se encontraron trabajos',
+                                        style: GoogleFonts.inter(
+                                          color: textColor,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${jobs.length} trabajos para: ${searchState.query}',
+                                    style: GoogleFonts.inter(
+                                      color: textColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ListView.separated(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: jobs.length,
+                                    separatorBuilder: (context, index) =>
+                                        const SizedBox(height: 16),
+                                    itemBuilder: (context, index) {
+                                      final job = jobs[index];
+                                      return SearchResultJobCard(job: job);
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                            loading: () => Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: CircularProgressIndicator(
+                                  color: isDark
+                                      ? Colors.white
+                                      : Theme.of(context).primaryColor,
+                                ),
+                              ),
+                            ),
+                            error: (e, s) => Center(
+                              child: Text(
+                                'Error: $e',
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          )
+                        else if (searchState.isLoading)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(
+                                color: isDark
+                                    ? Colors.white
+                                    : Theme.of(context).primaryColor,
+                              ),
+                            ),
+                          )
+                        else if (searchState.error != null)
+                          Center(
+                            child: Text(
+                              'Error: ${searchState.error}',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          )
+                        else if (searchState.results.isEmpty && isSearching)
+                          Center(
                             child: Column(
                               children: [
                                 Icon(
-                                  Icons.work_outline,
+                                  Icons.search_off,
                                   size: 50,
                                   color: subTitleColor,
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'No se encontraron trabajos',
+                                  t['no_results_found'] ??
+                                      'No se encontraron resultados',
                                   style: GoogleFonts.inter(
                                     color: textColor,
                                     fontSize: 16,
@@ -189,118 +280,39 @@ class _SearchResultGoogleWidgetState
                                 ),
                               ],
                             ),
-                          );
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${jobs.length} trabajos para: ${searchState.query}',
-                              style: GoogleFonts.inter(
-                                color: textColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.normal,
+                          )
+                        else if (filteredResults.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${filteredResults.length} resultados de ${searchState.results.length} para: ${searchState.query}',
+                                style: GoogleFonts.inter(
+                                  color: textColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.normal,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 20),
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: jobs.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 16),
-                              itemBuilder: (context, index) {
-                                final job = jobs[index];
-                                return SearchResultJobCard(job: job);
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                      loading: () => Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: CircularProgressIndicator(
-                            color: isDark
-                                ? Colors.white
-                                : Theme.of(context).primaryColor,
+                              const SizedBox(height: 20),
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: filteredResults.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 16),
+                                itemBuilder: (context, index) {
+                                  final business = filteredResults[index];
+                                  return SearchResultGoogleCard(
+                                    business: business,
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                      error: (e, s) => Center(
-                        child: Text(
-                          'Error: $e',
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    )
-                  else if (searchState.isLoading)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: CircularProgressIndicator(
-                          color: isDark
-                              ? Colors.white
-                              : Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    )
-                  else if (searchState.error != null)
-                    Center(
-                      child: Text(
-                        'Error: ${searchState.error}',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    )
-                  else if (searchState.results.isEmpty && isSearching)
-                    Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.search_off,
-                            size: 50,
-                            color: subTitleColor,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            t['no_results_found'] ??
-                                'No se encontraron resultados',
-                            style: GoogleFonts.inter(
-                              color: textColor,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (filteredResults.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${filteredResults.length} resultados de ${searchState.results.length} para: ${searchState.query}',
-                          style: GoogleFonts.inter(
-                            color: textColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredResults.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 16),
-                          itemBuilder: (context, index) {
-                            final business = filteredResults[index];
-                            return SearchResultGoogleCard(business: business);
-                          },
-                        ),
                       ],
                     ),
-                ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -314,8 +326,8 @@ class _SearchResultGoogleWidgetState
           bottom: isSearching
               ? screenHeight
               : (screenHeight / 2) + 80, // Moved up from 50 to 80
-          left: 16,
-          right: 16,
+          left: 0,
+          right: 0,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 200),
             opacity: isSearching ? 0.0 : 1.0,
@@ -325,30 +337,41 @@ class _SearchResultGoogleWidgetState
                 duration: const Duration(milliseconds: 300),
                 scale: isSearching ? 0.9 : 1.0,
                 curve: Curves.easeIn,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      t['search_hero_title'] ?? 'Find the service you need',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(
-                        color: textColor,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w500,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppBreakpoints.laptop,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            t['search_hero_title'] ??
+                                'Find the service you need',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(
+                              color: textColor,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            t['search_hero_subtitle'] ??
+                                'Explore thousands of verified businesses and services on our platform',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              color: subTitleColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      t['search_hero_subtitle'] ??
-                          'Explore thousands of verified businesses and services on our platform',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: subTitleColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -363,16 +386,26 @@ class _SearchResultGoogleWidgetState
               ? -200
               : (screenHeight / 2) -
                     230, // Adjusted to be visible below search bar
-          left: 16,
-          right: 16,
+          left: 0,
+          right: 0,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 200),
             opacity: isSearching ? 0.0 : 1.0,
             child: IgnorePointer(
               ignoring: isSearching,
-              child: _buildSuggestedBusinesses(
-                isDark: isDark,
-                selectedTab: selectedTab,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppBreakpoints.ultraWide,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildSuggestedBusinesses(
+                      isDark: isDark,
+                      selectedTab: selectedTab,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -383,19 +416,30 @@ class _SearchResultGoogleWidgetState
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutBack,
           bottom: isSearching ? 180 : (screenHeight / 2 - 25),
-          left: 16,
-          right: 16,
-          child: SearchBarWidget(
-            autofocus: widget.autofocus,
-            hintText:
-                t['search_placeholder'] ?? 'Search for a service or business',
-            initialValue: searchState.query,
-            onChanged: (val) {
-              ref.read(searchProvider.notifier).onQueryChanged(val);
-            },
-            onSubmitted: (val) {
-              ref.read(searchProvider.notifier).onQueryChanged(val);
-            },
+          left: 0,
+          right: 0,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.laptop,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SearchBarWidget(
+                  autofocus: widget.autofocus,
+                  hintText:
+                      t['search_placeholder'] ??
+                      'Search for a service or business',
+                  initialValue: searchState.query,
+                  onChanged: (val) {
+                    ref.read(searchProvider.notifier).onQueryChanged(val);
+                  },
+                  onSubmitted: (val) {
+                    ref.read(searchProvider.notifier).onQueryChanged(val);
+                  },
+                ),
+              ),
+            ),
           ),
         ),
 

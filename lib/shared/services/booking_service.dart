@@ -355,12 +355,8 @@ class BookingService {
     required int businessId,
     required int serviceId,
     required DateTime date,
-<<<<<<< Updated upstream
     int? employeeId,
     Map<String, dynamic>? customFormAnswers,
-=======
-    int? staffId,
->>>>>>> Stashed changes
   }) async {
     dynamic profile;
     int? clientId;
@@ -396,13 +392,12 @@ class BookingService {
       }
 
       // 2. Create Booking via API
-<<<<<<< Updated upstream
       final Map<String, dynamic> fields = {
         'client_id': clientId,
         'business_id': businessId,
         'address_id': addressId, // Can be 0 if unknown
         'service_id': serviceId,
-        'start_time_utc': date.toIso8601String(),
+        'start_time_utc': date.toUtc().toIso8601String(),
         if (employeeId != null) 'employee_id': employeeId,
       };
 
@@ -410,29 +405,10 @@ class BookingService {
         fields['custom_form_answers'] = jsonEncode(customFormAnswers);
       }
 
-      await _apiService.postForm('/bookings/create', fields: fields);
-=======
-      final Map<String, dynamic> bookingData = {
-        'client_id': clientId,
-        'business_id': businessId,
-        'address_id': addressId != 0
-            ? addressId
-            : businessId, // Fallback to businessId if addressId is 0, assuming 1:1 relation or reuse
-        'service_id': serviceId,
-        'start_time_utc': date.toUtc().toIso8601String(), // Ensure UTC
-      };
-
-      if (staffId != null) {
-        bookingData['resource_id'] = staffId;
-      }
-
-      print('📤 CreateClientBooking: Sending payload: $bookingData');
-
-      final response = await _apiService.postUrlEncoded(
+      final response = await _apiService.postForm(
         '/bookings/create',
-        bookingData,
+        fields: fields,
       );
->>>>>>> Stashed changes
 
       if (response != null && response['success'] == true) {
         print('✅ CreateClientBooking: Success - Booking created');
@@ -444,7 +420,6 @@ class BookingService {
       );
       return false;
     } catch (e) {
-<<<<<<< Updated upstream
       print('Error creating client booking via API: $e. Using DB Fallback.');
 
       if (profile == null || clientId == null) return false;
@@ -476,9 +451,6 @@ class BookingService {
         print('Direct DB Error creating booking: $dbError');
         return false;
       }
-=======
-      print('❌ Error creating client booking: $e');
-      return false;
     }
   }
 
@@ -537,7 +509,6 @@ class BookingService {
     } catch (e) {
       print('❌ Error updating booking [$numericId]: $e');
       return false;
->>>>>>> Stashed changes
     }
   }
 

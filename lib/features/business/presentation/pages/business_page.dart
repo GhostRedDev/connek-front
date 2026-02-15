@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connek_frontend/system_ui/core/constants.dart';
 import 'package:connek_frontend/system_ui/typography.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' as shad;
 
@@ -46,35 +47,41 @@ class _BusinessPageSortedState extends ConsumerState<BusinessPageSorted> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Column(
-        children: [
-          const SizedBox(height: 125), // Clear global header height
-          BusinessMenuWidget(
-            selectedIndex: selectedIndex,
-            onTabSelected: (index) {
-              ref.read(businessLocalIndexProvider.notifier).state = index;
-              if (_pageController.hasClients) {
-                _pageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutQuad,
-                );
-              }
-            },
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppBreakpoints.ultraWide),
+          child: Column(
+            children: [
+              const SizedBox(height: 125), // Clear global header height
+              BusinessMenuWidget(
+                selectedIndex: selectedIndex,
+                onTabSelected: (index) {
+                  ref.read(businessLocalIndexProvider.notifier).state = index;
+                  if (_pageController.hasClients) {
+                    _pageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutQuad,
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  physics: const PageScrollPhysics(),
+                  itemCount: 11,
+                  onPageChanged: (index) {
+                    ref.read(businessLocalIndexProvider.notifier).state = index;
+                  },
+                  itemBuilder: (context, index) => _buildBusinessView(index),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              physics: const PageScrollPhysics(),
-              itemCount: 11,
-              onPageChanged: (index) {
-                ref.read(businessLocalIndexProvider.notifier).state = index;
-              },
-              itemBuilder: (context, index) => _buildBusinessView(index),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

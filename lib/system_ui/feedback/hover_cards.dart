@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 /// React-style Component: AppHoverCard
 /// Props: trigger, content
 class AppHoverCard extends StatelessWidget {
   final Widget child; // Trigger
   final Widget content;
-  final ShadHoverCardController? controller;
 
-  const AppHoverCard({
-    super.key,
-    required this.child,
-    required this.content,
-    this.controller,
-  });
+  const AppHoverCard({super.key, required this.child, required this.content});
 
   @override
   Widget build(BuildContext context) {
-    return ShadHoverCard(
-      controller: controller,
-      hoverCard: content,
+    return GestureDetector(
+      onTap: () {
+        showDialog<void>(
+          context: context,
+          builder: (context) => Dialog(
+            child: Padding(padding: const EdgeInsets.all(16), child: content),
+          ),
+        );
+      },
       child: child,
     );
   }

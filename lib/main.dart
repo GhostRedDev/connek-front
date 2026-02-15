@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final appInitProvider = FutureProvider<void>((ref) async {
   // Prevent Font Scaling issues
@@ -45,6 +46,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
+  final prefs = await SharedPreferences.getInstance();
+  final initialTheme = ThemePersistence.decode(
+    prefs.getString(ThemePersistence.prefsKey),
+  );
+
   // LiquidGlassLayer configuration removed due to final field error
   // Using SimpleGlassContainer by default in AppLayout instead.
 
@@ -60,6 +66,11 @@ void main() async {
 
   runApp(
     ProviderScope(
+      overrides: [
+        themeProvider.overrideWith(
+          () => ThemeNotifier(initialTheme: initialTheme),
+        ),
+      ],
       child: DevicePreview(
         enabled: !kReleaseMode,
         builder: (context) => const MyApp(),

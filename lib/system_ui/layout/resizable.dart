@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 /// React-style Component: AppResizablePanel
 /// Props: children, minSizes, maxSizes, direction
@@ -17,12 +16,14 @@ class AppResizablePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadResizablePanelGroup(
-      axis: direction,
-      defaultSizes: defaultSizes,
-      children: children
-          .map((child) => ShadResizablePanel(child: child))
-          .toList(),
-    );
+    final panels = children
+        .map((child) => Expanded(child: child))
+        .toList(growable: false);
+
+    if (direction == Axis.vertical) {
+      return Column(children: panels);
+    }
+
+    return Row(children: panels);
   }
 }

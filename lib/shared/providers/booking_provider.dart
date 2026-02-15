@@ -113,24 +113,16 @@ class BookingController {
     required int businessId,
     required int serviceId,
     required DateTime date,
-<<<<<<< Updated upstream
     int? employeeId,
     Map<String, dynamic>? customFormAnswers,
-=======
-    int? staffId,
->>>>>>> Stashed changes
   }) async {
     final service = ref.read(bookingServiceProvider);
     final success = await service.createClientBooking(
       businessId: businessId,
       serviceId: serviceId,
       date: date,
-<<<<<<< Updated upstream
       employeeId: employeeId,
       customFormAnswers: customFormAnswers,
-=======
-      staffId: staffId,
->>>>>>> Stashed changes
     );
     if (success) {
       ref.invalidate(bookingListProvider('business'));

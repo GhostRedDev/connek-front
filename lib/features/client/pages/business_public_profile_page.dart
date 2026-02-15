@@ -90,17 +90,12 @@ class _BusinessPublicProfilePageState
   }
 
   Future<void> _launchUrl(String url) async {
-<<<<<<< Updated upstream
     try {
       final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       }
     } catch (e) {
-=======
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri)) {
->>>>>>> Stashed changes
       if (mounted) {
         debugPrint('Could not launch $url: $e');
       }
