@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji;
 import '../../settings/providers/profile_provider.dart';
+import '../../../system_ui/core/constants.dart';
 import '../providers/greg_provider.dart';
 
 class GregTestChatPage extends ConsumerStatefulWidget {
@@ -339,7 +341,10 @@ class _GregTestChatPageState extends ConsumerState<GregTestChatPage> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: math.min(
+            MediaQuery.of(context).size.width * 0.75,
+            AppBreakpoints.tablet,
+          ),
         ),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

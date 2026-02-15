@@ -6,6 +6,15 @@ import '../settings/providers/profile_provider.dart';
 import 'services/client_requests_service.dart';
 import 'providers/client_requests_provider.dart';
 
+class CreateRequestPageV2 extends ConsumerWidget {
+  const CreateRequestPageV2({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const CreateRequestPage();
+  }
+}
+
 class CreateRequestPage extends ConsumerStatefulWidget {
   const CreateRequestPage({super.key});
 

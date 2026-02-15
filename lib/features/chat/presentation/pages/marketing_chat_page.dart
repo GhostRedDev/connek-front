@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:connek_frontend/system_ui/core/constants.dart';
 
 import '../providers/marketing_provider.dart';
 import '../../services/marketing_ai_service.dart';
@@ -755,7 +757,10 @@ class _MarketingChatPageState extends ConsumerState<MarketingChatPage> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: math.min(
+            MediaQuery.of(context).size.width * 0.75,
+            AppBreakpoints.tablet,
+          ),
         ),
         decoration: BoxDecoration(
           boxShadow: [

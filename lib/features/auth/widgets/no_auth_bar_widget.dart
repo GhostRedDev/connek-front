@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../home/widgets/login_dropdown_button.dart';
+import '../../home/presentation/widgets/login_dropdown_button.dart';
 
 class NoAuthBarWidget extends StatelessWidget {
   const NoAuthBarWidget({super.key});

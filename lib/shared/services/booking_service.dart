@@ -360,7 +360,7 @@ class BookingService {
         'business_id': businessId,
         'address_id': addressId, // Can be 0 if unknown
         'service_id': serviceId,
-        'start_time_utc': date.toIso8601String(),
+        'start_time_utc': date.toUtc().toIso8601String(),
         if (employeeId != null) 'employee_id': employeeId,
       };
 
@@ -368,9 +368,26 @@ class BookingService {
         fields['custom_form_answers'] = jsonEncode(customFormAnswers);
       }
 
+<<<<<<< HEAD
       await _apiService.postForm('/bookings/create', fields: fields);
 
       return true;
+=======
+      final response = await _apiService.postForm(
+        '/bookings/create',
+        fields: fields,
+      );
+
+      if (response != null && response['success'] == true) {
+        print('✅ CreateClientBooking: Success - Booking created');
+        return true;
+      }
+
+      print(
+        '⚠️ CreateClientBooking: Failed - ${response?['error'] ?? 'Unknown error'}',
+      );
+      return false;
+>>>>>>> 39d300f (Refactor UI components to remove dependency on shadcn_ui and implement custom widgets)
     } catch (e) {
       print('Error creating client booking via API: $e. Using DB Fallback.');
 
@@ -403,6 +420,67 @@ class BookingService {
         print('Direct DB Error creating booking: $dbError');
         return false;
       }
+<<<<<<< HEAD
+=======
+    }
+  }
+
+  /// Update an existing booking
+  /// Supports updating: start_time_utc, service_id, resource_id (staff), status
+  Future<bool> updateBooking({
+    required String bookingId,
+    DateTime? newDate,
+    int? newServiceId,
+    int? newStaffId,
+    String? newStatus,
+  }) async {
+    final numericId = int.tryParse(bookingId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (numericId == null) return false;
+
+    try {
+      final Map<String, dynamic> updateData = {};
+
+      if (newDate != null) {
+        updateData['start_time_utc'] = newDate.toUtc().toIso8601String();
+      }
+
+      if (newServiceId != null) {
+        updateData['service_id'] = newServiceId;
+      }
+
+      if (newStaffId != null) {
+        updateData['resource_id'] = newStaffId;
+      }
+
+      if (newStatus != null) {
+        updateData['status'] = newStatus;
+      }
+
+      if (updateData.isEmpty) {
+        print('⚠️ UpdateBooking: No fields to update');
+        return false;
+      }
+
+      print('📤 UpdateBooking [$numericId]: Sending payload: $updateData');
+
+      final response = await _apiService.putUrlEncoded(
+        '/bookings/$numericId',
+        updateData,
+      );
+
+      if (response != null && response['success'] == true) {
+        print('✅ UpdateBooking [$numericId]: Success');
+        return true;
+      }
+
+      print(
+        '⚠️ UpdateBooking [$numericId]: Failed - ${response?['error'] ?? 'Unknown error'}',
+      );
+      return false;
+    } catch (e) {
+      print('❌ Error updating booking [$numericId]: $e');
+      return false;
+>>>>>>> 39d300f (Refactor UI components to remove dependency on shadcn_ui and implement custom widgets)
     }
   }
 

@@ -107,6 +107,8 @@ class ServiceRequest {
 class Quote {
   final int id;
   final int leadId;
+  final int? businessId;
+  final int? serviceId;
   final double amount;
   final String description;
   final String status;
@@ -116,6 +118,8 @@ class Quote {
   Quote({
     required this.id,
     required this.leadId,
+    this.businessId,
+    this.serviceId,
     required this.amount,
     required this.description,
     required this.status,
@@ -140,6 +144,8 @@ class Quote {
     return Quote(
       id: json['id'] ?? 0,
       leadId: lead['id'] ?? 0,
+      businessId: (lead['business_id'] as int?) ?? (business['id'] as int?),
+      serviceId: (lead['service_id'] as int?) ?? (json['service_id'] as int?),
       amount: safeAmount(json['amount_cents']),
       description: json['description'] ?? '',
       status: json['status'] ?? 'pending',

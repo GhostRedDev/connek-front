@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../system_ui/core/constants.dart';
 
 import 'widgets/profile_menu_widget.dart';
 import 'widgets/settings_view.dart';
@@ -237,314 +238,341 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final textColor = isDark ? Colors.white : const Color(0xFF1A1D1E);
     final labelColor = isDark ? Colors.grey[400] : const Color(0xFF6B7280);
 
-    return SingleChildScrollView(
-      // Padding 0 at top allows Banner to be behind the Translucent AppBar
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Spacer for Global AppBar (120px) + Extra
-            // But we WANT the banner to be behind it.
-            // So we put the Banner first, and ensure it has height.
-            // The Banner widget is constrained to height 220.
-            // It will sit at top (0,0).
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppBreakpoints.laptop),
+        child: SingleChildScrollView(
+          // Padding 0 at top allows Banner to be behind the Translucent AppBar
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Spacer for Global AppBar (120px) + Extra
+                // But we WANT the banner to be behind it.
+                // So we put the Banner first, and ensure it has height.
+                // The Banner widget is constrained to height 220.
+                // It will sit at top (0,0).
 
-            // Banner + Avatar Section
-            SizedBox(
-              height: 280, // Increased height to accommodate AppBar overlay
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.bottomCenter,
-                children: [
-                  // Banner (Full width, top aligned)
-                  Positioned(
-                    top: 0,
-                    left: -20, // Negate parent padding to stretch full width
-                    right: -20,
-                    height: 200, // Taller banner to be visible behind AppBar
-                    child: GestureDetector(
-                      onTap: () => _pickImage(true),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          image:
-                              (user.bannerUrl != null &&
-                                  user.bannerUrl!.isNotEmpty)
-                              ? DecorationImage(
-                                  image: CachedNetworkImageProvider(
-                                    user.bannerUrl!,
+                // Banner + Avatar Section
+                SizedBox(
+                  height: 280, // Increased height to accommodate AppBar overlay
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      // Banner (Full width, top aligned)
+                      Positioned(
+                        top: 0,
+                        left:
+                            -20, // Negate parent padding to stretch full width
+                        right: -20,
+                        height:
+                            200, // Taller banner to be visible behind AppBar
+                        child: GestureDetector(
+                          onTap: () => _pickImage(true),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              image:
+                                  (user.bannerUrl != null &&
+                                      user.bannerUrl!.isNotEmpty)
+                                  ? DecorationImage(
+                                      image: CachedNetworkImageProvider(
+                                        user.bannerUrl!,
+                                      ),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                              gradient:
+                                  (user.bannerUrl == null ||
+                                      user.bannerUrl!.isEmpty)
+                                  ? const LinearGradient(
+                                      colors: [
+                                        Color(0xFF0052D4),
+                                        Color(0xFF4364F7),
+                                        Color(0xFF6FB1FC),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : null,
+                            ),
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  bottom: 12,
+                                  right: 24, // Adjusted for padding
+                                  child: _buildCircleIconButton(
+                                    icon: Icons.camera_alt_outlined,
+                                    onTap: () => _pickImage(true),
+                                    isDark: isDark,
                                   ),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                          gradient:
-                              (user.bannerUrl == null ||
-                                  user.bannerUrl!.isEmpty)
-                              ? const LinearGradient(
-                                  colors: [
-                                    Color(0xFF0052D4),
-                                    Color(0xFF4364F7),
-                                    Color(0xFF6FB1FC),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                              : null,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              bottom: 12,
-                              right: 24, // Adjusted for padding
-                              child: _buildCircleIconButton(
-                                icon: Icons.camera_alt_outlined,
-                                onTap: () => _pickImage(true),
-                                isDark: isDark,
+                      ),
+
+                      // Avatar
+                      Positioned(
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: () => _pickImage(false),
+                          child: Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).scaffoldBackgroundColor,
+                                width: 4,
+                              ),
+                              color: Colors.grey[300],
+                              image:
+                                  (user.photoId != null &&
+                                      user.photoId!.isNotEmpty)
+                                  ? DecorationImage(
+                                      image: CachedNetworkImageProvider(
+                                        user.photoId!,
+                                      ),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : const DecorationImage(
+                                      image: AssetImage(
+                                        'assets/images/Perfil.png',
+                                      ),
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                            child: Align(
+                              alignment: Alignment.bottomRight,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.blueAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                ),
 
-                  // Avatar
-                  Positioned(
-                    bottom: 0,
-                    child: GestureDetector(
-                      onTap: () => _pickImage(false),
+                const SizedBox(height: 10),
+
+                // Profile Menu Tabs (Moved here from fixed header)
+                ProfileMenuWidget(
+                  currentSection: _currentSection,
+                  onSectionSelected: (section) {
+                    setState(() {
+                      _currentSection = section;
+                    });
+                  },
+                  isBusiness:
+                      false, // user.hasBusiness ?? false check logic from before
+                ),
+
+                const SizedBox(height: 20),
+
+                // Title and Info
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        "Editar perfil",
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Actualiza tu información",
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Fields
+                _buildLabel("Información básica", textColor, isHeader: true),
+                const SizedBox(height: 16),
+
+                _buildLabel("Nombre de la empresa / Usuario", labelColor),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernInput(
+                        _nameController,
+                        "Nombre",
+                        inputFillColor,
+                        textColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernInput(
+                        _lastNameController,
+                        "Apellido",
+                        inputFillColor,
+                        textColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                _buildLabel("Descripción (Bio)", labelColor),
+                const SizedBox(height: 8),
+                _buildModernInput(
+                  _aboutController,
+                  "Biografía...",
+                  inputFillColor,
+                  textColor,
+                  maxLines: 4,
+                ),
+
+                if (user.hasBusiness) ...[
+                  const SizedBox(height: 30),
+                  _buildLabel(
+                    "Información del Negocio",
+                    textColor,
+                    isHeader: true,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Business Image
+                  if (user.businessProfileImage != null)
+                    Center(
                       child: Container(
-                        width: 110,
-                        height: 110,
+                        width: 100,
+                        height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: NetworkImage(user.businessProfileImage!),
+                            fit: BoxFit.cover,
+                          ),
                           border: Border.all(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            width: 4,
-                          ),
-                          color: Colors.grey[300],
-                          image:
-                              (user.photoId != null && user.photoId!.isNotEmpty)
-                              ? DecorationImage(
-                                  image: CachedNetworkImageProvider(
-                                    user.photoId!,
-                                  ),
-                                  fit: BoxFit.cover,
-                                )
-                              : const DecorationImage(
-                                  image: AssetImage('assets/images/Perfil.png'),
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                        child: Align(
-                          alignment: Alignment.bottomRight,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: Colors.blueAccent,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 14,
-                              color: Colors.white,
-                            ),
+                            color: Colors.grey[300]!,
+                            width: 2,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Profile Menu Tabs (Moved here from fixed header)
-            ProfileMenuWidget(
-              currentSection: _currentSection,
-              onSectionSelected: (section) {
-                setState(() {
-                  _currentSection = section;
-                });
-              },
-              isBusiness:
-                  false, // user.hasBusiness ?? false check logic from before
-            ),
-
-            const SizedBox(height: 20),
-
-            // Title and Info
-            Center(
-              child: Column(
-                children: [
-                  Text(
-                    "Editar perfil",
-                    style: GoogleFonts.inter(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Actualiza tu información",
-                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Fields
-            _buildLabel("Información básica", textColor, isHeader: true),
-            const SizedBox(height: 16),
-
-            _buildLabel("Nombre de la empresa / Usuario", labelColor),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildModernInput(
-                    _nameController,
-                    "Nombre",
-                    inputFillColor,
-                    textColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildModernInput(
-                    _lastNameController,
-                    "Apellido",
-                    inputFillColor,
-                    textColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            _buildLabel("Descripción (Bio)", labelColor),
-            const SizedBox(height: 8),
-            _buildModernInput(
-              _aboutController,
-              "Biografía...",
-              inputFillColor,
-              textColor,
-              maxLines: 4,
-            ),
-
-            if (user.hasBusiness) ...[
-              const SizedBox(height: 30),
-              _buildLabel("Información del Negocio", textColor, isHeader: true),
-              const SizedBox(height: 16),
-
-              // Business Image
-              if (user.businessProfileImage != null)
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
+                  const SizedBox(height: 12),
+                  _buildLabel("Nombre de la Empresa", labelColor),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: NetworkImage(user.businessProfileImage!),
-                        fit: BoxFit.cover,
-                      ),
-                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                      color: inputFillColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      user.businessName ?? 'Sin nombre',
+                      style: TextStyle(color: textColor, fontSize: 16),
                     ),
                   ),
-                ),
-              const SizedBox(height: 12),
-              _buildLabel("Nombre de la Empresa", labelColor),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: inputFillColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  user.businessName ?? 'Sin nombre',
-                  style: TextStyle(color: textColor, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Para editar los datos del negocio, ve a la sección 'Mi Negocio'.",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-
-            const SizedBox(height: 30),
-
-            _buildLabel("Información de contacto", textColor, isHeader: true),
-            const SizedBox(height: 16),
-
-            _buildLabel("Número de teléfono", labelColor),
-            const SizedBox(height: 8),
-            _buildModernInput(
-              _phoneController,
-              "+58...",
-              inputFillColor,
-              textColor,
-              prefixIcon: Icons.phone_outlined,
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildLabel("Correo electrónico", labelColor),
-            const SizedBox(height: 8),
-            _buildModernInput(
-              _emailController,
-              "email@example.com",
-              inputFillColor,
-              textColor,
-              prefixIcon: Icons.email_outlined,
-            ),
-
-            const SizedBox(height: 40),
-
-            // Actions
-            Row(
-              children: [
-                _buildCircleButton(
-                  icon: Icons.arrow_back,
-                  onTap: () => context.go('/'),
-                  color: isDark ? Colors.white12 : Colors.grey[200]!,
-                  iconColor: textColor,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF111827),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text("Actualizar perfil"),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Para editar los datos del negocio, ve a la sección 'Mi Negocio'.",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
+                ],
+
+                const SizedBox(height: 30),
+
+                _buildLabel(
+                  "Información de contacto",
+                  textColor,
+                  isHeader: true,
                 ),
+                const SizedBox(height: 16),
+
+                _buildLabel("Número de teléfono", labelColor),
+                const SizedBox(height: 8),
+                _buildModernInput(
+                  _phoneController,
+                  "+58...",
+                  inputFillColor,
+                  textColor,
+                  prefixIcon: Icons.phone_outlined,
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildLabel("Correo electrónico", labelColor),
+                const SizedBox(height: 8),
+                _buildModernInput(
+                  _emailController,
+                  "email@example.com",
+                  inputFillColor,
+                  textColor,
+                  prefixIcon: Icons.email_outlined,
+                ),
+
+                const SizedBox(height: 40),
+
+                // Actions
+                Row(
+                  children: [
+                    _buildCircleButton(
+                      icon: Icons.arrow_back,
+                      onTap: () => context.go('/'),
+                      color: isDark ? Colors.white12 : Colors.grey[200]!,
+                      iconColor: textColor,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF111827),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text("Actualizar perfil"),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
               ],
             ),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );

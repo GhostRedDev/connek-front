@@ -9,6 +9,7 @@ import 'widgets/office_my_bots_widget.dart';
 import 'widgets/office_marketplace_widget.dart';
 import 'widgets/office_resources_widget.dart';
 import 'staff/staff_management_page.dart';
+import '../../system_ui/core/constants.dart';
 
 class OfficePage extends ConsumerStatefulWidget {
   const OfficePage({super.key});
@@ -62,44 +63,52 @@ class _OfficePageState extends ConsumerState<OfficePage> {
       body: Container(
         color: backgroundColor,
         child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(
-                height: 115,
-              ), // Increased to clear the taller Glass Header (125px)
-              // TOP MENU
-              OfficeMenuWidget(
-                selectedIndex: selectedIndex,
-                onTabSelected: (index) {
-                  ref
-                      .read(officeSelectedIndexProvider.notifier)
-                      .updateIndex(index);
-                },
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.ultraWide,
               ),
+              child: Column(
+                children: [
+                  const SizedBox(
+                    height: 115,
+                  ), // Increased to clear the taller Glass Header (125px)
+                  // TOP MENU
+                  OfficeMenuWidget(
+                    selectedIndex: selectedIndex,
+                    onTabSelected: (index) {
+                      ref
+                          .read(officeSelectedIndexProvider.notifier)
+                          .updateIndex(index);
+                    },
+                  ),
 
-              // CONTENT AREA
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  switchInCurve: Curves.easeOutQuad,
-                  switchOutCurve: Curves.easeInQuad,
-                  transitionBuilder: (child, animation) {
-                    final offsetAnimation = Tween<Offset>(
-                      begin: const Offset(0.03, 0.0),
-                      end: Offset.zero,
-                    ).animate(animation);
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: offsetAnimation,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: _buildOfficeView(selectedIndex),
-                ),
+                  // CONTENT AREA
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      switchInCurve: Curves.easeOutQuad,
+                      switchOutCurve: Curves.easeInQuad,
+                      transitionBuilder: (child, animation) {
+                        final offsetAnimation = Tween<Offset>(
+                          begin: const Offset(0.03, 0.0),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _buildOfficeView(selectedIndex),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

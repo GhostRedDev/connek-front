@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/locale_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../system_ui/core/constants.dart';
+import 'widgets/auth_desktop_split.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -60,6 +62,23 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final isDesktop = MediaQuery.sizeOf(context).width >= AppBreakpoints.laptop;
+
+    if (isDesktop) {
+      return GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: AuthDesktopSplit(
+            left: _buildRegisterForm(t: t, densePadding: true),
+            headline: 'Crea tu cuenta',
+            description:
+                'Regístrate en Connek y empieza a conectar con clientes y servicios.',
+          ),
+        ),
+      );
+    }
 
     // Light/Dark mode specific assets and colors
     final bgImage = isDark
@@ -142,240 +161,217 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               ),
             ),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 20),
-                      Text(
-                        t['register_title_create_account'] ??
-                            'Create an account',
-                        style: GoogleFonts.outfit(
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+            SliverToBoxAdapter(child: _buildRegisterForm(t: t)),
+          ],
+        ),
+      ),
+    );
+  }
 
-                      // Name Fields
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              context,
-                              controller: _firstNameController,
-                              label:
-                                  t['register_label_firstname'] ?? 'First Name',
-                              hint:
-                                  t['register_hint_firstname'] ?? 'First Name',
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildTextField(
-                              context,
-                              controller: _lastNameController,
-                              label:
-                                  t['register_label_lastname'] ?? 'Last Name',
-                              hint: t['register_hint_lastname'] ?? 'Last Name',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+  Widget _buildRegisterForm({required Map t, bool densePadding = false}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: densePadding ? 0 : 16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            Text(
+              t['register_title_create_account'] ?? 'Create an account',
+              style: GoogleFonts.outfit(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 22,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
 
-                      // Contact Fields
-                      _buildTextField(
-                        context,
-                        controller: _emailController,
-                        label: 'Email',
-                        hint: t['email_hint'] ?? 'Enter your email',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        context,
-                        controller: _phoneController,
-                        label: t['register_label_phone'] ?? 'Phone',
-                        hint: t['register_hint_phone'] ?? 'Enter your phone',
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    context,
+                    controller: _firstNameController,
+                    label: t['register_label_firstname'] ?? 'First Name',
+                    hint: t['register_hint_firstname'] ?? 'First Name',
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildTextField(
+                    context,
+                    controller: _lastNameController,
+                    label: t['register_label_lastname'] ?? 'Last Name',
+                    hint: t['register_hint_lastname'] ?? 'Last Name',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-                      // Date of Birth
-                      Text(
-                        t['register_label_dob'] ?? 'Date of Birth',
-                        style: GoogleFonts.inter(
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: _buildTextField(
-                              context,
-                              controller: _yearController,
-                              hint: t['register_hint_year'] ?? 'Year',
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildTextField(
-                              context,
-                              controller: _monthController,
-                              hint: t['register_hint_month'] ?? 'Month',
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildTextField(
-                              context,
-                              controller: _dayController,
-                              hint: t['register_hint_day'] ?? 'Day',
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+            _buildTextField(
+              context,
+              controller: _emailController,
+              label: 'Email',
+              hint: t['email_hint'] ?? 'Enter your email',
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              context,
+              controller: _phoneController,
+              label: t['register_label_phone'] ?? 'Phone',
+              hint: t['register_hint_phone'] ?? 'Enter your phone',
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 16),
 
-                      // Password Fields
-                      _buildTextField(
-                        context,
-                        controller: _passwordController,
-                        label: t['password_label'] ?? 'Password',
-                        hint: t['password_hint'] ?? 'Password',
-                        obscureText: !_passwordVisible,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _passwordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.grey,
-                          ),
-                          onPressed: () => setState(
-                            () => _passwordVisible = !_passwordVisible,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        context,
-                        controller: _confirmPasswordController,
-                        label:
-                            t['register_label_confirm_password'] ??
-                            'Confirm Password',
-                        hint:
-                            t['register_hint_confirm_password'] ??
-                            'Confirm Password',
-                        obscureText: !_confirmPasswordVisible,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _confirmPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.grey,
-                          ),
-                          onPressed: () => setState(
-                            () => _confirmPasswordVisible =
-                                !_confirmPasswordVisible,
-                          ),
-                        ),
-                      ),
+            Text(
+              t['register_label_dob'] ?? 'Date of Birth',
+              style: GoogleFonts.inter(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: _buildTextField(
+                    context,
+                    controller: _yearController,
+                    hint: t['register_hint_year'] ?? 'Year',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildTextField(
+                    context,
+                    controller: _monthController,
+                    hint: t['register_hint_month'] ?? 'Month',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildTextField(
+                    context,
+                    controller: _dayController,
+                    hint: t['register_hint_day'] ?? 'Day',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-                      const SizedBox(height: 24),
+            _buildTextField(
+              context,
+              controller: _passwordController,
+              label: t['password_label'] ?? 'Password',
+              hint: t['password_hint'] ?? 'Password',
+              obscureText: !_passwordVisible,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () =>
+                    setState(() => _passwordVisible = !_passwordVisible),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              context,
+              controller: _confirmPasswordController,
+              label: t['register_label_confirm_password'] ?? 'Confirm Password',
+              hint: t['register_hint_confirm_password'] ?? 'Confirm Password',
+              obscureText: !_confirmPasswordVisible,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _confirmPasswordVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(
+                  () => _confirmPasswordVisible = !_confirmPasswordVisible,
+                ),
+              ),
+            ),
 
-                      // Register Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _handleRegister,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4F87C9),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                          ),
-                          child: Text(
-                            t['register_button_create'] ?? 'Create account',
-                            style: GoogleFonts.outfit(
-                              fontSize: 16,
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ),
+            const SizedBox(height: 24),
 
-                      const SizedBox(height: 30),
-
-                      const SizedBox(height: 30),
-
-                      // Social Sign Up
-                      Center(
-                        child: Text(
-                          t['register_social_or'] ?? 'Or sign up with',
-                          style: TextStyle(
-                            color: Theme.of(context).disabledColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _socialButton(
-                            context,
-                            Icons.g_mobiledata,
-                            'Google',
-                            _googleSignIn,
-                          ),
-                          const SizedBox(width: 20),
-                          _socialButton(context, Icons.apple, 'Apple', () {}),
-                        ],
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Login Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            t['register_text_already_account'] ??
-                                'Already have an account? ',
-                            style: TextStyle(
-                              color: Theme.of(context).disabledColor,
-                            ),
-                          ),
-                          InkWell(
-                            onTap: () => context.go('/login'),
-                            child: Text(
-                              t['register_link_login'] ?? 'Log in now',
-                              style: TextStyle(
-                                color: const Color(0xFF4F87C9),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 40),
-                    ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _handleRegister,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F87C9),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                ),
+                child: Text(
+                  t['register_button_create'] ?? 'Create account',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ),
             ),
+
+            const SizedBox(height: 30),
+
+            Center(
+              child: Text(
+                t['register_social_or'] ?? 'Or sign up with',
+                style: TextStyle(color: Theme.of(context).disabledColor),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _socialButton(
+                  context,
+                  Icons.g_mobiledata,
+                  'Google',
+                  _googleSignIn,
+                ),
+                const SizedBox(width: 20),
+                _socialButton(context, Icons.apple, 'Apple', () {}),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  t['register_text_already_account'] ??
+                      'Already have an account? ',
+                  style: TextStyle(color: Theme.of(context).disabledColor),
+                ),
+                InkWell(
+                  onTap: () => context.go('/login'),
+                  child: Text(
+                    t['register_link_login'] ?? 'Log in now',
+                    style: const TextStyle(
+                      color: Color(0xFF4F87C9),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),

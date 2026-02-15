@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:connek_frontend/system_ui/core/constants.dart';
 
 import '../providers/chat_provider.dart';
 import '../../../call/services/call_service.dart';
@@ -602,7 +604,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 8, top: 2),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: math.min(
+            MediaQuery.of(context).size.width * 0.75,
+            AppBreakpoints.tablet,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 /// React-style Component: AppProgress
 /// Props: value (0.0 to 1.0), label, valueLabel
@@ -21,12 +20,28 @@ class AppProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadProgress(
-      value: value,
-      label: label,
-      valueLabel: valueLabel,
+    final indicator = LinearProgressIndicator(
+      value: value.clamp(0.0, 1.0),
       backgroundColor: backgroundColor,
       color: color,
+      minHeight: 8,
+      borderRadius: BorderRadius.circular(999),
+    );
+
+    if (label == null && valueLabel == null) return indicator;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            if (label != null) Expanded(child: label!),
+            if (valueLabel != null) valueLabel!,
+          ],
+        ),
+        const SizedBox(height: 8),
+        indicator,
+      ],
     );
   }
 }

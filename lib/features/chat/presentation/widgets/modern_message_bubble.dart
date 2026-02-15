@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:connek_frontend/system_ui/core/constants.dart';
 
 /// Modern Message Bubble with shadcn-inspired design
 /// Supports: Text, Images, Videos, Audio, Documents, Files
@@ -96,7 +98,10 @@ class _ModernMessageBubbleState extends State<ModernMessageBubble> {
                       // Message bubble
                       Container(
                         constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                          maxWidth: math.min(
+                            MediaQuery.of(context).size.width * 0.75,
+                            AppBreakpoints.tablet,
+                          ),
                         ),
                         decoration: BoxDecoration(
                           gradient: widget.isMe

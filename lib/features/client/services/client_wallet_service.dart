@@ -106,4 +106,54 @@ class ClientWalletService {
     );
     return response['data']['url'];
   }
+
+  Future<int> chargePurchase({
+    required int clientId,
+    required int businessId,
+    required int amountCents,
+    required int paymentMethodId,
+    int? serviceId,
+    required String description,
+  }) async {
+    final response = await _apiService.post(
+      '/payments/charge',
+      body: {
+        'client_id': clientId,
+        'business_id': businessId,
+        'service_id': serviceId,
+        'amount_cents': amountCents,
+        'payment_method_id': paymentMethodId,
+        'description': description,
+      },
+    );
+
+    if (response['success'] == true && response['data'] != null) {
+      return (response['data']['transaction_id'] as num).toInt();
+    }
+
+    throw Exception(response['error'] ?? 'Payment failed');
+  }
+
+  Future<int> transferInternal({
+    required int senderClientId,
+    required int receiverClientId,
+    required int amountCents,
+    String? description,
+  }) async {
+    final response = await _apiService.post(
+      '/payments/transfer',
+      body: {
+        'sender_client_id': senderClientId,
+        'receiver_client_id': receiverClientId,
+        'amount_cents': amountCents,
+        'description': description,
+      },
+    );
+
+    if (response['success'] == true && response['data'] != null) {
+      return (response['data']['transaction_id'] as num).toInt();
+    }
+
+    throw Exception(response['error'] ?? 'Transfer failed');
+  }
 }

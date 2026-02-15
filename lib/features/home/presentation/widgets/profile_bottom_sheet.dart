@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../../core/providers/theme_provider.dart';
-import '../../settings/providers/profile_provider.dart';
-import '../../auth/widgets/auth_success_overlay.dart';
+import '../../../settings/providers/profile_provider.dart';
+import '../../../auth/widgets/auth_success_overlay.dart';
 
 // Design System Components (React-style)
 import '../../../../system_ui/utils/theme_toggle.dart';
@@ -141,11 +141,11 @@ class ProfileBottomSheet extends ConsumerWidget {
                 ),
               ),
               ShadButton.outline(
-                icon: const Icon(Icons.settings, size: 16),
                 onPressed: () {
                   Navigator.of(context).pop();
                   context.push('/profile?tab=settings');
                 },
+                child: const Icon(Icons.settings, size: 16),
               ),
             ],
           ),

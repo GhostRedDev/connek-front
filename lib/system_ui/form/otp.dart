@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 /// React-style Component: AppInputOTP
 /// Props: value, onValueChange, maxLength
@@ -17,10 +16,13 @@ class AppInputOTP extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadInputOTP(
-      value: value,
+    return TextField(
+      controller: TextEditingController(text: value)
+        ..selection = TextSelection.collapsed(offset: value.length),
       maxLength: maxLength,
+      keyboardType: TextInputType.number,
       onChanged: onValueChange,
+      decoration: const InputDecoration(counterText: ''),
     );
   }
 }

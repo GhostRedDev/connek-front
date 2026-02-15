@@ -18,6 +18,7 @@ import '../../core/providers/user_mode_provider.dart'; // Added
 import '../../features/business/presentation/providers/business_provider.dart'; // Added
 
 import '../../core/providers/locale_provider.dart'; // Added for Localization
+import '../../system_ui/core/constants.dart';
 
 final navbarVisibilityProvider = StateProvider<bool>(
   (ref) => true,
@@ -636,6 +637,30 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
             !isSearchView &&
             !isBusinessProfile;
 
+        final bool isHomeView = location == '/';
+        final bool isGregChatFullScreen = location.startsWith('/greg-chat');
+        final bool isMarketingChatFullScreen = location.startsWith(
+          '/marketing-chat',
+        );
+        final bool isAIAssistantsFullScreen = location.startsWith(
+          '/ai-assistants',
+        );
+        final bool isStripeSuccessFullScreen = location.startsWith(
+          '/stripe-success',
+        );
+
+        // Constrain content width on desktop for better readability.
+        // Keep full-bleed experiences un-constrained (home/search/chats and a few fullscreen routes).
+        final bool shouldConstrainContent =
+            isDesktop &&
+            !isHomeView &&
+            !isSearchView &&
+            !isChatView &&
+            !isGregChatFullScreen &&
+            !isMarketingChatFullScreen &&
+            !isAIAssistantsFullScreen &&
+            !isStripeSuccessFullScreen;
+
         return DefaultTabController(
           // Key ensures controller is recreated if tabs configuration changes (e.g. different route)
           key: ValueKey(
@@ -662,7 +687,17 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
                               ? 0
                               : (activeConfig.height ?? 0),
                         ),
-                        child: widget.child,
+                        child: shouldConstrainContent
+                            ? Align(
+                                alignment: Alignment.topCenter,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: AppBreakpoints.ultraWide,
+                                  ),
+                                  child: widget.child,
+                                ),
+                              )
+                            : widget.child,
                       ),
 
                       // AppBar moderno (Top)

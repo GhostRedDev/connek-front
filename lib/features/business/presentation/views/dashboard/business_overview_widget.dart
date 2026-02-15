@@ -9,6 +9,7 @@ import 'sections/business_leads_section.dart';
 import 'sections/business_events_section.dart';
 import 'sections/business_employees_section.dart';
 import 'sections/business_services_section.dart';
+import '../finances/business_accounting_widget.dart';
 
 class BusinessOverviewWidget extends ConsumerWidget {
   const BusinessOverviewWidget({super.key});
@@ -89,6 +90,10 @@ class BusinessOverviewWidget extends ConsumerWidget {
                   const SizedBox(height: 20),
                   BusinessServicesSection(services: data.services, t: t),
                 ],
+
+                const SizedBox(height: 24),
+                const BusinessAccountingContent(),
+
                 const SizedBox(height: 20),
               ],
             ),

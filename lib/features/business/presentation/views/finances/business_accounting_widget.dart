@@ -51,6 +51,23 @@ class BusinessAccountingWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: const BusinessAccountingContent(includeBottomPadding: true),
+    );
+  }
+}
+
+class BusinessAccountingContent extends ConsumerWidget {
+  const BusinessAccountingContent({
+    super.key,
+    this.includeBottomPadding = false,
+  });
+
+  final bool includeBottomPadding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final selectedPeriod = ref.watch(accountingPeriodProvider);
     final statsAsyncValue = ref.watch(
       businessFinancialStatsProvider(selectedPeriod),
@@ -59,328 +76,311 @@ class BusinessAccountingWidget extends ConsumerWidget {
     final tAsync = ref.watch(translationProvider);
     final t = tAsync.value ?? {};
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. HEADER & PERIOD FILTER
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                t['business_accounting_title'] ?? 'Resumen Financiero',
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. HEADER & PERIOD FILTER
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              t['business_accounting_title'] ?? 'Resumen Financiero',
+              style: GoogleFonts.outfit(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-              IconButton(
-                onPressed: () async {
-                  final result = await showDialog(
-                    context: context,
-                    builder: (_) => const AddManualTransactionDialog(),
-                  );
-                  if (result == true) {
-                    ref.invalidate(businessFinancialStatsProvider);
-                  }
-                },
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.add, color: Theme.of(context).primaryColor),
+            ),
+            IconButton(
+              onPressed: () async {
+                final result = await showDialog(
+                  context: context,
+                  builder: (_) => const AddManualTransactionDialog(),
+                );
+                if (result == true) {
+                  ref.invalidate(businessFinancialStatsProvider);
+                }
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(Icons.add, color: Theme.of(context).primaryColor),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Time Filter Scrollable List
+        SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _TimeFilterChip(
+                label: t['business_period_daily'] ?? 'Diario',
+                value: 'Dia',
+                groupValue: selectedPeriod,
+              ),
+              _TimeFilterChip(
+                label: t['business_period_3days'] ?? '3 Días',
+                value: '3D',
+                groupValue: selectedPeriod,
+              ),
+              _TimeFilterChip(
+                label: t['business_period_weekly'] ?? 'Semanal',
+                value: 'Sem',
+                groupValue: selectedPeriod,
+              ),
+              _TimeFilterChip(
+                label: t['business_period_monthly'] ?? 'Mensual',
+                value: 'Men',
+                groupValue: selectedPeriod,
+              ),
+              _TimeFilterChip(
+                label: t['business_period_quarterly'] ?? 'Trimestral',
+                value: 'Tri',
+                groupValue: selectedPeriod,
+              ),
+              _TimeFilterChip(
+                label: t['business_period_biannual'] ?? 'Semestral',
+                value: '6M',
+                groupValue: selectedPeriod,
+              ),
+              _TimeFilterChip(
+                label: t['business_period_annual'] ?? 'Anual',
+                value: 'Ano',
+                groupValue: selectedPeriod,
               ),
             ],
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 24),
 
-          // Time Filter Scrollable List
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _TimeFilterChip(
-                  label: t['business_period_daily'] ?? 'Diario',
-                  value: 'Dia',
-                  groupValue: selectedPeriod,
-                ),
-                _TimeFilterChip(
-                  label: t['business_period_3days'] ?? '3 Días',
-                  value: '3D',
-                  groupValue: selectedPeriod,
-                ),
-                _TimeFilterChip(
-                  label: t['business_period_weekly'] ?? 'Semanal',
-                  value: 'Sem',
-                  groupValue: selectedPeriod,
-                ),
-                _TimeFilterChip(
-                  label: t['business_period_monthly'] ?? 'Mensual',
-                  value: 'Men',
-                  groupValue: selectedPeriod,
-                ),
-                _TimeFilterChip(
-                  label: t['business_period_quarterly'] ?? 'Trimestral',
-                  value: 'Tri',
-                  groupValue: selectedPeriod,
-                ),
-                _TimeFilterChip(
-                  label: t['business_period_biannual'] ?? 'Semestral',
-                  value: '6M',
-                  groupValue: selectedPeriod,
-                ),
-                _TimeFilterChip(
-                  label: t['business_period_annual'] ?? 'Anual',
-                  value: 'Ano',
-                  groupValue: selectedPeriod,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // 2. CHART SECTION
-          statsAsyncValue.when(
-            data: (stats) => Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 350,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1D21) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Legends
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          _LegendItem(
-                            color: const Color(0xFF02d39a),
-                            label: t['business_chart_income'] ?? 'Ingresos',
-                          ),
-                          const SizedBox(width: 16),
-                          _LegendItem(
-                            color: const Color(0xFFFF5252),
-                            label: t['business_chart_expenses'] ?? 'Gastos',
-                          ),
-                        ],
-                      ),
-                      Expanded(
-                        child: BusinessFinancialChart(
-                          period: selectedPeriod,
-                          incomeSpots: stats.incomeSpots,
-                          expenseSpots: stats.expenseSpots,
-                          labels: stats.labels,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Income Categories
-                if (stats.incomeByCategory.isNotEmpty) ...[
-                  Text(
-                    t['business_income_sources_title'] ?? 'Fuentes de Ingreso',
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+        // 2. CHART SECTION
+        statsAsyncValue.when(
+          data: (stats) => Column(
+            children: [
+              Container(
+                width: double.infinity,
+                height: 350,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1A1D21) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...stats.incomeByCategory.entries.map((e) {
-                    final total = stats.stats.totalIncome > 0
-                        ? stats.stats.totalIncome
-                        : 1.0;
-                    final pct = e.value / total;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                e.key,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                '\$${e.value.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          LinearProgressIndicator(
-                            value: pct,
-                            backgroundColor: Colors.grey.withOpacity(0.1),
-                            color: const Color(0xFF02d39a),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ],
+                  ],
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Legends
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _LegendItem(
+                          color: const Color(0xFF02d39a),
+                          label: t['business_chart_income'] ?? 'Ingresos',
+                        ),
+                        const SizedBox(width: 16),
+                        _LegendItem(
+                          color: const Color(0xFFFF5252),
+                          label: t['business_chart_expenses'] ?? 'Gastos',
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: BusinessFinancialChart(
+                        period: selectedPeriod,
+                        incomeSpots: stats.incomeSpots,
+                        expenseSpots: stats.expenseSpots,
+                        labels: stats.labels,
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 24),
-                ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                const SizedBox(height: 24),
-
-                // Projections & Wallet
+              // Income Categories
+              if (stats.incomeByCategory.isNotEmpty) ...[
                 Text(
-                  t['business_projections_title'] ?? 'Proyecciones y Flujo',
+                  t['business_income_sources_title'] ?? 'Fuentes de Ingreso',
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        t['business_projections_pending'] ?? 'Por Cerrar',
-                        '\$${stats.stats.potentialRevenue.toStringAsFixed(2)}',
-                        Icons.pending_actions,
-                        Colors.orange,
-                      ),
+                ...stats.incomeByCategory.entries.map((e) {
+                  final total = stats.stats.totalIncome > 0
+                      ? stats.stats.totalIncome
+                      : 1.0;
+                  final pct = e.value / total;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              e.key,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '\$${e.value.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: pct,
+                          backgroundColor: Colors.grey.withOpacity(0.1),
+                          color: const Color(0xFF02d39a),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        t['business_projections_lost'] ?? 'Dinero Perdido',
-                        '\$${stats.stats.lostRevenue.toStringAsFixed(2)}',
-                        Icons.money_off,
-                        Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildStatCard(
-                  context,
-                  t['business_stats_wallet_injections'] ?? 'Ingresos a Wallet',
-                  '\$${stats.stats.walletInjections.toStringAsFixed(2)}',
-                  Icons.account_balance_wallet,
-                  Colors.blue,
-                ),
-
+                  );
+                }),
                 const SizedBox(height: 24),
-
-                // 3. STATS CARDS (GRID)
-                // 3. STATS CARDS (GRID)
-                GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.4,
-                  children: [
-                    _StatCard(
-                      title:
-                          t['business_stats_total_income'] ??
-                          'Ingresos Totales',
-                      value: '\$${stats.stats.totalIncome.toStringAsFixed(2)}',
-                      trend:
-                          '${stats.stats.incomeGrowth >= 0 ? "+" : ""}${stats.stats.incomeGrowth.toStringAsFixed(1)}%',
-                      isPositive: stats.stats.incomeGrowth >= 0,
-                      icon: Icons.attach_money,
-                      color: Colors.green,
-                    ),
-                    _StatCard(
-                      title: t['business_stats_expenses'] ?? 'Gastos',
-                      value: '\$${stats.stats.totalExpense.toStringAsFixed(2)}',
-                      trend:
-                          '${stats.stats.expenseGrowth >= 0 ? "+" : ""}${stats.stats.expenseGrowth.toStringAsFixed(1)}%',
-                      isPositive:
-                          stats.stats.expenseGrowth <=
-                          0, // Lower expense growth is good, usually. But for visual red/green trend label logic:
-                      // If expense grew (+), it's "Negative" (Red). If expense shrank (-), it's "Positive" (Green).
-                      // We'll trust the visual helper to handle color based on `isPositive`.
-                      icon: Icons.trending_down,
-                      color: Colors.redAccent,
-                    ),
-                    _StatCard(
-                      title: t['business_stats_net_profit'] ?? 'Ganancia Neta',
-                      value: '\$${stats.stats.profit.toStringAsFixed(2)}',
-                      trend:
-                          '${stats.stats.margin.toStringAsFixed(1)}% ${(t['business_stats_margin'] ?? 'Margen')}',
-                      isPositive: stats.stats.profit >= 0,
-                      icon: Icons.pie_chart,
-                      color: Colors.blueAccent,
-                    ),
-                    _StatCard(
-                      title:
-                          t['business_stats_avg_ticket'] ?? 'Ticket Promedio',
-                      value:
-                          '\$${stats.stats.averageTicket.toStringAsFixed(2)}',
-                      isPositive: true,
-                      icon: Icons.receipt_long,
-                      color: Colors.orangeAccent,
-                    ),
-                    _StatCard(
-                      title: t['business_stats_taxes_est'] ?? 'Impuestos Est.',
-                      value:
-                          '\$${stats.stats.taxEstimation.toStringAsFixed(2)}',
-                      isPositive: false,
-                      icon: Icons.account_balance,
-                      color: Colors.purpleAccent,
-                      trend:
-                          '15% ${(t['business_stats_est_suffix'] ?? 'Est.')}',
-                    ),
-                  ],
-                ),
               ],
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(
-              child: Text(
-                '${(t['business_stats_error'] ?? 'Error loading stats')}: $err',
+
+              const SizedBox(height: 24),
+
+              // Projections & Wallet
+              Text(
+                t['business_projections_title'] ?? 'Proyecciones y Flujo',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      context,
+                      t['business_projections_pending'] ?? 'Por Cerrar',
+                      '\$${stats.stats.potentialRevenue.toStringAsFixed(2)}',
+                      Icons.pending_actions,
+                      Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      context,
+                      t['business_projections_lost'] ?? 'Dinero Perdido',
+                      '\$${stats.stats.lostRevenue.toStringAsFixed(2)}',
+                      Icons.money_off,
+                      Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildStatCard(
+                context,
+                t['business_stats_wallet_injections'] ?? 'Ingresos a Wallet',
+                '\$${stats.stats.walletInjections.toStringAsFixed(2)}',
+                Icons.account_balance_wallet,
+                Colors.blue,
+              ),
+
+              const SizedBox(height: 24),
+
+              // 3. STATS CARDS (GRID)
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 1.4,
+                children: [
+                  _StatCard(
+                    title:
+                        t['business_stats_total_income'] ?? 'Ingresos Totales',
+                    value: '\$${stats.stats.totalIncome.toStringAsFixed(2)}',
+                    trend:
+                        '${stats.stats.incomeGrowth >= 0 ? "+" : ""}${stats.stats.incomeGrowth.toStringAsFixed(1)}%',
+                    isPositive: stats.stats.incomeGrowth >= 0,
+                    icon: Icons.attach_money,
+                    color: Colors.green,
+                  ),
+                  _StatCard(
+                    title: t['business_stats_expenses'] ?? 'Gastos',
+                    value: '\$${stats.stats.totalExpense.toStringAsFixed(2)}',
+                    trend:
+                        '${stats.stats.expenseGrowth >= 0 ? "+" : ""}${stats.stats.expenseGrowth.toStringAsFixed(1)}%',
+                    isPositive: stats.stats.expenseGrowth <= 0,
+                    icon: Icons.trending_down,
+                    color: Colors.redAccent,
+                  ),
+                  _StatCard(
+                    title: t['business_stats_net_profit'] ?? 'Ganancia Neta',
+                    value: '\$${stats.stats.profit.toStringAsFixed(2)}',
+                    trend:
+                        '${stats.stats.margin.toStringAsFixed(1)}% ${(t['business_stats_margin'] ?? 'Margen')}',
+                    isPositive: stats.stats.profit >= 0,
+                    icon: Icons.pie_chart,
+                    color: Colors.blueAccent,
+                  ),
+                  _StatCard(
+                    title: t['business_stats_avg_ticket'] ?? 'Ticket Promedio',
+                    value: '\$${stats.stats.averageTicket.toStringAsFixed(2)}',
+                    isPositive: true,
+                    icon: Icons.receipt_long,
+                    color: Colors.orangeAccent,
+                  ),
+                  _StatCard(
+                    title: t['business_stats_taxes_est'] ?? 'Impuestos Est.',
+                    value: '\$${stats.stats.taxEstimation.toStringAsFixed(2)}',
+                    isPositive: false,
+                    icon: Icons.account_balance,
+                    color: Colors.purpleAccent,
+                    trend: '15% ${(t['business_stats_est_suffix'] ?? 'Est.')}',
+                  ),
+                ],
+              ),
+            ],
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+            child: Text(
+              '${(t['business_stats_error'] ?? 'Error loading stats')}: $err',
             ),
           ),
+        ),
 
-          const SizedBox(height: 32),
+        const SizedBox(height: 32),
 
-          // 4. WALLET PREVIEW
-          Text(
-            t['business_wallet_title'] ?? 'Billetera Virtual',
-            style: GoogleFonts.outfit(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const BusinessWalletWidget(),
+        // 4. WALLET PREVIEW
+        Text(
+          t['business_wallet_title'] ?? 'Billetera Virtual',
+          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        const BusinessWalletWidget(),
 
-          // SizedBox for bottom padding
-          const SizedBox(height: 100),
-        ],
-      ),
+        if (includeBottomPadding) const SizedBox(height: 100),
+      ],
     );
   }
 

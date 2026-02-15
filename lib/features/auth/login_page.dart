@@ -14,6 +14,7 @@ import '../../system_ui/layout/grid.dart';
 import '../../system_ui/typography.dart';
 import '../../system_ui/feedback/toasts.dart';
 import 'controllers/login_controller.dart';
+import 'widgets/auth_desktop_split.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -59,7 +60,32 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     final isLoading = ref.watch(loginControllerProvider).isLoading;
-    final t = ref.watch(translationProvider).value ?? {};
+    final Map<String, dynamic> t = <String, dynamic>{
+      ...((ref.watch(translationProvider).value) ?? const <String, String>{}),
+    };
+
+    final isDesktop = MediaQuery.sizeOf(context).width >= AppBreakpoints.laptop;
+
+    if (isDesktop) {
+      return GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          body: AuthDesktopSplit(
+            left: _buildLoginForm(t: t, isLoading: isLoading),
+            headline: 'Connek',
+            description:
+                'Conecta con clientes, gestiona tu negocio y crece desde un solo lugar.',
+            rightBackground: AuthAutoImageSlideshow(
+              assets: [
+                'assets/images/loginWeb.png',
+                'assets/images/bgbusinessWeb.png',
+                'assets/images/top-view-man-relaxing-spa.jpg',
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -69,175 +95,159 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           slivers: [
             const _LoginHeader(),
             SliverToBoxAdapter(
-              child: AppContainer(
-                maxWidth: AppBreakpoints.tablet,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.center, // Center title info
-                    children: [
-                      const SizedBox(height: AppSpacing.l),
+              child: _buildLoginForm(t: t, isLoading: isLoading),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                      // Title
-                      AppText.h2(
-                        t['login_title'] ?? 'Welcome Back',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.s),
-                      AppText.muted(
-                        'Please enter your details to sign in',
-                        textAlign: TextAlign.center,
-                      ),
+  Widget _buildLoginForm({
+    required Map<String, dynamic> t,
+    required bool isLoading,
+  }) {
+    return AppContainer(
+      maxWidth: AppBreakpoints.tablet,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: AppSpacing.l),
 
-                      const SizedBox(height: AppSpacing.xl),
+            AppText.h2(
+              t['login_title'] ?? 'Welcome Back',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.s),
+            AppText.muted(
+              'Please enter your details to sign in',
+              textAlign: TextAlign.center,
+            ),
 
-                      // Social Buttons (Top)
-                      _SocialButtonsv2(t: t, isLoading: isLoading),
+            const SizedBox(height: AppSpacing.xl),
+            _SocialButtonsv2(t: t, isLoading: isLoading),
+            const SizedBox(height: AppSpacing.l),
 
-                      const SizedBox(height: AppSpacing.l),
-
-                      // Divider
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.m,
-                            ),
-                            child: AppText.muted(t['or_divider'] ?? 'or'),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-
-                      const SizedBox(height: AppSpacing.l),
-
-                      // Form (Aligned to start)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Email
-                            AppLabel(
-                              text: t['email_label'] ?? 'Email address',
-                              isRequired: true,
-                            ),
-                            const SizedBox(height: AppSpacing.s),
-                            AppInput.text(
-                              controller: _emailCtrl,
-                              placeholder:
-                                  t['email_hint'] ?? 'Enter your email address',
-                              keyboardType: TextInputType.emailAddress,
-                            ),
-                            const SizedBox(height: AppSpacing.m),
-
-                            // Password
-                            AppLabel(
-                              text: t['password_label'] ?? 'Password',
-                              isRequired: true,
-                            ),
-                            const SizedBox(height: AppSpacing.s),
-                            AppInput.text(
-                              controller: _passCtrl,
-                              placeholder: '••••••••',
-                              obscureText: _obscurePass,
-                              trailing: ShadButton.ghost(
-                                width: 24,
-                                height: 24,
-                                padding: EdgeInsets.zero,
-                                child: Icon(
-                                  _obscurePass
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  size: 16,
-                                ),
-                                onPressed: () => setState(
-                                  () => _obscurePass = !_obscurePass,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: AppSpacing.m),
-
-                      // Options
-                      Wrap(
-                        alignment: WrapAlignment.spaceBetween,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        runSpacing: AppSpacing.s,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Transform.scale(
-                                scale: 0.9,
-                                child: AppSwitch(
-                                  checked: _rememberMe,
-                                  onCheckedChange: (v) =>
-                                      setState(() => _rememberMe = v),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.s),
-                              AppText.small(t['remember_me'] ?? 'Remember Me'),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () => context.push('/forgot-password'),
-                            child: AppText.small(
-                              t['forgot_password'] ?? 'Forgot Password?',
-                              color: ShadTheme.of(context).colorScheme.primary,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Actions
-                      if (isLoading)
-                        const Center(child: CircularProgressIndicator())
-                      else
-                        AppButton.primary(
-                          text: t['sign_in_button'] ?? 'Sign in',
-                          width: double.infinity,
-                          onPressed: _onSignIn,
-                        ),
-
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Footer
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AppText.muted(
-                            t['no_account'] ?? "New on our platform? ",
-                          ),
-                          InkWell(
-                            onTap: () => context.push('/register'),
-                            child: AppText.small(
-                              t['sign_up_link'] ?? 'Create an account',
-                              color: ShadTheme.of(context).colorScheme.primary,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                    ],
-                  ),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                  child: AppText.muted(t['or_divider'] ?? 'or'),
                 ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.l),
+
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppLabel(
+                    text: t['email_label'] ?? 'Email address',
+                    isRequired: true,
+                  ),
+                  const SizedBox(height: AppSpacing.s),
+                  AppInput.text(
+                    controller: _emailCtrl,
+                    placeholder: t['email_hint'] ?? 'Enter your email address',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  AppLabel(
+                    text: t['password_label'] ?? 'Password',
+                    isRequired: true,
+                  ),
+                  const SizedBox(height: AppSpacing.s),
+                  AppInput.text(
+                    controller: _passCtrl,
+                    placeholder: '••••••••',
+                    obscureText: _obscurePass,
+                    trailing: ShadButton.ghost(
+                      width: 24,
+                      height: 24,
+                      padding: EdgeInsets.zero,
+                      child: Icon(
+                        _obscurePass ? Icons.visibility : Icons.visibility_off,
+                        size: 16,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePass = !_obscurePass),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            const SizedBox(height: AppSpacing.m),
+
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: AppSpacing.s,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: 0.9,
+                      child: AppSwitch(
+                        checked: _rememberMe,
+                        onCheckedChange: (v) => setState(() => _rememberMe = v),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s),
+                    AppText.small(t['remember_me'] ?? 'Remember Me'),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () => context.push('/forgot-password'),
+                  child: AppText.small(
+                    t['forgot_password'] ?? 'Forgot Password?',
+                    color: ShadTheme.of(context).colorScheme.primary,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.xl),
+
+            if (isLoading)
+              const Center(child: CircularProgressIndicator())
+            else
+              AppButton.primary(
+                text: t['sign_in_button'] ?? 'Sign in',
+                width: double.infinity,
+                onPressed: _onSignIn,
+              ),
+
+            const SizedBox(height: AppSpacing.xl),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AppText.muted(t['no_account'] ?? 'New on our platform? '),
+                InkWell(
+                  onTap: () => context.push('/register'),
+                  child: AppText.small(
+                    t['sign_up_link'] ?? 'Create an account',
+                    color: ShadTheme.of(context).colorScheme.primary,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),

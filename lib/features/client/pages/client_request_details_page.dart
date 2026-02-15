@@ -4,6 +4,9 @@ import '../models/service_request_model.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/client_requests_provider.dart';
 import '../services/client_requests_service.dart';
+import '../services/client_wallet_service.dart';
+import '../../settings/providers/profile_provider.dart';
+import '../providers/wallet_provider.dart';
 
 final _clientRequestDetailsProvider =
     FutureProvider.family<ServiceRequest?, int>((ref, requestId) async {
@@ -32,6 +35,59 @@ class _ClientRequestDetailsPageState
       final ok = await service.acceptProposal(q.id, q.leadId);
       if (!mounted) return;
       if (ok) {
+        // If we can identify the business, attempt payment right away.
+        try {
+          final profileState = ref.read(profileProvider);
+          final clientId = profileState.value?.id;
+          if (clientId != null && q.businessId != null) {
+            final walletService = ref.read(clientWalletServiceProvider);
+            final methods = await walletService.getPaymentMethods(
+              clientId: clientId,
+            );
+
+            final typedMethods = methods
+                .whereType<Map>()
+                .map((m) => Map<String, dynamic>.from(m))
+                .toList();
+
+            final defaultMethod = typedMethods.firstWhere(
+              (m) => m['default_method'] == true,
+              orElse: () => typedMethods.isNotEmpty ? typedMethods.first : {},
+            );
+
+            final paymentMethodId = defaultMethod['id'] as int?;
+
+            if (paymentMethodId != null) {
+              await walletService.chargePurchase(
+                clientId: clientId,
+                businessId: q.businessId!,
+                serviceId: q.serviceId,
+                amountCents: (q.amount * 100).round(),
+                paymentMethodId: paymentMethodId,
+                description: q.description.isNotEmpty
+                    ? q.description
+                    : 'Compra de servicio',
+              );
+
+              // Refresh wallet state so transactions/balance update.
+              ref.invalidate(walletProvider);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Oferta aceptada, pero no se encontró un método de pago. Agrega uno en tu Wallet.',
+                  ),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          // Keep acceptance, but surface payment error.
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Oferta aceptada, pero el pago falló: $e')),
+          );
+        }
+
         ref.invalidate(clientRequestsProvider);
         ref.invalidate(_clientRequestDetailsProvider(widget.request.id));
         ScaffoldMessenger.of(context).showSnackBar(

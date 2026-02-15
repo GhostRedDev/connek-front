@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 /// React-style Component: AppPagination
 /// Props: currentPage, totalPages, onPageChange
@@ -17,10 +16,24 @@ class AppPagination extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadPagination(
-      page: currentPage,
-      total: totalPages,
-      onChanged: onPageChange,
+    final canPrev = currentPage > 1;
+    final canNext = currentPage < totalPages;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: canPrev ? () => onPageChange(currentPage - 1) : null,
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous',
+        ),
+        Text('$currentPage / $totalPages'),
+        IconButton(
+          onPressed: canNext ? () => onPageChange(currentPage + 1) : null,
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next',
+        ),
+      ],
     );
   }
 }
