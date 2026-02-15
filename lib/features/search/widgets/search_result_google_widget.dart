@@ -8,11 +8,14 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'search_bar_widget.dart';
 import 'search_result_google_card.dart';
+import 'search_result_service_card.dart';
+import 'package:connek_frontend/features/search/models/business_model.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../system_ui/core/constants.dart';
 import '../providers/search_provider.dart';
 import '../providers/job_search_provider.dart';
 import 'search_result_job_card.dart';
+import '../models/service_search_item.dart';
 
 // Local state provider for the selected tab
 // Local Notifier for the selected tab
@@ -100,19 +103,43 @@ class _SearchResultGoogleWidgetState
 
     final jobsAsync = ref.watch(jobSearchProvider(searchState.query));
 
-    // Filter results based on selected tab
-    final filteredResults = searchState.results.where((business) {
-      if (selectedTab == 'Google') {
-        return business.id < 0; // Negative ID for Google results
-      }
+    // Filter results based on selected tab.
+    // Backend marks service-only hits as category == 'Service Result'
+    // and Google hits as negative IDs with category == 'Google Result'.
+    const serviceResultCategory = 'Service Result';
 
-      if (selectedTab == 'Trabajos') {
-        return false;
-      }
+    final List<Business> googleResults = searchState.results
+        .where((b) => b.id < 0)
+        .toList();
+    final List<Business> localResults = searchState.results
+        .where((b) => b.id > 0)
+        .toList();
+    final List<Business> serviceResults = localResults
+        .where((b) => (b.category ?? '') == serviceResultCategory)
+        .toList();
+    final List<Business> businessResults = localResults
+        .where((b) => (b.category ?? '') != serviceResultCategory)
+        .toList();
 
-      // 'Servicios' or 'Empresas' -> Show all local businesses
-      return business.id > 0;
-    }).toList();
+    final List<Business> filteredResults = switch (selectedTab) {
+      'Google' => googleResults,
+      'Servicios' => serviceResults,
+      'Empresas' => businessResults,
+      'Trabajos' => const <Business>[],
+      _ => localResults,
+    };
+
+    final List<ServiceSearchItem> serviceItems = selectedTab == 'Servicios'
+        ? filteredResults
+              .where((b) => b.services.isNotEmpty)
+              .map(
+                (b) => ServiceSearchItem.fromBusinessAndService(
+                  business: b,
+                  service: b.services.first,
+                ),
+              )
+              .toList()
+        : const <ServiceSearchItem>[];
 
     return Stack(
       children: [
@@ -281,12 +308,14 @@ class _SearchResultGoogleWidgetState
                               ],
                             ),
                           )
-                        else if (filteredResults.isNotEmpty)
+                        else if ((selectedTab == 'Servicios'
+                            ? serviceItems.isNotEmpty
+                            : filteredResults.isNotEmpty))
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${filteredResults.length} resultados de ${searchState.results.length} para: ${searchState.query}',
+                                '${selectedTab == 'Servicios' ? serviceItems.length : filteredResults.length} resultados de ${searchState.results.length} para: ${searchState.query}',
                                 style: GoogleFonts.inter(
                                   color: textColor,
                                   fontSize: 14,
@@ -294,19 +323,33 @@ class _SearchResultGoogleWidgetState
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: filteredResults.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: 16),
-                                itemBuilder: (context, index) {
-                                  final business = filteredResults[index];
-                                  return SearchResultGoogleCard(
-                                    business: business,
-                                  );
-                                },
-                              ),
+                              if (selectedTab == 'Servicios')
+                                ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: serviceItems.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    return SearchResultServiceCard(
+                                      service: serviceItems[index],
+                                    );
+                                  },
+                                )
+                              else
+                                ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: filteredResults.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    final business = filteredResults[index];
+                                    return SearchResultGoogleCard(
+                                      business: business,
+                                    );
+                                  },
+                                ),
                             ],
                           ),
                       ],

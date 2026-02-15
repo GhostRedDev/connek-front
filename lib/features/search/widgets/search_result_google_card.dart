@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -59,6 +60,19 @@ class SearchResultGoogleCard extends ConsumerWidget {
           context,
         ).showSnackBar(SnackBar(content: Text('Could not launch URL: $e')));
       }
+    }
+  }
+
+  Future<void> _copyInviteToConnek(BuildContext context) async {
+    final inviteText =
+        'Hola ${business.name}, te invito a unirte a Connek para que más clientes puedan encontrarte y contactarte. '
+        'Si quieres registrarte, busca "Connek" en tu tienda de apps o contáctanos en support@connek.com.';
+
+    await Clipboard.setData(ClipboardData(text: inviteText));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invitación copiada al portapapeles')),
+      );
     }
   }
 
@@ -508,32 +522,71 @@ class SearchResultGoogleCard extends ConsumerWidget {
                         Column(
                           children: [
                             if (isGoogleResult)
-                              SizedBox(
-                                width: double.infinity,
-                                height: 47,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    _launchMap(context, business.description);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    side: const BorderSide(
-                                      color: Color(0xFFE0E3E7),
+                              Column(
+                                children: [
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 47,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        _launchMap(
+                                          context,
+                                          business.description,
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        side: const BorderSide(
+                                          color: Color(0xFFE0E3E7),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            25,
+                                          ),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: Text(
+                                        t['search_view_map'] ?? 'Ver en Mapa',
+                                        style: GoogleFonts.outfit(
+                                          color: const Color(0xFF14181B),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(25),
-                                    ),
-                                    elevation: 0,
                                   ),
-                                  child: Text(
-                                    t['search_view_map'] ?? 'Ver en Mapa',
-                                    style: GoogleFonts.outfit(
-                                      color: const Color(0xFF14181B),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 47,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        _copyInviteToConnek(context);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF4F87C9,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            25,
+                                          ),
+                                        ),
+                                        elevation: 2,
+                                      ),
+                                      child: Text(
+                                        t['search_invite_connek'] ??
+                                            'Invitar a Connek',
+                                        style: GoogleFonts.outfit(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               )
                             else
                               Row(

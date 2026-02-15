@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class BusinessSearchResponse {
   final bool success;
   final List<Business> data;
@@ -88,6 +90,35 @@ class Service {
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
+    List<Map<String, dynamic>>? parseCustomForm(dynamic value) {
+      if (value == null) return null;
+      if (value is List) {
+        return value
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty || trimmed.toLowerCase() == 'null') return null;
+        try {
+          final decoded = jsonDecode(trimmed);
+          if (decoded is List) {
+            return decoded
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+          }
+          if (decoded is Map) {
+            return [Map<String, dynamic>.from(decoded)];
+          }
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
     return Service(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -95,9 +126,7 @@ class Service {
           (json['price'] as num?)?.toDouble() ??
           ((json['price_cents'] as num?)?.toDouble() ?? 0.0) / 100,
       image: json['image'],
-      customForm: json['custom_form'] != null
-          ? List<Map<String, dynamic>>.from(json['custom_form'])
-          : null,
+      customForm: parseCustomForm(json['custom_form']),
     );
   }
 }

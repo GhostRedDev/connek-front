@@ -368,11 +368,6 @@ class BookingService {
         fields['custom_form_answers'] = jsonEncode(customFormAnswers);
       }
 
-<<<<<<< HEAD
-      await _apiService.postForm('/bookings/create', fields: fields);
-
-      return true;
-=======
       final response = await _apiService.postForm(
         '/bookings/create',
         fields: fields,
@@ -387,7 +382,6 @@ class BookingService {
         '⚠️ CreateClientBooking: Failed - ${response?['error'] ?? 'Unknown error'}',
       );
       return false;
->>>>>>> 39d300f (Refactor UI components to remove dependency on shadcn_ui and implement custom widgets)
     } catch (e) {
       print('Error creating client booking via API: $e. Using DB Fallback.');
 
@@ -420,8 +414,6 @@ class BookingService {
         print('Direct DB Error creating booking: $dbError');
         return false;
       }
-<<<<<<< HEAD
-=======
     }
   }
 
@@ -480,7 +472,6 @@ class BookingService {
     } catch (e) {
       print('❌ Error updating booking [$numericId]: $e');
       return false;
->>>>>>> 39d300f (Refactor UI components to remove dependency on shadcn_ui and implement custom widgets)
     }
   }
 
